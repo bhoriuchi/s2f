@@ -1,5 +1,5 @@
 export default {
-  extendFields: ['Named', 'Described'],
+  extendFields: ['Entity', 'Named', 'Described'],
   fields: {
     type: {
       description: 'The data type of the parameter',

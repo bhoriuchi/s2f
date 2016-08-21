@@ -1,5 +1,7 @@
-import Date from 'graphql-custom-datetype'
+import DateType from 'graphql-custom-datetype'
+import JSONType from 'graphql-type-json'
 
 export default {
-  Date
+  DateType,
+  JSONType
 }

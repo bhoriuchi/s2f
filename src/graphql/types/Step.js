@@ -49,9 +49,8 @@ export default {
       nullable: false
     },
     fail: {
-      description: 'Step to execute on failure',
-      type: 'String',
-      nullable: false
+      description: 'Step to execute on failure, defaults to end',
+      type: 'String'
     },
     inputs: {
       description: 'Input parameters associated with the step',

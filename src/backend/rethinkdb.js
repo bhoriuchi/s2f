@@ -13,6 +13,8 @@ import _ from 'lodash'
  */
 
 const DEFAULT_TABLES = {
+  Parameter: 'parameter',
+  ParameterRun: 'parameter_run',
   Step: 'step',
   StepRun: 'step_run',
   Task: 'task',
@@ -46,9 +48,10 @@ export default function RethinkDBBackend (r, opts = {}, connection) {
       })
   }
 
-  /*
+  /* REQUIRED METHOD
+   *
    * Description
-   *   - Initializes a store
+   *   * Initializes a store
    *
    * Parameters
    *   * type - Store type
@@ -79,5 +82,57 @@ export default function RethinkDBBackend (r, opts = {}, connection) {
       .then(() => createTable(tableName))
       .then(() => cb())
       .catch((err) => cb(err))
+  }
+
+  /* REQUIRED METHOD
+   *
+   * Description
+   *   * Initializes all stores
+   *
+   * Parameters
+   *   * rebuild - boolean - destroys and recreates store, optional
+   *   * seedData - hash of arrays where key is type - inserts data, optional
+   *   * cb - error first callback - returns error/success, required
+   */
+  let initAllStores = function (rebuild, seedData, cb) {
+    if (!_.isBoolean(rebuild)) {
+      cb = seedData
+      seedData = rebuild
+      rebuild = false
+    }
+    if (_.isFunction(seedData)) {
+      cb = seedData
+      seedData = {}
+    }
+    if (!_.isFunction(cb)) throw new Error('A callback is required but was not specified')
+
+    let ops = _.map(tables, (name, type) => {
+      let data = _.get(seedData, type, [])
+      data = _.isArray(data) ? data : []
+      return new Promise((resolve, reject) => {
+        return initStore(type, rebuild, data, (err) => {
+          if (err) return reject(err)
+          return resolve()
+        })
+      })
+    })
+    return Promise.all(ops)
+      .then(() => cb())
+      .catch((err) => cb(err))
+  }
+
+  /* REQUIRED METHOD
+   *
+   * Description
+   *   * Creates a new workflow. This method is used as a GraphQL resolve function
+   *     so the function signature should be the same
+   */
+  let createWorkflow = function (source, args, context, info) {
+
+  }
+
+  return {
+    initAllStores,
+    initStore
   }
 }
