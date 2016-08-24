@@ -6,6 +6,8 @@ import Step from './Step'
 import StepTypeEnum from './StepTypeEnum'
 import Task from './Task'
 import Workflow from './Workflow'
+import WorkflowQuery from './WorkflowQuery'
+import WorkflowMutation from './WorkflowMutation'
 // import WorkflowRun from './WorkflowRun'
 
 export { Parameter }
@@ -16,6 +18,8 @@ export { Step }
 export { StepTypeEnum }
 export { Task }
 export { Workflow }
+export { WorkflowQuery }
+export { WorkflowMutation }
 // export { WorkflowRun }
 
 export default {
@@ -26,6 +30,8 @@ export default {
   // StepRun,
   StepTypeEnum,
   Task,
-  Workflow
+  Workflow,
+  WorkflowQuery,
+  WorkflowMutation
   // WorkflowRun
 }

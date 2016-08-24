@@ -1,4 +1,4 @@
-import rethinkdb from './rethinkdb'
+import rethinkdb from './rethinkdb/index'
 
 export { rethinkdb }
 

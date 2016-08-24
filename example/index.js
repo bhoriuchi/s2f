@@ -1,2 +1,3 @@
 require('babel-register')
-require('./example')
+// require('./example')
+require('./test')

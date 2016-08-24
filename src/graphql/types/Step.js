@@ -20,7 +20,7 @@ export default {
     },
     timeout: {
       description: 'Time in ms to allow the step to run before timing out',
-      type: 'Number',
+      type: 'Int',
       nullable: false
     },
     failsWorkflow: {
@@ -36,11 +36,6 @@ export default {
     requireResumeKey: {
       description: 'Used with waitOnSuccess. The StepRun key is required to initiate a workflow resume',
       type: 'Boolean',
-      nullable: false
-    },
-    workflow: {
-      description: 'The workflow this step is a member of',
-      type: 'String',
       nullable: false
     },
     success: {

@@ -25,6 +25,7 @@
   "dependencies": {
     "graphql": "^0.6.0",
     "graphql-factory": "^0.4.0",
+    "graphql-factory-temporal": "git+https://github.com/bhoriuchi/graphql-factory-temporal.git#master",
     "graphql-custom-datetype": "^0.3.0",
     "graphql-type-json": "^0.1.2",
     "lodash": "^4.13.1",
