@@ -6,8 +6,8 @@ let r = rethinkdbdash()
 let backend = new Backend(r, graphql)
 let lib = gql(backend)
 
-// lib.Workflow('mutation Mutation { createWorkflow (name: "TEST") { name, steps { id, type } } }')
-lib.Workflow('{ getWorkflow}')
+lib.Workflow('mutation Mutation { createWorkflow (name: "TEST") { name, steps { id, type } } }')
+// lib.Workflow('{ getWorkflow }')
   .then((res) => {
   console.log(JSON.stringify(res, null, '  '))
   process.exit()

@@ -13,7 +13,8 @@ import _ from 'lodash'
 import TemporalPlugin from 'graphql-factory-temporal'
 import { rethinkdb as TemporalBackend } from 'graphql-factory-temporal/backend'
 import { createTable, DEFAULT_TABLES } from './common'
-import createWorkflow from './createWorkflow'
+// import createWorkflow from './createWorkflow'
+import { create as createWorkflow } from './workflow'
 import getWorkflow from './getWorkflow'
 
 /*
@@ -39,11 +40,12 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
   })
 
   // initialize the temporal plugin
-  let temporalBackend = new TemporalBackend(this._r, this._graphql, { tables: this._tables }, this._connection)
+  let backendOptions = { tables: this._tables, prefix: this._prefix }
+  let temporalBackend = new TemporalBackend(this._r, this._graphql, backendOptions, this._connection)
   this.plugin = TemporalPlugin(temporalBackend)
 
   this.functions = {
-    createWorkflow: createWorkflow(this._r, this._connection),
+    createWorkflow: createWorkflow(this),
     getWorkflow: getWorkflow(this._r, this._connection)
   }
 }
@@ -52,7 +54,7 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
 RethinkDBBackend.prototype.initStore = function (type, rebuild, seedData) {
   let dbc = this._db
   let tableName = _.get(this._tables, `${type}.table`)
-  if (!tableName) throw new Error('Invalid store type')
+  if (!tableName) throw new Error('Invalid table config')
 
   // analyze the arguments
   if (!_.isBoolean(rebuild)) {
@@ -63,7 +65,7 @@ RethinkDBBackend.prototype.initStore = function (type, rebuild, seedData) {
   return dbc.tableList()
     .filter((name) => name.eq(tableName))
     .forEach((name) => rebuild ? dbc.tableDrop(name) : dbc.table(tableName).delete())
-    .run(connection)
+    .run(this._connection)
     .then(() => createTable(dbc, tableName))
 }
 
@@ -73,9 +75,9 @@ RethinkDBBackend.prototype.initAllStores = function (rebuild, seedData) {
     rebuild = false
   }
 
-  let ops = _.map(tables, (name, type) => {
+  let ops = _.map(this._tables, (t, type) => {
     let data = _.get(seedData, type, [])
-    return initStore(type, rebuild, _.isArray(data) ? data : [])
+    return this.initStore(type, rebuild, _.isArray(data) ? data : [])
   })
 
   return Promise.all(ops)

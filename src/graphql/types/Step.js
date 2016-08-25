@@ -1,5 +1,5 @@
 export default {
-  extendFields: ['Entity', 'Named', 'Described'],
+  extendFields: ['TemporalType', 'Entity', 'Named', 'Described'],
   fields: {
     type: {
       description: 'Step type (condition, loop, fork, join, workflow, task, etc...)',

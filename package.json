@@ -19,7 +19,8 @@
     "test:compile": "npm run build && mocha test/index.js -t 'unit.compile'",
     "test:utils": "npm run build && mocha test/index.js -t 'unit.utils'",
     "test:types": "npm run build && mocha test/index.js -t 'unit.types'",
-    "test:query": "npm run build && mocha test/index.js -t 'unit.query'"
+    "test:query": "npm run build && mocha test/index.js -t 'unit.query'",
+    "copytemporal": "cp ../graphql-factory-temporal/*.js node_modules/graphql-factory-temporal/"
   },
   "author": "Branden Horiuchi <bhoriuchi@gmail.com>",
   "dependencies": {
