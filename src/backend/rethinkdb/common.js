@@ -10,6 +10,10 @@ export const DEFAULT_TABLES = {
   Step: {
     name: 'step',
     unique: []
+  },
+  Parameter: {
+    name: 'parameter',
+    unique: []
   }
 }
 

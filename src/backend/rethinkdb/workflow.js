@@ -46,8 +46,10 @@ export function create (backend) {
 }
 
 export function read (backend) {
+  let connection = backend._connection
   return function (source, args, context, info) {
-
+    let { filterTemporalWorkflow } = this.globals._temporal
+    return filterTemporalWorkflow(args).run(connection)
   }
 }
 
@@ -68,5 +70,7 @@ export function del (backend) {
 export default {
   cloneWorkflow,
   create,
-  read
+  read,
+  update,
+  del
 }

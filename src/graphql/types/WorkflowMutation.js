@@ -31,6 +31,49 @@ export default {
         }
       },
       resolve: 'createWorkflow'
+    },
+    createStep: {
+      type: 'Step',
+      args: {
+        workflowId: {
+          type: 'String',
+          nullable: false
+        },
+        name: {
+          type: 'String',
+          nullable: false
+        },
+        type: {
+          type: 'StepTypeEnum',
+          nullable: false
+        },
+        source: 'String',
+        task: 'String',
+        subWorkflow: 'String',
+        timeout: {
+          type: 'Int',
+          defaultValue: 0
+        },
+        failsWorkflow: {
+          type: 'Boolean',
+          defaultValue: false
+        },
+        waitOnSuccess: {
+          type: 'Boolean',
+          defaultValue: false
+        },
+        requireResumeKey: {
+          type: 'Boolean',
+          defaultValue: false
+        },
+        success: {
+          type: 'String'
+        },
+        fail: {
+          type: 'String'
+        }
+      },
+      resolve: 'createStep'
     }
   }
 }

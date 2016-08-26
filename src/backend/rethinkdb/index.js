@@ -13,9 +13,14 @@ import _ from 'lodash'
 import TemporalPlugin from 'graphql-factory-temporal'
 import { rethinkdb as TemporalBackend } from 'graphql-factory-temporal/backend'
 import { createTable, DEFAULT_TABLES } from './common'
-// import createWorkflow from './createWorkflow'
-import { create as createWorkflow } from './workflow'
-import getWorkflow from './getWorkflow'
+import {
+  create as createWorkflow,
+  read as readWorkflow
+} from './workflow'
+import {
+  create as createStep,
+  read as readStep
+} from './step'
 
 /*
  * r - rethinkdb cursor
@@ -46,7 +51,9 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
 
   this.functions = {
     createWorkflow: createWorkflow(this),
-    getWorkflow: getWorkflow(this._r, this._connection)
+    readWorkflow: readWorkflow(this),
+    createStep: createStep(this),
+    readStep: readStep(this)
   }
 }
 

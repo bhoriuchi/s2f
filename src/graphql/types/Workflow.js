@@ -7,7 +7,8 @@ export default {
     },
     steps: {
       description: 'Steps in the workflow',
-      type: ['Step']
+      type: ['Step'],
+      resolve: 'readStep'
     }
   }
 }
