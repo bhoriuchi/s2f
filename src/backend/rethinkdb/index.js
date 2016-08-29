@@ -21,6 +21,16 @@ import {
   create as createStep,
   read as readStep
 } from './step'
+import {
+  createGlobalParameter,
+  createInputParameter,
+  createOutputParameter,
+  read as readParameter,
+  updateGlobalParameter,
+  updateLocalParameter,
+  deleteGlobalParameter,
+  deleteLocalParameter
+} from './parameter'
 
 /*
  * r - rethinkdb cursor
@@ -53,7 +63,15 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
     createWorkflow: createWorkflow(this),
     readWorkflow: readWorkflow(this),
     createStep: createStep(this),
-    readStep: readStep(this)
+    readStep: readStep(this),
+    createGlobalParameter: createGlobalParameter(this),
+    createInputParameter: createInputParameter(this),
+    createOutputParameter: createOutputParameter(this),
+    readParameter: readParameter(this),
+    updateGlobalParameter: updateGlobalParameter(this),
+    updateLocalParameter: updateLocalParameter(this),
+    deleteGlobalParameter: deleteGlobalParameter(this),
+    deleteLocalParameter: deleteLocalParameter(this)
   }
 }
 

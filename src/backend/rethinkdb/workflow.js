@@ -15,29 +15,31 @@ export function create (backend) {
           id: startId,
           name: 'Start',
           description: 'Starting point of the workflow',
-          type: 'Start',
+          type: 'START',
           timeout: 0,
           failsWorkflow: false,
           waitOnSuccess: false,
           requireResumeKey: false,
           success: endId,
-          fail: endId
+          fail: endId,
+          parameters: []
         },
         {
           id: endId,
           name: 'End',
           description: 'Ending point of the workflow',
-          type: 'End',
+          type: 'END',
           timeout: 0,
           failsWorkflow: false,
           waitOnSuccess: false,
           requireResumeKey: false,
           success: endId,
-          fail: endId
+          fail: endId,
+          parameters: []
         }
       ])
     })('changes').do((changes) => {
-      let newArgs = r.expr(args).merge({ steps: changes('new_val')('id') })
+      let newArgs = r.expr(args).merge({ steps: changes('new_val')('id'), parameters: [] })
       return createTemporalWorkflow(newArgs)('changes')('new_val').merge({ steps: changes('new_val') })
     })
       .nth(0)

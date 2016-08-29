@@ -1,6 +1,7 @@
 import Parameter from './Parameter'
 // import ParameterRun from './ParameterRun'
 import ParameterTypeEnum from './ParameterTypeEnum'
+import ParameterScopeEnum from './ParameterScopeEnum'
 import Step from './Step'
 // import StepRun from './StepRun'
 import StepTypeEnum from './StepTypeEnum'
@@ -13,6 +14,7 @@ import WorkflowMutation from './WorkflowMutation'
 export { Parameter }
 // export { ParameterRun }
 export { ParameterTypeEnum }
+export { ParameterScopeEnum }
 export { Step }
 // export { StepRun }
 export { StepTypeEnum }
@@ -26,6 +28,7 @@ export default {
   Parameter,
   // ParameterRun,
   ParameterTypeEnum,
+  ParameterScopeEnum,
   Step,
   // StepRun,
   StepTypeEnum,

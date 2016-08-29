@@ -1,11 +1,11 @@
 export default {
   type: 'Enum',
   values: {
-    Array: 'Array',
-    Boolean: 'Boolean',
-    Date: 'Date',
-    Number: 'Number',
-    Object: 'Object',
-    String: 'String'
+    ARRAY: 'ARRAY',
+    BOOLEAN: 'BOOLEAN',
+    DATE: 'DATE',
+    NUMBER: 'NUMBER',
+    OBJECT: 'OBJECT',
+    STRING: 'STRING'
   }
 }

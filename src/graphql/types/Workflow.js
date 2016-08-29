@@ -3,7 +3,8 @@ export default {
   fields: {
     parameters: {
       description: 'Global parameters',
-      type: ['Parameter']
+      type: ['Parameter'],
+      resolve: 'readParameter'
     },
     steps: {
       description: 'Steps in the workflow',

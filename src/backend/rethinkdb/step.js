@@ -1,10 +1,5 @@
 import _ from 'lodash'
-
-export function newStep (backend, payload, generateIds = true) {
-  let uuid = backend._r.uuid
-  if (generateIds) _.isArray(payload) ? _.forEach(payload, (p) => { p.id = uuid() }) : payload.id = uuid()
-  return backend._db.table(backend._tables.Step.table).insert(payload, { returnChanges: true })
-}
+import { GraphQLError } from 'graphql/error'
 
 export function cloneStep (backend, id) {
 
@@ -14,8 +9,15 @@ export function create (backend) {
   let workflow = backend._db.table(backend._tables.Workflow.table)
   let connection = backend._connection
   return function (source, args, context, info) {
+    let { createTemporalStep } = this.globals._temporal
+
+    if (_.includes(['START', 'END'], args.type)) throw new GraphQLError(`A ${args.type} type can only be added during \
+new workflow creation`)
+
+    args.parameters = []
+
     return workflow.get(args.workflowId).do((wf) => {
-      return newStep(backend, _.omit(args, 'workflowId'))('changes').nth(0)('new_val').do((s) => {
+      return createTemporalStep(_.omit(args, 'workflowId'))('changes').nth(0)('new_val').do((s) => {
         return workflow.get(args.workflowId).update((oldVer) => {
           return {
             steps: oldVer('steps').append(s('id'))
@@ -32,7 +34,10 @@ export function read (backend) {
   let connection = backend._connection
   return function (source, args, context, info) {
     let { isNested, filterTemporalStep } = this.globals._temporal
-    if (isNested(source)) return table.filter((step) => r.expr(source.steps).contains(step('id'))).run(connection)
+    if (isNested(source)) {
+      if (_.isObject(_.get(source, 'steps[0]'))) return source.steps
+      return table.filter((step) => r.expr(source.steps).contains(step('id'))).run(connection)
+    }
     return filterTemporalStep(args).run(connection)
   }
 }
@@ -52,7 +57,6 @@ export function del (backend) {
 
 
 export default {
-  newStep,
   cloneStep,
   create,
   read,

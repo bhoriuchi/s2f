@@ -1,14 +1,14 @@
 export default {
   type: 'Enum',
   values: {
-    Basic: 'Basic',
-    Condition: 'Condition',
-    End: 'End',
-    Fork: 'Fork',
-    Join: 'Join',
-    Loop: 'Loop',
-    Start: 'Start',
-    Task: 'Task',
-    Workflow: 'Workflow'
+    BASIC: 'BASIC',
+    CONDITION: 'CONDITION',
+    END: 'END',
+    FORK: 'FORK',
+    JOIN: 'JOIN',
+    LOOP: 'LOOP',
+    START: 'START',
+    TASK: 'TASK',
+    WORKFLOW: 'WORKFLOW'
   }
 }

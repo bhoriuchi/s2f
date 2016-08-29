@@ -6,6 +6,11 @@ export default {
       type: 'ParameterTypeEnum',
       nullable: false
     },
+    scope: {
+      description: 'The scope of the parameter',
+      type: 'ParameterScopeEnum',
+      nullable: false
+    },
     required: {
       description: 'Parameter is required',
       type: 'Boolean',
@@ -15,9 +20,13 @@ export default {
       description: 'Name of global context parameter to map',
       type: 'String'
     },
-    default: {
+    defaultValue: {
       description: 'Default value',
       type: 'String'
+    },
+    mutable: {
+      description: 'When a workflow or step is published all of its parameters become immutable',
+      type: 'Boolean'
     }
   }
 }

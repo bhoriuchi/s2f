@@ -47,13 +47,10 @@ export default {
       description: 'Step to execute on failure, defaults to end',
       type: 'String'
     },
-    inputs: {
-      description: 'Input parameters associated with the step',
-      type: ['Parameter']
-    },
-    outputs: {
-      description: 'Output parameters associated with the step',
-      type: ['Parameter']
+    parameters: {
+      description: 'Local parameters associated with the step',
+      type: ['Parameter'],
+      resolve: 'readParameter'
     }
   }
 }
