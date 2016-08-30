@@ -1,3 +1,6 @@
+import { isPublished } from './common'
+import { destroyStep } from './step'
+
 export function cloneWorkflow (backend, id) {
 
 }
@@ -54,18 +57,41 @@ export function readWorkflow (backend) {
 }
 
 export function updateWorkflow (backend) {
+  let r = backend._r
+  let table = backend._db.table(backend._tables.Workflow.table)
+  let connection = backend._connection
   return function (source, args, context, info) {
-
+    return isPublished(backend, 'Workflow', args.id).branch(
+      r.error('This workflow is published and cannot be modified'),
+      table.get(args.id)
+        .update(_.omit(args, 'id'))
+        .do(() => table.get(args.id))
+    )
+      .run(connection)
   }
 }
 
 export function deleteWorkflow (backend) {
+  let r = backend._r
+  let step = backend._db.table(backend._tables.Step.table)
+  let workflow = backend._db.table(backend._tables.Workflow.table)
+  let connection = backend._connection
   return function (source, args, context, info) {
-
+    return isPublished(backend, 'Workflow', args.id).branch(
+      r.error('This workflow is published and cannot be deleted'),
+      step.filter({ workflowId: args.id })
+        .map((s) => s('id'))
+        .coerceTo('array')
+        .do((ids) => destroyStep(backend, ids))
+        .do(() => {
+          return workflow.get(args.id)
+            .delete()
+            .do(() => true)
+        })
+    )
+      .run(connection)
   }
 }
-
-
 
 export default {
   cloneWorkflow,

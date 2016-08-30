@@ -6,6 +6,8 @@ let r = rethinkdbdash()
 let backend = new Backend(r, graphql)
 let lib = gql(backend)
 
+lib.Workflow(`mutation Mutation { deleteWorkflow (id: "5eb79314-dbb0-4b0d-8d6a-dff9070df876") }`)
+/*
 lib.Workflow('mutation Mutation { createWorkflow (name: "TEST") { id, name, steps { id, type } } }')
   .then((wf) => {
     if (wf.errors) throw wf.errors
@@ -30,7 +32,7 @@ lib.Workflow('mutation Mutation { createWorkflow (name: "TEST") { id, name, step
       })
   })
 
-
+*/
 // lib.Workflow('mutation Mutation { createWorkflow (name: "TEST") { id, name, steps { id, type } } }')
 // lib.Workflow(`{ readWorkflow (id: "a570d604-4926-4307-a3c6-504ecb9473d2") { id, name, parameters { id, name, type, scope }, steps { id, type, name, parameters { id, name, type, scope } } } }`)
   .then((res) => {

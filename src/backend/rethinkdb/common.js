@@ -31,3 +31,26 @@ export function createTable (dbc, name) {
       throw err
     })
 }
+
+export function isPublished (backend, type, id) {
+  let r = backend._r
+  let table = backend._db.table(backend._tables[type].table)
+  return table.get(id)
+    .do((obj) => {
+      return r.branch(
+        obj.eq(null),
+        r.error(`${type} does not exist`),
+        r.branch(
+          obj('_temporal')('version').ne(null),
+          true,
+          false
+        )
+      )
+    })
+}
+
+export default {
+  DEFAULT_TABLES,
+  createTable,
+  isPublished
+}

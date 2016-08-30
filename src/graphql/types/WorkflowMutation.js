@@ -15,6 +15,21 @@ export default {
       },
       resolve: 'createWorkflow'
     },
+    updateWorkflow: {
+      type: 'Workflow',
+      args: {
+        name: { type: 'String' },
+        description: { type: 'String' }
+      },
+      resolve: 'updateWorkflow'
+    },
+    deleteWorkflow: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'deleteWorkflow'
+    },
     createStep: {
       type: 'Step',
       args: {
@@ -32,6 +47,30 @@ export default {
         fail: { type: 'String' }
       },
       resolve: 'createStep'
+    },
+    updateStep: {
+      type: 'Step',
+      args: {
+        id: { type: 'String', nullable: false },
+        name: { type: 'String' },
+        source: { type: 'String' },
+        task: { type: 'String' },
+        subWorkflow: { type: 'String' },
+        timeout: { type: 'Int' },
+        failsWorkflow: { type: 'Boolean' },
+        waitOnSuccess: { type: 'Boolean' },
+        requireResumeKey: { type: 'Boolean' },
+        success: { type: 'String' },
+        fail: { type: 'String' }
+      },
+      resolve: 'updateStep'
+    },
+    deleteStep: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'deleteStep'
     },
     createParameter: {
       type: 'Parameter',
