@@ -24,9 +24,13 @@ export default {
       description: 'Default value',
       type: 'String'
     },
-    mutable: {
-      description: 'When a workflow or step is published all of its parameters become immutable',
-      type: 'Boolean'
+    workflowId: {
+      description: 'Workflow the parameter belongs to',
+      type: 'String'
+    },
+    stepId: {
+      description: 'Step the parameter belongs to',
+      type: 'String'
     }
   }
 }

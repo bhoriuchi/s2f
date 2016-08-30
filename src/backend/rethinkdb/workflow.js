@@ -2,17 +2,18 @@ export function cloneWorkflow (backend, id) {
 
 }
 
-export function create (backend) {
+export function createWorkflow (backend) {
   let r = backend._r
   let connection = backend._connection
-
   return function (source, args, context, info) {
     let { createTemporalWorkflow, createTemporalStep } = this.globals._temporal
-
-    return r.do(r.uuid(), r.uuid(), (startId, endId) => {
+    return r.do(r.uuid(), r.uuid(), r.uuid(), (wfId, startId, endId) => {
+      args.id = wfId
+      args.entityType = 'WORKFLOW'
       return createTemporalStep([
         {
           id: startId,
+          entityType: 'STEP',
           name: 'Start',
           description: 'Starting point of the workflow',
           type: 'START',
@@ -22,10 +23,11 @@ export function create (backend) {
           requireResumeKey: false,
           success: endId,
           fail: endId,
-          parameters: []
+          workflowId: wfId
         },
         {
           id: endId,
+          entityType: 'STEP',
           name: 'End',
           description: 'Ending point of the workflow',
           type: 'END',
@@ -35,19 +37,15 @@ export function create (backend) {
           requireResumeKey: false,
           success: endId,
           fail: endId,
-          parameters: []
+          workflowId: wfId
         }
-      ])
-    })('changes').do((changes) => {
-      let newArgs = r.expr(args).merge({ steps: changes('new_val')('id'), parameters: [] })
-      return createTemporalWorkflow(newArgs)('changes')('new_val').merge({ steps: changes('new_val') })
+      ]).do(() => createTemporalWorkflow(args)('changes').nth(0)('new_val'))
     })
-      .nth(0)
       .run(connection)
   }
 }
 
-export function read (backend) {
+export function readWorkflow (backend) {
   let connection = backend._connection
   return function (source, args, context, info) {
     let { filterTemporalWorkflow } = this.globals._temporal
@@ -55,13 +53,13 @@ export function read (backend) {
   }
 }
 
-export function update (backend) {
+export function updateWorkflow (backend) {
   return function (source, args, context, info) {
 
   }
 }
 
-export function del (backend) {
+export function deleteWorkflow (backend) {
   return function (source, args, context, info) {
 
   }
@@ -71,8 +69,8 @@ export function del (backend) {
 
 export default {
   cloneWorkflow,
-  create,
-  read,
-  update,
-  del
+  createWorkflow,
+  readWorkflow,
+  updateWorkflow,
+  deleteWorkflow
 }

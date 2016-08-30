@@ -1,3 +1,4 @@
+import EntityTypeEnum from './EntityTypeEnum'
 import Parameter from './Parameter'
 // import ParameterRun from './ParameterRun'
 import ParameterTypeEnum from './ParameterTypeEnum'
@@ -11,6 +12,7 @@ import WorkflowQuery from './WorkflowQuery'
 import WorkflowMutation from './WorkflowMutation'
 // import WorkflowRun from './WorkflowRun'
 
+export { EntityTypeEnum }
 export { Parameter }
 // export { ParameterRun }
 export { ParameterTypeEnum }
@@ -25,6 +27,7 @@ export { WorkflowMutation }
 // export { WorkflowRun }
 
 export default {
+  EntityTypeEnum,
   Parameter,
   // ParameterRun,
   ParameterTypeEnum,

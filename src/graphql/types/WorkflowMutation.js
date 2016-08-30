@@ -33,57 +33,21 @@ export default {
       },
       resolve: 'createStep'
     },
-    createGlobalParameter: {
+    createParameter: {
       type: 'Parameter',
       args: {
-        workflowId: { type: 'String', nullable: false },
         name: { type: 'String', nullable: false },
         description: { type: 'String' },
-        type: { type: 'ParameterTypeEnum', defaultValue: 'STRING' },
-        required: { type: 'Boolean', defaultValue: 'false' },
-        defaultValue: { type: 'String' }
-      },
-      resolve: 'createGlobalParameter'
-    },
-    createInputParameter: {
-      type: 'Parameter',
-      args: {
-        stepId: { type: 'String', nullable: false },
-        name: { type: 'String', nullable: false },
-        description: { type: 'String' },
+        parentId: { type: 'String', nullable: false },
+        scope: { type: 'ParameterScopeEnum', nullable: false },
         type: { type: 'ParameterTypeEnum', defaultValue: 'STRING' },
         required: { type: 'Boolean', defaultValue: 'false' },
         mapsTo: { type: 'String' },
         defaultValue: { type: 'String' }
       },
-      resolve: 'createInputParameter'
+      resolve: 'createParameter'
     },
-    createOutputParameter: {
-      type: 'Parameter',
-      args: {
-        stepId: { type: 'String', nullable: false },
-        name: { type: 'String', nullable: false },
-        description: { type: 'String' },
-        type: { type: 'ParameterTypeEnum', defaultValue: 'STRING' },
-        required: { type: 'Boolean', defaultValue: 'false' },
-        mapsTo: { type: 'String' },
-        defaultValue: { type: 'String' }
-      },
-      resolve: 'createOutputParameter'
-    },
-    updateGlobalParameter: {
-      type: 'Parameter',
-      args: {
-        id: { type: 'String', nullable: false },
-        name: { type: 'String' },
-        description: { type: 'String' },
-        type: { type: 'ParameterTypeEnum' },
-        required: { type: 'Boolean' },
-        defaultValue: { type: 'String' }
-      },
-      resolve: 'updateGlobalParameter'
-    },
-    updateLocalParameter: {
+    updateParameter: {
       type: 'Parameter',
       args: {
         id: { type: 'String', nullable: false },
@@ -94,23 +58,14 @@ export default {
         mapsTo: { type: 'String' },
         defaultValue: { type: 'String' }
       },
-      resolve: 'updateLocalParameter'
+      resolve: 'updateParameter'
     },
-    deleteGlobalParameter: {
+    deleteParameter: {
       type: 'Boolean',
       args: {
-        id: { type: 'String', nullable: false },
-        workflowId: { type: 'String', nullable: false }
+        id: { type: 'String', nullable: false }
       },
-      resolve: 'deleteGlobalParameter'
-    },
-    deleteLocalParameter: {
-      type: 'Boolean',
-      args: {
-        id: { type: 'String', nullable: false },
-        stepId: { type: 'String', nullable: false }
-      },
-      resolve: 'deleteLocalParameter'
+      resolve: 'deleteParameter'
     }
   }
 }

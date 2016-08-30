@@ -14,6 +14,10 @@ export const DEFAULT_TABLES = {
   Parameter: {
     name: 'parameter',
     unique: []
+  },
+  Task: {
+    name: 'task',
+    unique: []
   }
 }
 

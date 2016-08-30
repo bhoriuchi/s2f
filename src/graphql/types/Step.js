@@ -1,6 +1,11 @@
 export default {
   extendFields: ['TemporalType', 'Entity', 'Named', 'Described'],
   fields: {
+    workflowId: {
+      description: 'Workflow the step belongs to',
+      type: 'String',
+      nullable: false
+    },
     type: {
       description: 'Step type (condition, loop, fork, join, workflow, task, etc...)',
       type: 'StepTypeEnum',

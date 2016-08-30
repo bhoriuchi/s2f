@@ -3,6 +3,7 @@ export default {
   values: {
     GLOBAL: 'GLOBAL',
     INPUT: 'INPUT',
-    OUTPUT: 'OUTPUT'
+    OUTPUT: 'OUTPUT',
+    TASK: 'TASK'
   }
 }

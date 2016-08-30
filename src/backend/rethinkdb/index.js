@@ -13,24 +13,9 @@ import _ from 'lodash'
 import TemporalPlugin from 'graphql-factory-temporal'
 import { rethinkdb as TemporalBackend } from 'graphql-factory-temporal/backend'
 import { createTable, DEFAULT_TABLES } from './common'
-import {
-  create as createWorkflow,
-  read as readWorkflow
-} from './workflow'
-import {
-  create as createStep,
-  read as readStep
-} from './step'
-import {
-  createGlobalParameter,
-  createInputParameter,
-  createOutputParameter,
-  read as readParameter,
-  updateGlobalParameter,
-  updateLocalParameter,
-  deleteGlobalParameter,
-  deleteLocalParameter
-} from './parameter'
+import { createWorkflow, readWorkflow, updateWorkflow, deleteWorkflow } from './workflow'
+import { createStep, readStep, updateStep, deleteStep } from './step'
+import { createParameter, readParameter, updateParameter, deleteParameter } from './parameter'
 
 /*
  * r - rethinkdb cursor
@@ -60,18 +45,23 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
   this.plugin = TemporalPlugin(temporalBackend)
 
   this.functions = {
+    // workflow
     createWorkflow: createWorkflow(this),
     readWorkflow: readWorkflow(this),
+    updateWorkflow: updateWorkflow(this),
+    deleteWorkflow: deleteWorkflow(this),
+
+    // step
     createStep: createStep(this),
     readStep: readStep(this),
-    createGlobalParameter: createGlobalParameter(this),
-    createInputParameter: createInputParameter(this),
-    createOutputParameter: createOutputParameter(this),
+    updateStep: updateStep(this),
+    deleteStep: deleteStep(this),
+
+    // parameter
+    createParameter: createParameter(this),
     readParameter: readParameter(this),
-    updateGlobalParameter: updateGlobalParameter(this),
-    updateLocalParameter: updateLocalParameter(this),
-    deleteGlobalParameter: deleteGlobalParameter(this),
-    deleteLocalParameter: deleteLocalParameter(this)
+    updateParameter: updateParameter(this),
+    deleteParameter: deleteParameter(this)
   }
 }
 
