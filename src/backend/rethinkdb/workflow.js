@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import { isPublished } from './common'
 import { destroyStep } from './step'
 
@@ -50,8 +51,9 @@ export function createWorkflow (backend) {
 
 export function readWorkflow (backend) {
   let connection = backend._connection
-  return function (source, args, context, info) {
+  return function (source, args, context = {}, info) {
     let { filterTemporalWorkflow } = this.globals._temporal
+    context.date = args.date || context.date
     return filterTemporalWorkflow(args).run(connection)
   }
 }
@@ -75,6 +77,7 @@ export function deleteWorkflow (backend) {
   let r = backend._r
   let step = backend._db.table(backend._tables.Step.table)
   let workflow = backend._db.table(backend._tables.Workflow.table)
+  let parameter = backend._db.table(backend._tables.Parameter.table)
   let connection = backend._connection
   return function (source, args, context, info) {
     return isPublished(backend, 'Workflow', args.id).branch(
@@ -83,6 +86,7 @@ export function deleteWorkflow (backend) {
         .map((s) => s('id'))
         .coerceTo('array')
         .do((ids) => destroyStep(backend, ids))
+        .do(() => parameter.filter({ parentId: args.id }).delete())
         .do(() => {
           return workflow.get(args.id)
             .delete()

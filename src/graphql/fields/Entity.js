@@ -1,7 +1,6 @@
 export default {
   id: {
-    type: 'String',
-    primary: true
+    type: 'String'
   },
   entityType: {
     type: 'EntityTypeEnum'

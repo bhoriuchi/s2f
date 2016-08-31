@@ -11,13 +11,18 @@ export default {
       type: 'StepTypeEnum',
       nullable: false
     },
+    async: {
+      description: 'Step runs asynchronously',
+      type: 'Boolean'
+    },
     source: {
       description: 'Source code to run. Can be null if a task or subworkflow is being used',
       type: 'String'
     },
     task: {
       description: 'Published task to use as source for execution code',
-      type: 'String'
+      type: 'Task',
+      resolve: 'readTask'
     },
     subWorkflow: {
       description: 'Nested workflow to run',

@@ -1,9 +1,9 @@
 export default {
   extendFields: {
     TemporalMutation: {
-      branch: { name: 'branchWorkflow', type: 'Workflow', resolve: 'branchTemporalWorkflow' },
-      fork: { name: 'forkWorkflow', type: 'Workflow', resolve: 'forkTemporalWorkflow' },
-      publish: { name: 'publishWorkflow', type: 'Workflow', resolve: 'publishTemporalWorkflow' }
+      branch: { name: 'branchTask', type: 'Task', resolve: 'branchTemporalTask' },
+      fork: { name: 'forkTask', type: 'Task', resolve: 'forkTemporalTask' },
+      publish: { name: 'publishTask', type: 'Task', resolve: 'publishTemporalTask' }
     }
   },
   fields: {
@@ -36,6 +36,7 @@ export default {
         workflowId: { type: 'String', nullable: false },
         name: { type: 'String', nullable: false },
         type: { type: 'StepTypeEnum', nullable: false },
+        async: { type: 'Boolean', defaultValue: false },
         source: { type: 'String' },
         task: { type: 'String' },
         subWorkflow: { type: 'String' },
@@ -53,6 +54,7 @@ export default {
       args: {
         id: { type: 'String', nullable: false },
         name: { type: 'String' },
+        async: { type: 'Boolean' },
         source: { type: 'String' },
         task: { type: 'String' },
         subWorkflow: { type: 'String' },
@@ -105,6 +107,32 @@ export default {
         id: { type: 'String', nullable: false }
       },
       resolve: 'deleteParameter'
+    },
+    createTask: {
+      type: 'Task',
+      args: {
+        name: { type: 'String', nullable: false },
+        description: { type: 'String' },
+        source: { type: 'String', nullable: false }
+      },
+      resolve: 'createTask'
+    },
+    updateTask: {
+      type: 'Task',
+      args: {
+        id: { type: 'String', nullable: false },
+        name: { type: 'String' },
+        description: { type: 'String' },
+        source: { type: 'String' }
+      },
+      resolve: 'updateTask'
+    },
+    deleteTask: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'deleteTask'
     }
   }
 }

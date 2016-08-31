@@ -2,7 +2,6 @@ import _ from 'lodash'
 import { GraphQLError } from 'graphql/error'
 import { isPublished } from './common'
 
-
 export function destroyStep (backend, ids) {
   let r = backend._r
   let step = backend._db.table(backend._tables.Step.table)
@@ -16,7 +15,6 @@ export function destroyStep (backend, ids) {
     })
     .do(() => true)
 }
-
 
 export function cloneStep (backend, id) {
 
@@ -44,8 +42,9 @@ export function createStep (backend) {
 export function readStep (backend) {
   let table = backend._db.table(backend._tables.Step.table)
   let connection = backend._connection
-  return function (source = {}, args, context, info) {
+  return function (source = {}, args, context = {}, info) {
     let { filterTemporalStep } = this.globals._temporal
+    context.date = args.date || context.date
     let filter = source.id ? table.filter({ workflowId: source.id }) : filterTemporalStep(args)
     return filter.run(connection)
   }

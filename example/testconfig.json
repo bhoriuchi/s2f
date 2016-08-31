@@ -1,0 +1,8 @@
+{
+  "backend": {
+    "type": "rethinkdb",
+    "db": {
+      "host": "localhost"
+    }
+  }
+}

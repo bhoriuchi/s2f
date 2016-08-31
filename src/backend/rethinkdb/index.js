@@ -12,10 +12,12 @@
 import _ from 'lodash'
 import TemporalPlugin from 'graphql-factory-temporal'
 import { rethinkdb as TemporalBackend } from 'graphql-factory-temporal/backend'
-import { createTable, DEFAULT_TABLES } from './common'
+import { createTable, DEFAULT_TABLES, now } from './common'
 import { createWorkflow, readWorkflow, updateWorkflow, deleteWorkflow } from './workflow'
 import { createStep, readStep, updateStep, deleteStep } from './step'
 import { createParameter, readParameter, updateParameter, deleteParameter } from './parameter'
+import { createTask, readTask, updateTask, deleteTask } from './task'
+import { createClusterNode, readClusterNode, updateClusterNode, deleteClusterNode } from './clusternode'
 
 /*
  * r - rethinkdb cursor
@@ -34,17 +36,24 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
   // set the tables with either the custom or default
   _.forEach(DEFAULT_TABLES, (table, type) => {
     this._tables[type] = {
-      table: `${this._prefix}${_.get(opts, `tables.${type}.name`, table.name)}`,
-      unique: _.get(opts, `tables.${type}.unique`, table.unique)
+      table: `${this._prefix}${_.get(opts, `tables.${type}.table`, table.table)}`,
+      unique: _.get(opts, `tables.${type}.unique`, table.unique),
+      temporal: table.temporal
     }
   })
 
+  // temporal tables
+  let temporalTables = _.omitBy(this._tables, (cfg) => !cfg.temporal)
+
   // initialize the temporal plugin
-  let backendOptions = { tables: this._tables, prefix: this._prefix }
+  let backendOptions = { tables: temporalTables, prefix: this._prefix }
   let temporalBackend = new TemporalBackend(this._r, this._graphql, backendOptions, this._connection)
   this.plugin = TemporalPlugin(temporalBackend)
 
   this.functions = {
+    // util functions
+    now: now(this),
+
     // workflow
     createWorkflow: createWorkflow(this),
     readWorkflow: readWorkflow(this),
@@ -61,10 +70,21 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
     createParameter: createParameter(this),
     readParameter: readParameter(this),
     updateParameter: updateParameter(this),
-    deleteParameter: deleteParameter(this)
+    deleteParameter: deleteParameter(this),
+
+    // task
+    createTask: createTask(this),
+    readTask: readTask(this),
+    updateTask: updateTask(this),
+    deleteTask: deleteTask(this),
+
+    // cluster node
+    createClusterNode: createClusterNode(this),
+    readClusterNode: readClusterNode(this),
+    updateClusterNode: updateClusterNode(this),
+    deleteClusterNode: deleteClusterNode(this)
   }
 }
-
 
 RethinkDBBackend.prototype.initStore = function (type, rebuild, seedData) {
   let dbc = this._db

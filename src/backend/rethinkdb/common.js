@@ -1,23 +1,33 @@
 export const DEFAULT_TABLES = {
   Workflow: {
-    name: 'workflow',
-    unique: ['name']
+    table: 'workflow',
+    unique: ['name'],
+    temporal: true
   },
   WorkflowRun: {
-    name: 'workflow_run',
-    unique: []
+    table: 'workflow_run',
+    unique: [],
+    temporal: false
   },
   Step: {
-    name: 'step',
-    unique: []
+    table: 'step',
+    unique: [],
+    temporal: true
   },
   Parameter: {
-    name: 'parameter',
-    unique: []
+    table: 'parameter',
+    unique: [],
+    temporal: false
   },
   Task: {
-    name: 'task',
-    unique: []
+    table: 'task',
+    unique: ['name'],
+    temporal: true
+  },
+  ClusterNode: {
+    table: 'cluster_node',
+    unique: [],
+    temporal: false
   }
 }
 
@@ -49,8 +59,15 @@ export function isPublished (backend, type, id) {
     })
 }
 
+export function now (backend) {
+  return function () {
+    return backend._r.now().run(backend._connection)
+  }
+}
+
 export default {
   DEFAULT_TABLES,
   createTable,
-  isPublished
+  isPublished,
+  now
 }
