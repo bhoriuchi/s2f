@@ -6,6 +6,8 @@ let r = rethinkdbdash()
 let backend = new Backend(r, graphql)
 let lib = gql(backend)
 
+console.log(lib._definitions.types.TemporalDateTime)
+
 let op = 2
 
 if (op === 1) {
