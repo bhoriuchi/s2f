@@ -8,6 +8,7 @@ export default function () {
     ['', 'update', 'Update node configuration'],
     ['', 'start', 'Start the server'],
     ['', 'cmd=ARG', 'Sends a command'],
+    ['', 'id=ARG', 'ID of node'],
     ['h', 'host=ARG', 'Host name or IP'],
     ['p', 'port=ARG', 'Port number (default 8080)'],
     ['r', 'role=ARG', 'Assigns a role']
@@ -22,9 +23,10 @@ Usage: s2fcli [operation] [command | options...]
     --start     : starts a node
     --cmd       : sends a command
   options:
-    -h --host   : host name or ip
-    -p --port   : host port (default 8080)
-    -r --role   : assigns a role
+    -h, --host  : host name or ip
+    -p, --port  : host port (default 8080)
+    -r, --role  : assigns a role
+        --id    : ID of a node
   commands:
     stop        : stops node
     restart     : restarts node
@@ -32,6 +34,7 @@ Usage: s2fcli [operation] [command | options...]
     list        : prints cluster node config
     changerole  : changes node role
     maintenance : pust node into maintenance
+    status      : get node status directly from node
 `)
   return getopt
 }

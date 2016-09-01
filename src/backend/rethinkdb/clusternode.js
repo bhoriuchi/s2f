@@ -3,7 +3,28 @@ import { GraphQLError } from 'graphql/error'
 import StateEnum from '../../graphql/types/ClusterNodeStateEnum'
 import RoleEnum from '../../graphql/types/ClusterNodeRoleEnum'
 let { SCHEDULER, TIEBREAKER, RUNNER } = RoleEnum.values
-let { OFFLINE } = StateEnum.values
+let { OFFLINE, ONLINE } = StateEnum.values
+
+/*
+export function startNode (backend) {
+  let r = backend._r
+  let table = backend._db.table(backend._tables.ClusterNode.table)
+  let connection = backend._connection
+  return function (source, args, context, info) {
+    // get the current config
+    return table.run(connection).then((nodes) => {
+      let scheduler = _.filter(nodes, (node) => (_.includes(node.roles, SCHEDULER) && node.state === ONLINE))
+      let tiebreaker = _.filter(nodes, (node) => (_.includes(node.roles, TIEBREAKER) && node.state === ONLINE))
+      let online = _.filter(nodes, { state: ONLINE })
+
+      if (!scheduler.length) {
+
+      }
+
+    })
+  }
+}
+*/
 
 export function createClusterNode (backend) {
   let r = backend._r

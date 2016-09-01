@@ -22,11 +22,10 @@ export default function (lib, helper) {
   }
 }`)
     .then((res) => {
-      if (res.errors) error(pretty(res.errors))
-      else console.log(chalk.green(`Added Node\n${pretty(res, 'data.createClusterNode')}`))
+      if (res.errors) return error(pretty(res.errors))
+      console.log(chalk.green.bold('Added Node:'))
+      console.log(chalk.green(pretty(res, 'data.createClusterNode')))
       process.exit()
     })
-    .catch((err) => {
-      error(err)
-    })
+    .catch(error)
 }
