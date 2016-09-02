@@ -24,6 +24,13 @@ export function logLevel (level = 'info') {
   return _.get(LOG_LEVELS, level, LOG_LEVELS.info)
 }
 
+export function getLogConfig (level = 'info', file) {
+  level = logLevel(level)
+  let logStreams = [ { stream: process.stdout, level } ]
+  if (file) logStreams.push({ path: logfile, level })
+  return { name: 'S2F', streams: logStreams }
+}
+
 export function isScheduler () {
   return _.includes(this.roles, SCHEDULER)
 }
@@ -38,5 +45,6 @@ export default {
   isScheduler,
   isTiebreaker,
   isRunner,
-  logLevel
+  logLevel,
+  getLogConfig
 }

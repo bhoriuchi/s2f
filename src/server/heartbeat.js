@@ -20,6 +20,7 @@ export default function heartbeat () {
         socket.on('connected', () => socket.emit('heartbeat'))
         socket.on('up', (data) => {
           pollComplete()
+          this._peers[node.id] = data
           this.logTrace((new Date()).toISOString(), ` - ${data.host}:${data.port} is up`)
         })
         socket.on('connect_error', () => {

@@ -18,7 +18,7 @@ import {
   isScheduler,
   isTiebreaker,
   isRunner,
-  logLevel
+  getLogConfig
 } from './common'
 
 function handler (req, res) {
@@ -28,11 +28,11 @@ function handler (req, res) {
 
 // server object constructor
 function S2FServer (lib, helper) {
-  let { error, pretty, options: { cmd, host, port, role, id, loglevel, logfile } } = helper
-  let logStreams = [ { stream: process.stdout, level: logLevel(loglevel) } ]
-  if (logfile) logStreams.push({ path: logfile, level: logLevel(loglevel) })
-  let logConfig = { name: 'S2F', streams: logStreams }
+  let { error, pretty, options } = helper
+  let { cmd, host, port, role, id, loglevel, logfile } = options
+  let logConfig = getLogConfig(loglevel, logfile)
   this._hb = {}
+  this._peers = {}
   this._pretty = pretty
   this._error = error
   this._lib = lib
