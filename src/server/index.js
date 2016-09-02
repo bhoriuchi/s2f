@@ -1,9 +1,16 @@
 import _ from 'lodash'
-import chalk from 'chalk'
 import http from 'http'
 import SocketServer from 'socket.io'
 import StateEnum from '../graphql/types/ClusterNodeStateEnum'
 import RoleEnum from '../graphql/types/ClusterNodeRoleEnum'
+import determineRoles from './determineRoles'
+import getNodeConfig from './getNodeConfig'
+import heartbeat from './heartbeat'
+import offlineNode from './offlineNode'
+import promoteScheduler from './promoteScheduler'
+import startListeners from './startListeners'
+
+// enums
 let { SCHEDULER, TIEBREAKER, RUNNER } = RoleEnum.values
 let { OFFLINE, ONLINE } = StateEnum.values
 
@@ -22,58 +29,29 @@ function S2FServer (lib, helper) {
   this._roles = []
   this._state = OFFLINE
   this._host = host
-  this._port = port
+  this._port = Number(port)
   this._app = http.createServer(handler)
   this._app.listen(port)
   this._io = new SocketServer(this._app)
+  this._hbInterval = 5000
+  this._hbTimeout = 5000
 
   console.log(`* Starting s2f server on ${host}:${port}`)
 
-  return this.getNodeConfig((nodes, config) => {
+  return this.getNodeConfig((err, nodes, config) => {
+    this._id = config.id
     this._roles = this.determineRoles(nodes)
+    if (_.includes(this._roles, SCHEDULER)) this.promoteScheduler(this._id, this._roles)
     this.startListeners()
+    this.heartbeat()
   })
 }
 
-// gets the current node configuration
-S2FServer.prototype.getNodeConfig = function (cb) {
-  let host = this._host
-  let port = this._port
-  return this._lib.ClusterNode('{ readClusterNode { id, host, port, roles, defaultRole, state } }')
-    .then((nodes) => {
-      let nodeConfigs = _.get(nodes, 'data.readClusterNode', [])
-      let config = _.filter(nodeConfigs, { host, port })
-      if (nodes.errors) return this._error(this._pretty(nodes.errors))
-      if (!config.length) return this._error(`The host:port ${host}:${port} has not been added yet`, true)
-      cb(null, nodeConfigs, config)
-    })
-    .catch(this._error)
-}
-
-// start socket listeners
-S2FServer.prototype.startListeners = function () {
-  console.log('* Socket server is now listening')
-  this._state = ONLINE
-  this._io.on('connection', (socket) => {
-    socket.emit('connected')
-    socket.on('status', () => {
-      socket.emit('status', {
-        host: this._host,
-        port: this._port,
-        state: this._state,
-        roles: this._roles
-      })
-    })
-  })
-}
-
-S2FServer.prototype.determineRoles = function (nodes) {
-  let scheduler = _.filter(nodes, (node) => (_.includes(node.roles, SCHEDULER) && node.state === ONLINE))
-  let tiebreaker = _.filter(nodes, (node) => (_.includes(node.roles, TIEBREAKER) && node.state === ONLINE))
-  if (!scheduler.length) return [ SCHEDULER, RUNNER ]
-  if (!tiebreaker.length) return [ TIEBREAKER, RUNNER ]
-  return [ RUNNER ]
-}
-
+S2FServer.prototype.determineRoles = determineRoles
+S2FServer.prototype.getNodeConfig = getNodeConfig
+S2FServer.prototype.heartbeat = heartbeat
+S2FServer.prototype.offlineNode = offlineNode
+S2FServer.prototype.promoteScheduler = promoteScheduler
+S2FServer.prototype.startListeners = startListeners
 
 export default S2FServer

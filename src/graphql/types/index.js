@@ -8,6 +8,8 @@ import Parameter from './Parameter'
 import ParameterRun from './ParameterRun'
 import ParameterTypeEnum from './ParameterTypeEnum'
 import ParameterScopeEnum from './ParameterScopeEnum'
+import RunQueue from './RunQueue'
+import RunQueueStateEnum from './RunQueueStateEnum'
 import Step from './Step'
 import StepRun from './StepRun'
 import StepTypeEnum from './StepTypeEnum'
@@ -27,6 +29,8 @@ export { Parameter }
 export { ParameterRun }
 export { ParameterTypeEnum }
 export { ParameterScopeEnum }
+export { RunQueue }
+export { RunQueueStateEnum }
 export { Step }
 export { StepRun }
 export { StepTypeEnum }
@@ -47,6 +51,8 @@ export default {
   ParameterRun,
   ParameterTypeEnum,
   ParameterScopeEnum,
+  RunQueue,
+  RunQueueStateEnum,
   Step,
   StepRun,
   StepTypeEnum,

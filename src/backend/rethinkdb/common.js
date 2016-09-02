@@ -24,6 +24,11 @@ export const DEFAULT_TABLES = {
     unique: ['name'],
     temporal: true
   },
+  RunQueue: {
+    table: 'run_queue',
+    unique: [],
+    temporal: false
+  },
   ClusterNode: {
     table: 'cluster_node',
     unique: [],

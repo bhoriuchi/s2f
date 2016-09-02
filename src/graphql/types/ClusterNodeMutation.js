@@ -15,7 +15,9 @@ export default {
         id: { type: 'String', nullable: false },
         host: { type: 'String' },
         port: { type: 'Int' },
-        defaultRole: { type: 'ClusterNodeRoleEnum' }
+        roles: { type: ['ClusterRoleEnum'] },
+        defaultRole: { type: 'ClusterNodeRoleEnum' },
+        state: { type: 'ClusterNodeStateEnum' }
       },
       resolve: 'updateClusterNode'
     },
@@ -25,6 +27,14 @@ export default {
         id: { type: 'String', nullable: false }
       },
       resolve: 'deleteClusterNode'
+    },
+    promoteScheduler: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false },
+        roles: { type: ['ClusterNodeRoleEnum'], defaultValue: ['SCHEDULER'] }
+      },
+      resolve: 'promoteScheduler'
     }
   }
 }

@@ -5,38 +5,29 @@ import RoleEnum from '../../graphql/types/ClusterNodeRoleEnum'
 let { SCHEDULER, TIEBREAKER, RUNNER } = RoleEnum.values
 let { OFFLINE, ONLINE, MAINTENANCE, UNKNOWN } = StateEnum.values
 
-/*
-export function startNode (backend) {
+export function promoteScheduler (backend) {
   let r = backend._r
   let table = backend._db.table(backend._tables.ClusterNode.table)
   let connection = backend._connection
   return function (source, args, context, info) {
-    // get the current config
-    return table.run(connection).then((nodes) => {
-      let scheduler = _.filter(nodes, (node) => (_.includes(node.roles, SCHEDULER) && node.state === ONLINE))
-      let tiebreaker = _.filter(nodes, (node) => (_.includes(node.roles, TIEBREAKER) && node.state === ONLINE))
-      let online = _.filter(nodes, { state: ONLINE })
-
-      if (!scheduler.length) {
-
-      }
-
+    return table.get(args.id).do((sched) => {
+      return sched.eq(null).branch(
+        r.error(`Node ${args.id} not found`),
+        table.filter((node) => node('roles').contains(SCHEDULER))
+          .forEach((n) => {
+            return table.get(n('id')).update({
+              roles: n('roles').without(SCHEDULER)
+            })
+          })
+          .do(() => {
+            return table.get(args.id).update({
+              roles: args.roles
+            })
+          })
+          .do(() => true)
+      )
     })
-  }
-}
-*/
-
-export function clearOfflineClusterNodes (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.ClusterNode.table)
-  let connection = backend._connection
-  return function (source, args, context, info) {
-    /*
-    return table.filter((node) => {
-      return r.expr([ OFFLINE, MAINTENANCE, UNKNOWN ]).contains(node('state'))
-    })
-      .update()
-      */
+      .run(connection)
   }
 }
 
@@ -103,11 +94,13 @@ export function readClusterNode (backend) {
 }
 
 export function updateClusterNode (backend) {
-  let r = backend._r
   let table = backend._db.table(backend._tables.ClusterNode.table)
   let connection = backend._connection
   return function (source, args, context, info) {
-
+    return table.get(args.id)
+      .update(_.omit(args, 'id'), { returnChanges: true })
+      .do(() => table.get(args.id))
+      .run(connection)
   }
 }
 
@@ -127,6 +120,7 @@ export function deleteClusterNode (backend) {
 }
 
 export default {
+  promoteScheduler,
   createClusterNode,
   readClusterNode,
   updateClusterNode,

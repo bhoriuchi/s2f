@@ -17,7 +17,13 @@ import { createWorkflow, readWorkflow, updateWorkflow, deleteWorkflow } from './
 import { createStep, readStep, updateStep, deleteStep } from './step'
 import { createParameter, readParameter, updateParameter, deleteParameter } from './parameter'
 import { createTask, readTask, updateTask, deleteTask } from './task'
-import { createClusterNode, readClusterNode, updateClusterNode, deleteClusterNode } from './clusternode'
+import {
+  promoteScheduler,
+  createClusterNode,
+  readClusterNode,
+  updateClusterNode,
+  deleteClusterNode
+} from './clusternode'
 
 /*
  * r - rethinkdb cursor
@@ -82,7 +88,8 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
     createClusterNode: createClusterNode(this),
     readClusterNode: readClusterNode(this),
     updateClusterNode: updateClusterNode(this),
-    deleteClusterNode: deleteClusterNode(this)
+    deleteClusterNode: deleteClusterNode(this),
+    promoteScheduler: promoteScheduler(this)
   }
 }
 
