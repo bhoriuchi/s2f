@@ -3,7 +3,7 @@ import { GraphQLError } from 'graphql/error'
 import StateEnum from '../../graphql/types/ClusterNodeStateEnum'
 import RoleEnum from '../../graphql/types/ClusterNodeRoleEnum'
 let { SCHEDULER, TIEBREAKER, RUNNER } = RoleEnum.values
-let { OFFLINE, ONLINE } = StateEnum.values
+let { OFFLINE, ONLINE, MAINTENANCE, UNKNOWN } = StateEnum.values
 
 /*
 export function startNode (backend) {
@@ -25,6 +25,20 @@ export function startNode (backend) {
   }
 }
 */
+
+export function clearOfflineClusterNodes (backend) {
+  let r = backend._r
+  let table = backend._db.table(backend._tables.ClusterNode.table)
+  let connection = backend._connection
+  return function (source, args, context, info) {
+    /*
+    return table.filter((node) => {
+      return r.expr([ OFFLINE, MAINTENANCE, UNKNOWN ]).contains(node('state'))
+    })
+      .update()
+      */
+  }
+}
 
 export function createClusterNode (backend) {
   let r = backend._r
