@@ -6,9 +6,8 @@ let r = rethinkdbdash()
 let backend = new Backend(r, graphql)
 let lib = gql(backend)
 
-console.log(lib._definitions.types.TemporalDateTime)
+let op = 4
 
-let op = 2
 
 if (op === 1) {
   lib.Workflow('mutation Mutation { createTask (name: "Task1", source: "return 1") { id, name, source } }').then((task) => {
@@ -34,12 +33,13 @@ if (op === 1) {
       console.log('Query Result:')
       console.log(JSON.stringify(res, null, '  '))
       process.exit()
-    }).catch((err) => {
-    console.error(err)
-    process.exit()
+    })
+    .catch((err) => {
+      console.error(err)
+      process.exit()
   })
 } else if (op === 2) {
-  lib.Workflow(`{ readWorkflow (id: "19914b8b-d109-420d-97a5-790dc38cfa84") { id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
+  lib.Workflow(`{ readWorkflow { id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
     .then((res) => {
       console.log('Query Result:')
       console.log(JSON.stringify(res, null, '  '))
@@ -48,6 +48,28 @@ if (op === 1) {
     console.error(err)
     process.exit()
   })
+} else if (op === 3) {
+  lib.Workflow(`mutation Mutation { branchWorkflow (id: "b2bba671-9ced-4735-9836-c2b86236ff8c") { _temporal { recordId }, id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
+    .then((res) => {
+      console.log('Branch Result:')
+      console.log(JSON.stringify(res, null, '  '))
+      process.exit()
+    })
+    .catch((err) => {
+      console.error(err)
+      process.exit()
+  })
+} else if (op === 4) {
+  lib.Workflow(`mutation Mutation { forkWorkflow (id: "b2bba671-9ced-4735-9836-c2b86236ff8c") { _temporal { recordId }, id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
+    .then((res) => {
+      console.log('Fork Result:')
+      console.log(JSON.stringify(res, null, '  '))
+      process.exit()
+    })
+    .catch((err) => {
+      console.error(err)
+      process.exit()
+    })
 }
 
 

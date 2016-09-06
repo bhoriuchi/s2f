@@ -30,6 +30,20 @@ export default {
       },
       resolve: 'deleteWorkflow'
     },
+    branchWorkflow: {
+      type: 'Workflow',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'branchWorkflow'
+    },
+    forkWorkflow: {
+      type: 'Workflow',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'forkWorkflow'
+    },
     createStep: {
       type: 'Step',
       args: {

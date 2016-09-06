@@ -13,10 +13,17 @@ import _ from 'lodash'
 import TemporalPlugin from 'graphql-factory-temporal'
 import { rethinkdb as TemporalBackend } from 'graphql-factory-temporal/backend'
 import { createTable, DEFAULT_TABLES, now } from './common'
-import { createWorkflow, readWorkflow, updateWorkflow, deleteWorkflow } from './workflow'
 import { createStep, readStep, updateStep, deleteStep } from './step'
 import { createParameter, readParameter, updateParameter, deleteParameter } from './parameter'
 import { createTask, readTask, updateTask, deleteTask } from './task'
+import {
+  createWorkflow,
+  readWorkflow,
+  updateWorkflow,
+  deleteWorkflow,
+  branchWorkflow,
+  forkWorkflow
+} from './workflow'
 
 // import yellowjacket task runner
 import yellowjacket from 'yellowjacket'
@@ -28,7 +35,7 @@ import { rethinkdb as YJBackend } from 'yellowjacket/backend'
  * opts - options hash
  * connection - rethinkdb connection object
  */
-function RethinkDBBackend (r, graphql, opts = {}, connection) {
+function RethinkDBBackend (r, graphql, scheduler, opts = {}, connection) {
   this._r = r
   this._graphql = graphql
   this._connection = connection
@@ -37,10 +44,11 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
   this._tables = {}
   this.functions = {}
   this.actions = {}
-  this.scheduler = opts.scheduler || function (runner, nodes, queue, done) { return done(null, [runner.info()]) }
+  this.scheduler = scheduler ? scheduler : (runner, nodes, queue, done) => done(null, [runner.info()])
   // runner
   this._runnerBackend = new YJBackend(this._r, this._graphql)
   this.cli = () => yellowjacket(this._runnerBackend, undefined, this.actions, this.scheduler)
+  this.app = (options) => yellowjacket(this._runnerBackend, options, this.actions, this.scheduler)
 
   // set the tables with either the custom or default
   _.forEach(DEFAULT_TABLES, (table, type) => {
@@ -68,6 +76,8 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
     readWorkflow: readWorkflow(this),
     updateWorkflow: updateWorkflow(this),
     deleteWorkflow: deleteWorkflow(this),
+    branchWorkflow: branchWorkflow(this),
+    forkWorkflow: forkWorkflow(this),
 
     // step
     createStep: createStep(this),
