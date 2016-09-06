@@ -17,13 +17,11 @@ import { createWorkflow, readWorkflow, updateWorkflow, deleteWorkflow } from './
 import { createStep, readStep, updateStep, deleteStep } from './step'
 import { createParameter, readParameter, updateParameter, deleteParameter } from './parameter'
 import { createTask, readTask, updateTask, deleteTask } from './task'
-import {
-  promoteScheduler,
-  createClusterNode,
-  readClusterNode,
-  updateClusterNode,
-  deleteClusterNode
-} from './clusternode'
+
+// import yellowjacket task runner
+import yellowjacket from 'yellowjacket'
+import yjinstaller from 'yellowjacket/install'
+import { rethinkdb as YJBackend } from 'yellowjacket/backend'
 
 /*
  * r - rethinkdb cursor
@@ -38,6 +36,11 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
   this._prefix = opts.prefix || ''
   this._tables = {}
   this.functions = {}
+  this.actions = {}
+  this.scheduler = opts.scheduler || function (runner, nodes, queue, done) { return done(null, [runner.info()]) }
+  // runner
+  this._runnerBackend = new YJBackend(this._r, this._graphql)
+  this.cli = () => yellowjacket(this._runnerBackend, undefined, this.actions, this.scheduler)
 
   // set the tables with either the custom or default
   _.forEach(DEFAULT_TABLES, (table, type) => {
@@ -83,13 +86,6 @@ function RethinkDBBackend (r, graphql, opts = {}, connection) {
     readTask: readTask(this),
     updateTask: updateTask(this),
     deleteTask: deleteTask(this),
-
-    // cluster node
-    createClusterNode: createClusterNode(this),
-    readClusterNode: readClusterNode(this),
-    updateClusterNode: updateClusterNode(this),
-    deleteClusterNode: deleteClusterNode(this),
-    promoteScheduler: promoteScheduler(this)
   }
 }
 
@@ -126,7 +122,7 @@ RethinkDBBackend.prototype.initAllStores = function (rebuild, seedData) {
 }
 
 RethinkDBBackend.prototype.install = function () {
-  return this.initAllStores(true)
+  return this.initAllStores(true).then(() => yjinstaller(this._runnerBackend))
 }
 
 export default RethinkDBBackend

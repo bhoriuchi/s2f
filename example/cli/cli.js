@@ -1,16 +1,14 @@
 import * as graphql from 'graphql'
 import rethinkdbdash from 'rethinkdbdash'
 import { rethinkdb as RethinkDBBackend } from '../../src/backend'
-import S2FApp from '../../src/app'
-import S2FInstaller from '../../src/app/install'
 let backend = new RethinkDBBackend(rethinkdbdash({ silent: true }), graphql)
 
 export function s2fcli () {
-  S2FApp(backend)
+  return backend.cli()
 }
 
 export function s2finstall () {
-  S2FInstaller(backend)
+  return backend.install()
 }
 
 export default {
