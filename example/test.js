@@ -6,7 +6,7 @@ let r = rethinkdbdash()
 let backend = new Backend(r, graphql)
 let lib = gql(backend)
 
-let op = 4
+let op = 5
 
 
 if (op === 1) {
@@ -49,7 +49,7 @@ if (op === 1) {
     process.exit()
   })
 } else if (op === 3) {
-  lib.Workflow(`mutation Mutation { branchWorkflow (id: "b2bba671-9ced-4735-9836-c2b86236ff8c") { _temporal { recordId }, id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
+  lib.Workflow(`mutation Mutation { branchWorkflow (id: "b2bba671-9ced-4735-9836-c2b86236ff8c") { _temporal { recordId, version }, id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
     .then((res) => {
       console.log('Branch Result:')
       console.log(JSON.stringify(res, null, '  '))
@@ -60,9 +60,20 @@ if (op === 1) {
       process.exit()
   })
 } else if (op === 4) {
-  lib.Workflow(`mutation Mutation { forkWorkflow (id: "b2bba671-9ced-4735-9836-c2b86236ff8c") { _temporal { recordId }, id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
+  lib.Workflow(`mutation Mutation { forkWorkflow (id: "b2bba671-9ced-4735-9836-c2b86236ff8c") { _temporal { recordId, version }, id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
     .then((res) => {
       console.log('Fork Result:')
+      console.log(JSON.stringify(res, null, '  '))
+      process.exit()
+    })
+    .catch((err) => {
+      console.error(err)
+      process.exit()
+    })
+} else if (op === 5) {
+  lib.Workflow(`mutation Mutation { publishWorkflow (id: "1a9c820a-6810-496d-a5d9-b7cd8fab1cbb11") { _temporal { recordId, version }, id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
+    .then((res) => {
+      console.log('Publish Result:')
       console.log(JSON.stringify(res, null, '  '))
       process.exit()
     })

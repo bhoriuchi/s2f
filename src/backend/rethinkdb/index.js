@@ -22,7 +22,8 @@ import {
   updateWorkflow,
   deleteWorkflow,
   branchWorkflow,
-  forkWorkflow
+  forkWorkflow,
+  publishWorkflow
 } from './workflow'
 
 // import yellowjacket task runner
@@ -78,6 +79,7 @@ function RethinkDBBackend (r, graphql, scheduler, opts = {}, connection) {
     deleteWorkflow: deleteWorkflow(this),
     branchWorkflow: branchWorkflow(this),
     forkWorkflow: forkWorkflow(this),
+    publishWorkflow: publishWorkflow(this),
 
     // step
     createStep: createStep(this),

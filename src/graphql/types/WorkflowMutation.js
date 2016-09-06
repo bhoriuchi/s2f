@@ -44,6 +44,13 @@ export default {
       },
       resolve: 'forkWorkflow'
     },
+    publishWorkflow: {
+      type: 'Workflow',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'publishWorkflow'
+    },
     createStep: {
       type: 'Step',
       args: {

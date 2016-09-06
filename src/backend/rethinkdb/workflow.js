@@ -114,6 +114,23 @@ export function forkWorkflow (backend) {
   }
 }
 
+export function publishWorkflow (backend) {
+  let r = backend._r
+  let step = backend._db.table(backend._tables.Step.table)
+  let tableName = backend._tables.Workflow.table
+  let connection = backend._connection
+  return function (source, args, context, info) {
+    let { extendPublish } = this.globals._temporal
+    return extendPublish(tableName, args).then((wf) => {
+      let { _temporal: { version, validFrom, validTo }, id } = wf
+      return step.filter({ workflowId: id })
+        .update({ _temporal: { version, validFrom, validTo } })
+        .run(connection)
+        .then(() => wf)
+    })
+  }
+}
+
 export function createWorkflow (backend) {
   let r = backend._r
   let connection = backend._connection
@@ -208,6 +225,7 @@ export function deleteWorkflow (backend) {
 export default {
   branchWorkflow,
   forkWorkflow,
+  publishWorkflow,
   createWorkflow,
   readWorkflow,
   updateWorkflow,
