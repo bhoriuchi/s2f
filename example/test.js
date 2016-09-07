@@ -6,7 +6,7 @@ let r = rethinkdbdash()
 let backend = new Backend(r, graphql)
 let lib = gql(backend)
 
-let op = 5
+let op = 1
 
 
 if (op === 1) {

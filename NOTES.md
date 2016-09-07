@@ -9,4 +9,3 @@
     * All local step parameters should be cloned
   * All global workflow parameters should be cloned
   * A mapping should be created for new/old steps and parameters in order to recreate the same step and parameter relationships with the cloned records
-  

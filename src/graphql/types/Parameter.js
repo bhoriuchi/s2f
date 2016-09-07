@@ -24,12 +24,8 @@ export default {
       description: 'Default value',
       type: 'String'
     },
-    workflowId: {
-      description: 'Workflow the parameter belongs to',
-      type: 'String'
-    },
-    stepId: {
-      description: 'Step the parameter belongs to',
+    parentId: {
+      description: 'Object the parameter belongs to',
       type: 'String'
     }
   }

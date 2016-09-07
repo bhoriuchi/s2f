@@ -37,6 +37,8 @@ import { rethinkdb as YJBackend } from 'yellowjacket/backend'
  * connection - rethinkdb connection object
  */
 function RethinkDBBackend (r, graphql, scheduler, opts = {}, connection) {
+  if (!(this instanceof RethinkDBBackend)) return new RethinkDBBackend(r, graphql, scheduler, opts, connection)
+
   this._r = r
   this._graphql = graphql
   this._connection = connection
@@ -46,10 +48,20 @@ function RethinkDBBackend (r, graphql, scheduler, opts = {}, connection) {
   this.functions = {}
   this.actions = {}
   this.scheduler = scheduler ? scheduler : (runner, nodes, queue, done) => done(null, [runner.info()])
+  this.Workflow = {}
+
   // runner
   this._runnerBackend = new YJBackend(this._r, this._graphql)
   this.cli = () => yellowjacket(this._runnerBackend, undefined, this.actions, this.scheduler)
   this.app = (options) => yellowjacket(this._runnerBackend, options, this.actions, this.scheduler)
+
+  // store the logging functions locally
+  this.logFatal = (msg, obj) => this._runnerBackend.server.logFatal(msg, obj)
+  this.logError = (msg, obj) => this._runnerBackend.server.logError(msg, obj)
+  this.logWarn = (msg, obj) => this._runnerBackend.server.logWarn(msg, obj)
+  this.logInfo = (msg, obj) => this._runnerBackend.server.logInfo(msg, obj)
+  this.logDebug = (msg, obj) => this._runnerBackend.server.logDebug(msg, obj)
+  this.logTrace = (msg, obj) => this._runnerBackend.server.logTrace(msg, obj)
 
   // set the tables with either the custom or default
   _.forEach(DEFAULT_TABLES, (table, type) => {

@@ -18,7 +18,12 @@ export default {
     },
     readStep: {
       type: ['Step'],
-      args: versionArgs,
+      args: {
+        id: { type: 'String' },
+        recordId: { type: 'String' },
+        version: { type: 'String' },
+        date: { type: 'TemporalDateTime' }
+      },
       resolve: 'readStep'
     },
     readTask: {

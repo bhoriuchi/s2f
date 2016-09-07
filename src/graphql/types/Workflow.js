@@ -9,6 +9,9 @@ export default {
     steps: {
       description: 'Steps in the workflow',
       type: ['Step'],
+      args: {
+        first: 'Boolean'
+      },
       resolve: 'readStep'
     }
   }

@@ -16,10 +16,6 @@ export function destroyStep (backend, ids) {
     .do(() => true)
 }
 
-export function cloneStep (backend, id) {
-
-}
-
 export function createStep (backend) {
   let r = backend._r
   let workflow = backend._db.table(backend._tables.Workflow.table)
@@ -40,12 +36,31 @@ export function createStep (backend) {
 }
 
 export function readStep (backend) {
+  let r = backend._r
   let table = backend._db.table(backend._tables.Step.table)
   let connection = backend._connection
   return function (source = {}, args, context = {}, info) {
     let { filterTemporalStep } = this.globals._temporal
     context.date = args.date || context.date
-    let filter = source.id ? table.filter({ workflowId: source.id }) : filterTemporalStep(args)
+    let filter = filterTemporalStep(args)
+
+    if (source.id) {
+      filter = table.filter({ workflowId: source.id })
+      if (args.first) {
+        filter = filter.filter({ type: 'START' })
+          .nth(0)
+          .do((start) => {
+            return table.get(start('success'))
+              .count()
+              .eq(0)
+              .branch(
+                r.expr([]),
+                r.expr([table.get(start('success'))])
+              )
+          })
+      }
+    }
+
     return filter.run(connection)
   }
 }
@@ -79,7 +94,6 @@ export function deleteStep (backend) {
 
 export default {
   destroyStep,
-  cloneStep,
   createStep,
   readStep,
   updateStep,
