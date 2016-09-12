@@ -1,9 +1,7 @@
-import _ from 'lodash'
-
 import SayHello from './SayHello'
 
-let tasks = [
+export { SayHello }
+
+export default [
   SayHello
 ]
-
-export default _.union.apply(null, tasks)

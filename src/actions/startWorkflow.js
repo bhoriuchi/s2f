@@ -4,6 +4,10 @@ import factory from 'graphql-factory'
 import { gqlResult } from './common'
 let { toObjectString } = factory.utils
 
+export function createWorkflowRun (runner, context, done, wf) {
+  return
+}
+
 export function startWorkflow (backend) {
   let { Workflow } = backend
   return function (runner, context = {}, done) {
@@ -17,7 +21,15 @@ export function startWorkflow (backend) {
         },
         id,
         name,
+        inputs {
+          id,
+          name,
+          type,
+          required,
+          defaultValue
+        },
         parameters {
+          id,
           name,
           type,
           required,
@@ -32,9 +44,10 @@ export function startWorkflow (backend) {
           task {
             source,
             parameters {
+              id,
               name,
               type,
-              scope,
+              class,
               required,
               mapsTo,
               defaultValue
@@ -48,9 +61,10 @@ export function startWorkflow (backend) {
           success,
           fail,
           parameters {
+            id,
             name,
             type,
-            scope,
+            class,
             required,
             mapsTo,
             defaultValue
@@ -59,16 +73,28 @@ export function startWorkflow (backend) {
       }
     }`)
       .then((result) => gqlResult(backend, result, (err, data) => {
+        console.log(chalk.red('============'))
+        console.log(JSON.stringify(data, null, '  '))
+        console.log(chalk.red('============'))
+        let wf = _.get(data, 'readWorkflow[0]')
         if (err) throw err
-        backend.logInfo('i made it')
-        let s = JSON.stringify(data, null, '  ')
+        if (!wf) throw new Error('No workflow found')
+        if (!_.get(wf, 'steps[0]')) throw new Error('The workflow contains no valid steps')
+
+        backend.logTrace('Got first step in workflow')
+
+        let s = JSON.stringify(wf, null, '  ')
         console.log(chalk.blue(s))
+        done(null)
+        // return createWorkflowRun.call(backend, runner, context, done, wf)
       }))
       .catch((err) => {
+        console.log(chalk.red(err))
         backend.logError('Failed to start workflow', {
           errors: err.message || err,
           stack: err.stack
         })
+        return done(err)
       })
   }
 }

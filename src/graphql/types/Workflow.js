@@ -1,6 +1,11 @@
 export default {
   extendFields: ['TemporalType', 'Entity', 'Named', 'Described'],
   fields: {
+    inputs: {
+      description: 'Inputs from steps',
+      type: ['Parameter'],
+      resolve: 'readWorkflowInputs'
+    },
     parameters: {
       description: 'Global parameters',
       type: ['Parameter'],

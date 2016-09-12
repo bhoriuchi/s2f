@@ -82,11 +82,12 @@ export const Step = [
 export const Parameter = [
   {
     entityType: 'PARAMETER',
-    id: '0a329a80-3b97-4b83-832f-7f9c960afdfc',
+    id: 'a2189572-dce9-46b8-897f-18d5bb221c08',
     name: 'name',
     parentId: '68e5264a-89ef-4c85-9235-09d8e944580f',
     required: 'false',
-    scope: 'INPUT',
+    scope: 'TASK',
+    class: 'INPUT',
     type: 'STRING'
   }
 ]

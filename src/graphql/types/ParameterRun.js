@@ -1,12 +1,12 @@
 export default {
   extendFields: ['Entity', 'Named'],
   fields: {
-    parameter: {
+    parameterId: {
       description: 'Parameter this run maps to',
       type: 'String',
       nullable: false
     },
-    step: {
+    stepRunId: {
       description: 'Step this run maps to',
       type: 'String',
       nullable: false

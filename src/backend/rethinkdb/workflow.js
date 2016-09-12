@@ -131,6 +131,23 @@ export function publishWorkflow (backend) {
   }
 }
 
+export function readWorkflowInputs (backend) {
+  let step = backend._db.table(backend._tables.Step.table)
+  let parameter = backend._db.table(backend._tables.Parameter.table)
+  let connection = backend._connection
+  return function (source, args, context, info) {
+    return step.filter({ workflowId: source.id })
+      .map((s) => {
+        return parameter.filter({parentId: s('id'), class: 'INPUT'})
+          .filter((p) => p.hasFields('mapsTo').not().or(p('mapsTo').eq(null)))
+          .coerceTo('array')
+      })
+      .reduce((left, right) => left.union(right))
+      .run(connection)
+  }
+}
+
+
 export function createWorkflow (backend) {
   let r = backend._r
   let connection = backend._connection
@@ -229,5 +246,6 @@ export default {
   createWorkflow,
   readWorkflow,
   updateWorkflow,
-  deleteWorkflow
+  deleteWorkflow,
+  readWorkflowInputs
 }

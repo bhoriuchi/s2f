@@ -1,9 +1,8 @@
 export default {
   type: 'Enum',
   values: {
-    GLOBAL: 'GLOBAL',
-    INPUT: 'INPUT',
-    OUTPUT: 'OUTPUT',
+    WORKFLOW: 'WORKFLOW',
+    STEP: 'STEP',
     TASK: 'TASK'
   }
 }

@@ -9,13 +9,28 @@ export const DEFAULT_TABLES = {
     unique: [],
     temporal: false
   },
+  WorkflowRunThread: {
+    table: 'workflow_run_thread',
+    unique: [],
+    temporal: false
+  },
   Step: {
     table: 'step',
     unique: [],
     temporal: true
   },
+  StepRun: {
+    table: 'step_run',
+    unique: [],
+    temporal: false
+  },
   Parameter: {
     table: 'parameter',
+    unique: [],
+    temporal: false
+  },
+  ParameterRun: {
+    table: 'parameter_run',
     unique: [],
     temporal: false
   },

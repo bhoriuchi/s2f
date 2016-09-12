@@ -6,7 +6,7 @@ let r = rethinkdbdash()
 let backend = new Backend(r, graphql)
 let lib = gql(backend)
 
-let op = 1
+let op = 6
 
 
 if (op === 1) {
@@ -74,6 +74,30 @@ if (op === 1) {
   lib.Workflow(`mutation Mutation { publishWorkflow (id: "1a9c820a-6810-496d-a5d9-b7cd8fab1cbb11") { _temporal { recordId, version }, id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
     .then((res) => {
       console.log('Publish Result:')
+      console.log(JSON.stringify(res, null, '  '))
+      process.exit()
+    })
+    .catch((err) => {
+      console.error(err)
+      process.exit()
+    })
+} else if (op === 6) {
+  lib.Workflow(`mutation Mutation {
+      createStep (
+        workflowId: "f4a8f894-06ba-4213-80f1-80ff72e1039b",
+        name: "Step3",
+        type: TASK,
+        task: "4c35b5a7-e971-4719-9846-ca06db2f8eb2"
+      ) {
+        id,
+        name,
+        parameters {
+          id, name
+        }
+      }
+    }`)
+    .then((res) => {
+      console.log('createstep Result:')
       console.log(JSON.stringify(res, null, '  '))
       process.exit()
     })

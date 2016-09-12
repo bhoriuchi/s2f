@@ -102,6 +102,7 @@ export default {
         description: { type: 'String' },
         parentId: { type: 'String', nullable: false },
         scope: { type: 'ParameterScopeEnum', nullable: false },
+        class: { type: 'ParameterClassEnum', nullable: false },
         type: { type: 'ParameterTypeEnum', defaultValue: 'STRING' },
         required: { type: 'Boolean', defaultValue: 'false' },
         mapsTo: { type: 'String' },

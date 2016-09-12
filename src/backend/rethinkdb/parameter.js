@@ -5,7 +5,10 @@ export function createParameter (backend) {
   let table = backend._db.table(backend._tables.Parameter.table)
   let connection = backend._connection
   return function (source, args, context, info) {
-    if (_.includes(['GLOBAL', 'TASK'], args.scope)) args.mapsTo = null
+    if (args.scope === 'WORKFLOW' && (args.class !== 'ATTRIBUTE')) {
+      throw new Error('Workflow parameters can only be of class ATTRIBUTE')
+    }
+    if (_.includes(['WORKFLOW', 'TASK'], args.scope)) args.mapsTo = null
     args.entityType = 'PARAMETER'
     return table.filter({ parentId: args.parentId })('name')
       .coerceTo('array')
@@ -41,7 +44,7 @@ export function isParentPublished (backend, id) {
       param.eq(null),
       r.error('Parameter does not exist'),
       r.branch(
-        param('scope').eq('GLOBAL'),
+        param('scope').eq('WORKFLOW'),
         workflow.get(param('parentId')),
         r.branch(
           param('scope').eq('TASK'),
@@ -70,7 +73,7 @@ export function updateParameter (backend) {
       parameter.get(args.id)
         .do((param) => {
           return r.branch(
-            r.expr(['GLOBAL', 'TASK']).contains(param('scope')),
+            r.expr(['WORKFLOW', 'TASK']).contains(param('scope')),
             parameter.get(args.id).update(_.omit(args, 'id', 'mapsTo')).do(() => parameter.get(args.id)),
             parameter.get(args.id).update(_.omit(args, 'id')).do(() => parameter.get(args.id))
           )

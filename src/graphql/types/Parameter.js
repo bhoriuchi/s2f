@@ -11,6 +11,10 @@ export default {
       type: 'ParameterScopeEnum',
       nullable: false
     },
+    class: {
+      description: 'Class of parameter',
+      type: 'ParameterClassEnum'
+    },
     required: {
       description: 'Parameter is required',
       type: 'Boolean',
