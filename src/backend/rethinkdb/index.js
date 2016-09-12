@@ -129,6 +129,10 @@ RethinkDBBackend.prototype.initStore = function (type, rebuild, seedData) {
     .forEach((name) => rebuild ? dbc.tableDrop(name) : dbc.table(tableName).delete())
     .run(this._connection)
     .then(() => createTable(dbc, tableName))
+    .then((tablesCreated) => {
+      if (seedData) return dbc.table(tableName).insert(seedData).run(this._connection).then(() => tablesCreated)
+      return tablesCreated
+    })
 }
 
 RethinkDBBackend.prototype.initAllStores = function (rebuild, seedData) {
@@ -145,8 +149,8 @@ RethinkDBBackend.prototype.initAllStores = function (rebuild, seedData) {
   return Promise.all(ops)
 }
 
-RethinkDBBackend.prototype.install = function () {
-  return this.initAllStores(true).then(() => yjinstaller(this._runnerBackend))
+RethinkDBBackend.prototype.install = function (seedData) {
+  return this.initAllStores(true, seedData).then(() => yjinstaller(this._runnerBackend))
 }
 
 export default RethinkDBBackend
