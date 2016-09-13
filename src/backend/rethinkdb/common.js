@@ -85,6 +85,7 @@ export function now (backend) {
   }
 }
 
+
 export default {
   DEFAULT_TABLES,
   createTable,

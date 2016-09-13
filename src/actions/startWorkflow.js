@@ -1,11 +1,11 @@
 import _ from 'lodash'
 import chalk from 'chalk'
 import factory from 'graphql-factory'
-import { gqlResult } from './common'
+import { gqlResult, convertType } from './common'
 let { toObjectString } = factory.utils
 
 export function createWorkflowRun (runner, context, done, wf) {
-  return
+  return done(null)
 }
 
 export function startWorkflow (backend) {
@@ -16,43 +16,17 @@ export function startWorkflow (backend) {
 
     return Workflow(`{
       readWorkflow (${toObjectString(args).replace(/^{|}$/g, '')}) {
-        _temporal {
-          recordId
-        },
+        _temporal { recordId },
         id,
         name,
-        inputs {
-          id,
-          name,
-          type,
-          required,
-          defaultValue
-        },
-        parameters {
-          id,
-          name,
-          type,
-          required,
-          defaultValue
-        },
+        inputs { id, name, type, required, defaultValue },
+        parameters { id, name, type, required, defaultValue },
         steps (first: true) {
           id,
           name,
           type,
           async,
           source,
-          task {
-            source,
-            parameters {
-              id,
-              name,
-              type,
-              class,
-              required,
-              mapsTo,
-              defaultValue
-            }
-          },
           subWorkflow,
           timeout,
           failsWorkflow,
@@ -60,22 +34,11 @@ export function startWorkflow (backend) {
           requireResumeKey,
           success,
           fail,
-          parameters {
-            id,
-            name,
-            type,
-            class,
-            required,
-            mapsTo,
-            defaultValue
-          }
+          parameters { id, name, type, class, required, mapsTo, defaultValue }
         }
       }
     }`)
       .then((result) => gqlResult(backend, result, (err, data) => {
-        console.log(chalk.red('============'))
-        console.log(JSON.stringify(data, null, '  '))
-        console.log(chalk.red('============'))
         let wf = _.get(data, 'readWorkflow[0]')
         if (err) throw err
         if (!wf) throw new Error('No workflow found')
@@ -83,10 +46,16 @@ export function startWorkflow (backend) {
 
         backend.logTrace('Got first step in workflow')
 
-        let s = JSON.stringify(wf, null, '  ')
-        console.log(chalk.blue(s))
-        done(null)
-        // return createWorkflowRun.call(backend, runner, context, done, wf)
+        console.log(chalk.blue(JSON.stringify(wf, null, '  ')))
+
+        // check that all required inputs are provided and that the types are correct
+        for (const key in wf.inputs) {
+          let i = wf.inputs[key]
+          if (i.required && !_.has(input, i.name)) throw new Error(`missing required input ${key}`)
+          if (_.has(input, i.name)) convertType(i.type, input[i.name])
+        }
+
+        return createWorkflowRun.call(backend, runner, context, done, wf)
       }))
       .catch((err) => {
         console.log(chalk.red(err))

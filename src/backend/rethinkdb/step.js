@@ -44,7 +44,7 @@ export function createStep (backend) {
             .do((task) => {
               return task.count().eq(0).branch(
                 r.error('The task specified does not have a current published version'),
-                createTemporalStep(args)('changes').nth(0)('new_val')
+                createTemporalStep(r.expr(args).merge({ source: task.nth(0)('source') }))('changes').nth(0)('new_val')
               )
             })
         )

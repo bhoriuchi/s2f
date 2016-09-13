@@ -48,6 +48,7 @@ export const Step = [
     failsWorkflow: false ,
     id:  '68e5264a-89ef-4c85-9235-09d8e944580f',
     name:  'Say Hello',
+    source:  'console.log("Hello", name)',
     requireResumeKey: false,
     task: '4c35b5a7-e971-4719-9846-ca06db2f8eb2',
     success: 'd2618ad7-a4d2-4213-b921-935b6eeafaf4',
