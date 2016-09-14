@@ -192,9 +192,12 @@ export function createWorkflow (backend) {
 }
 
 export function readWorkflow (backend) {
+  let r = backend._r
+  let table = backend._db.table(backend._tables.Workflow.table)
   let connection = backend._connection
   return function (source, args, context = {}, info) {
     let { filterTemporalWorkflow } = this.globals._temporal
+    if (source && source.workflow) return table.get(source.workflow).run(connection)
     context.date = args.date || context.date
     return filterTemporalWorkflow(args).run(connection)
   }

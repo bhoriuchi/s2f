@@ -18,16 +18,6 @@ export function createWorkflowRun (runner, context, done, wf) {
     param.class = Enum(param.class)
     param.type = Enum(param.type)
   })
-  // remove nulls
-  _.forEach(step, (v, k) => {
-    if (_.isString(v)) step[k] = v.replace(/"/gm, '\\"')
-  })
-
-  console.log(chalk.blue('====================='))
-  console.log(toObjectString(wf.parameters))
-  console.log(toObjectString(step))
-  console.log(chalk.blue('====================='))
-
 
   return this.Workflow(`mutation Mutation {
     createWorkflowRun (
@@ -37,7 +27,19 @@ export function createWorkflowRun (runner, context, done, wf) {
       parameters: ${toObjectString(wf.parameters)},
       step: ${toObjectString(step)}
     ) {
-      id
+      id,
+      workflow { name },
+      args,
+      input,
+      context { parameter { name }, value },
+      threads {
+        currentStepRun { step { name } },
+        stepRuns { step { name } },
+        status
+      },
+      started,
+      ended,
+      status
     }
   }`)
     .then((result) => gqlResult(this, result, (err, data) => {
@@ -58,7 +60,7 @@ export function startWorkflow (backend) {
     if (!args) return done(new Error('No context was supplied'))
 
     return Workflow(`{
-      readWorkflow (${toObjectString(args).replace(/^{|}$/g, '')}) {
+      readWorkflow (${toObjectString(args, { noOuterBraces: true })}) {
         _temporal { recordId },
         id,
         name,

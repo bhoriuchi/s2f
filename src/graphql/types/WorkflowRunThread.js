@@ -2,13 +2,18 @@ export default {
   extendFields: ['Entity'],
   fields: {
     workflowRun: {
-      type: 'String'
+      type: 'WorkflowRun'
     },
-    currentStep: {
-      type: 'StepRun'
+    currentStepRun: {
+      type: 'StepRun',
+      resolve: 'readStepRun'
+    },
+    stepRuns: {
+      type: ['StepRun'],
+      resolve: 'readStepRun'
     },
     status: {
-      type: 'StepRunStatusEnum'
+      type: 'RunStatusEnum'
     }
   }
 }

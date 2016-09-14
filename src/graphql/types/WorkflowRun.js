@@ -2,7 +2,8 @@ export default {
   extendFields: ['Entity'],
   fields: {
     workflow: {
-      type: 'Workflow'
+      type: 'Workflow',
+      resolve: 'readWorkflow'
     },
     args: {
       type: 'FactoryJSON'
@@ -11,10 +12,21 @@ export default {
       type: 'FactoryJSON'
     },
     context: {
-      type: ['ParameterRun']
+      type: ['ParameterRun'],
+      resolve: 'readParameterRun'
     },
     threads: {
-      type: ['WorkflowRunThread']
+      type: ['WorkflowRunThread'],
+      resolve: 'readWorkflowRunThread'
+    },
+    started: {
+      type: 'FactoryDateTime'
+    },
+    ended: {
+      type: 'FactoryDateTime'
+    },
+    status: {
+      type: 'RunStatusEnum'
     }
   }
 }

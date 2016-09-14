@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { convertType } from '../../actions/common'
+import { convertType, isNested } from '../../actions/common'
 import chalk from 'chalk'
 export function createWorkflowRun (backend) {
   let r = backend._r
@@ -12,31 +12,42 @@ export function createWorkflowRun (backend) {
   return function (source, args, context, info) {
     console.log(chalk.bgRed.white(JSON.stringify(args, null, '  ')))
 
-    return r.do(r.uuid(), r.uuid(), r.uuid(), (workflowRunId, stepRunId, workflowRunThreadId) => {
+    return r.do(r.now(), r.uuid(), r.uuid(), r.uuid(), (now, workflowRunId, stepRunId, workflowRunThreadId) => {
         return workflowRun.insert({
           id: workflowRunId,
           workflow: args.workflow,
           args: args.args,
-          input: args.input
+          input: args.input,
+          started: now,
+          status: 'RUNNING'
         }, { returnChanges: true })('changes')
           .nth(0)('new_val')
           .do((wfRun) => {
-            return workflowRunThread.insert({ id: workflowRunThreadId, workflowRun: workflowRunId, status: 'CREATED' })
+            return workflowRunThread.insert({
+              id: workflowRunThreadId,
+              workflowRun: workflowRunId,
+              currentStepRun: stepRunId,
+              status: 'CREATED'
+            })
               .do(() => {
                 if (!args.parameters.length) return
-                return parameterRun.insert(_.map((param) => {
+                return parameterRun.insert(_.map(args.parameters, (param) => {
                   return {
                     parameter: param.id,
                     parentId: workflowRunId,
                     class: param.class,
-                    value: {
-                      value: _.get(param, 'defaultValue')
-                    }
+                    value: _.get(param, 'defaultValue')
                   }
                 }))
               })
               .do(() => {
-                return stepRun.insert({ id: stepRunId, workflowRunThread: workflowRunThreadId, step: args.step.id })
+                return stepRun.insert({
+                  id: stepRunId,
+                  workflowRunThread: workflowRunThreadId,
+                  step: args.step.id,
+                  started: now,
+                  status: 'CREATED'
+                })
               })
               .do(() => {
                 if (!args.step.parameters.length) return
@@ -55,9 +66,7 @@ export function createWorkflowRun (backend) {
                     parameter: param.id,
                     parentId: stepRunId,
                     class: param.class,
-                    value: {
-                      value: paramValue
-                    }
+                    value: paramValue
                   })
                 })
                 return parameterRun.insert(p)
@@ -73,7 +82,60 @@ export function createWorkflowRun (backend) {
   }
 }
 
+export function readWorkflowRun (backend) {
+  let r = backend._r
+  let table = backend._db.table(backend._tables.WorkflowRun.table)
+  let connection = backend._connection
+
+  return function (source, args, context, info) {
+    let filter = table
+    if (args.id) {
+      filter = filter.get(args.id)
+        .do((result) => {
+          return result.eq(null).branch(
+            [],
+            r.expr([result])
+          )
+        })
+    }
+    return filter.run(connection)
+  }
+}
+
+export function updateWorkflowRun (backend) {
+  let r = backend._r
+  let table = backend._db.table(backend._tables.WorkflowRun.table)
+  let connection = backend._connection
+
+  return function (source, args, context, info) {
+    return table.get(args.id).eq(null).branch(
+      r.error('WorkflowRun not found'),
+      table.get(args.id).update(_.omit(args, 'id'))
+        .do(() => table.get(args.id))
+    )
+      .run(connection)
+  }
+}
+
+export function deleteWorkflowRun (backend) {
+  let r = backend._r
+  let table = backend._db.table(backend._tables.WorkflowRun.table)
+  let connection = backend._connection
+
+  return function (source, args, context, info) {
+    return table.get(args.id).eq(null).branch(
+      r.error('WorkflowRun not found'),
+      table.get(args.id).delete()
+        .do(() => true)
+    )
+      .run(connection)
+  }
+}
+
 
 export default {
-  createWorkflowRun
+  createWorkflowRun,
+  readWorkflowRun,
+  updateWorkflowRun,
+  deleteWorkflowRun
 }

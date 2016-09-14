@@ -16,7 +16,15 @@ import { createTable, DEFAULT_TABLES, now } from './common'
 import { createStep, readStep, updateStep, deleteStep } from './step'
 import { createParameter, readParameter, updateParameter, deleteParameter } from './parameter'
 import { createTask, readTask, updateTask, deleteTask } from './task'
-import { createWorkflowRun } from './workflowRun'
+import { createWorkflowRun, readWorkflowRun, updateWorkflowRun, deleteWorkflowRun } from './workflowRun'
+import { createStepRun, readStepRun, updateStepRun, deleteStepRun } from './stepRun'
+import { createParameterRun, readParameterRun, updateParameterRun, deleteParameterRun } from './parameterRun'
+import {
+  createWorkflowRunThread,
+  readWorkflowRunThread,
+  updateWorkflowRunThread,
+  deleteWorkflowRunThread
+} from './workflowRunThread'
 import {
   createWorkflow,
   readWorkflow,
@@ -115,7 +123,28 @@ function RethinkDBBackend (r, graphql, scheduler, opts = {}, connection) {
     deleteTask: deleteTask(this),
 
     // workflow run
-    createWorkflowRun: createWorkflowRun(this)
+    createWorkflowRun: createWorkflowRun(this),
+    readWorkflowRun: readWorkflowRun(this),
+    updateWorkflowRun: updateWorkflowRun(this),
+    deleteWorkflowRun: deleteWorkflowRun(this),
+
+    // workflow run thread
+    createWorkflowRunThread: createWorkflowRunThread(this),
+    readWorkflowRunThread: readWorkflowRunThread(this),
+    updateWorkflowRunThread: updateWorkflowRunThread(this),
+    deleteWorkflowRunThread: deleteWorkflowRunThread(this),
+
+    // step run
+    createStepRun: createStepRun(this),
+    readStepRun: readStepRun(this),
+    updateStepRun: updateStepRun(this),
+    deleteStepRun: deleteStepRun(this),
+
+    // parameter run
+    createParameterRun: createParameterRun(this),
+    readParameterRun: readParameterRun(this),
+    updateParameterRun: updateParameterRun(this),
+    deleteParameterRun: deleteParameterRun(this)
   }
 }
 

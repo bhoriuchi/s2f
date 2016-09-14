@@ -95,6 +95,7 @@ export const Parameter = [
     entityType: 'PARAMETER',
     id: '1e5782b6-e8c0-47c0-b4bc-a0eca56805c1',
     name: 'message',
+    defaultValue: 'Hello',
     parentId: 'f4a8f894-06ba-4213-80f1-80ff72e1039b',
     required: 'false',
     scope: 'WORKFLOW',

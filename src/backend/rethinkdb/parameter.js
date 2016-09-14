@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import chalk from 'chalk'
 
 export function createParameter (backend) {
   let r = backend._r
@@ -27,7 +28,11 @@ export function readParameter (backend) {
   let table = backend._db.table(backend._tables.Parameter.table)
   let connection = backend._connection
   return function (source, args, context, info) {
-    if (!source) return table
+    console.log(chalk.green(source))
+    if (!source) return table.run(connection)
+    if (source.parameter) {
+      return table.get(source.parameter).run(connection)
+    }
     return table.filter({ parentId: source.id }).run(connection)
   }
 }

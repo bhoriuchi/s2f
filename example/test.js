@@ -6,7 +6,7 @@ let r = rethinkdbdash()
 let backend = new Backend(r, graphql)
 let lib = gql(backend)
 
-let op = 6
+let op = 7
 
 
 if (op === 1) {
@@ -37,7 +37,7 @@ if (op === 1) {
     .catch((err) => {
       console.error(err)
       process.exit()
-  })
+    })
 } else if (op === 2) {
   lib.Workflow(`{ readWorkflow { id, name, parameters { id, name, type, scope }, steps { id, type, name, task { name, source }, parameters { id, name, type, scope } } } }`)
     .then((res) => {
@@ -99,6 +99,31 @@ if (op === 1) {
     }`)
     .then((res) => {
       console.log('createstep Result:')
+      console.log(JSON.stringify(res, null, '  '))
+      process.exit()
+    })
+    .catch((err) => {
+      console.error(err)
+      process.exit()
+    })
+} else if (op === 7) {
+  lib.Workflow(`{ readWorkflowRun {
+      id,
+      workflow { name },
+      args,
+      input,
+      context { parameter { name }, value },
+      threads {
+        currentStepRun { step { name } },
+        stepRuns { step { name } },
+        status
+      },
+      started,
+      ended,
+      status
+    }}`)
+    .then((res) => {
+      console.log('workflowrun Result:')
       console.log(JSON.stringify(res, null, '  '))
       process.exit()
     })

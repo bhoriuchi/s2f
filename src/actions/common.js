@@ -57,8 +57,13 @@ export function convertType (type, name, value) {
   }
 }
 
+export function isNested (info) {
+  return _.get(info, 'path', []).length > 1
+}
+
 export default {
   expandGQLErrors,
   gqlResult,
-  convertType
+  convertType,
+  isNested
 }

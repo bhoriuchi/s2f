@@ -76,6 +76,9 @@ export function readStep (backend) {
   return function (source = {}, args, context = {}, info) {
     let { filterTemporalStep } = this.globals._temporal
     context.date = args.date || context.date
+
+    if (source.step) return table.get(source.step).run(connection)
+
     let filter = filterTemporalStep(args)
 
     if (source.id) {

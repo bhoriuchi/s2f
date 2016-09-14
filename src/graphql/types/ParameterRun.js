@@ -1,19 +1,12 @@
 export default {
-  extendFields: ['Entity', 'Named'],
+  extendFields: ['Entity'],
   fields: {
-    parameterId: {
-      description: 'Parameter this run maps to',
-      type: 'String',
-      nullable: false
-    },
-    stepRunId: {
-      description: 'Step this run maps to',
-      type: 'String',
-      nullable: false
+    parameter: {
+      type: 'Parameter',
+      resolve: 'readParameter'
     },
     value: {
-      description: 'Parameter value',
-      type: 'String'
+      type: 'FactoryJSON'
     }
   }
 }

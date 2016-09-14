@@ -37,6 +37,34 @@ export default {
         id: { type: 'String' }
       },
       resolve: 'readParameter'
+    },
+    readWorkflowRun: {
+      type: ['WorkflowRun'],
+      args: {
+        id: { type: 'String' }
+      },
+      resolve: 'readWorkflowRun'
+    },
+    readWorkflowRunThread: {
+      type: ['WorkflowRunThread'],
+      args: {
+        id: { type: 'String' }
+      },
+      resolve: 'readWorkflowRunThread'
+    },
+    readStepRun: {
+      type: ['StepRun'],
+      args: {
+        id: { type: 'String' }
+      },
+      resolve: 'readStepRun'
+    },
+    readParameterRun: {
+      type: ['ParameterRun'],
+      args: {
+        id: { type: 'String' }
+      },
+      resolve: 'readParameterRun'
     }
   }
 }

@@ -166,6 +166,94 @@ export default {
         step: { type: 'StepInput' }
       },
       resolve: 'createWorkflowRun'
+    },
+    updateWorkflowRun: {
+      type: 'WorkflowRun',
+      args: {
+        id: { type: 'String', nullable: false },
+        status: { type: 'RunStatusEnum' },
+        ended: { type: 'FactoryDateTime' }
+      },
+      resolve: 'updateWorkflowRun'
+    },
+    deleteWorkflowRun: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'deleteWorkflowRun'
+    },
+    createWorkflowRunThread: {
+      type: 'WorkflowRunThread',
+      args: {
+        workflowRun: { type: 'String', nullable: false },
+        currentStepRun: { type: 'String', nullable: false }
+      },
+      resolve: 'createWorkflowRunThread'
+    },
+    updateWorkflowRunThread: {
+      type: 'WorkflowRunThread',
+      args: {
+        id: { type: 'String', nullable: false },
+        currentStepRun: { type: 'String' },
+        status: { type: 'RunStatusEnum' }
+      },
+      resolve: 'updateWorkflowRunThread'
+    },
+    deleteWorkflowRunThread: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'deleteWorkflowRunThread'
+    },
+    createStepRun: {
+      type: 'StepRun',
+      args: {
+        step: { type: 'String', nullable: false },
+        workflowRunThread: { type: 'String', nullable: false }
+      },
+      resolve: 'createStepRun'
+    },
+    updateStepRun: {
+      type: 'StepRun',
+      args: {
+        id: { type: 'String', nullable: false },
+        status: { type: 'RunStatusEnum'},
+        ended: { type: 'FactoryDateTime' }
+      },
+      resolve: 'updateStepRun'
+    },
+    deleteStepRun: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'deleteStepRun'
+    },
+    createParameterRun: {
+      type: 'ParameterRun',
+      args: {
+        parameter: { type: 'String', nullable: false },
+        parentId: { type: 'String', nullable: false },
+        value: { type: 'FactoryJSON' }
+      },
+      resolve: 'createParameterRun'
+    },
+    updateParameterRun: {
+      type: 'ParameterRun',
+      args: {
+        id: { type: 'String', nullable: false },
+        value: { type: 'FactoryJSON' }
+      },
+      resolve: 'updateParameterRun'
+    },
+    deleteParameterRun: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'deleteParameterRun'
     }
   }
 }
