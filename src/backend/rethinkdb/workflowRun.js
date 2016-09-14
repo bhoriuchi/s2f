@@ -10,8 +10,6 @@ export function createWorkflowRun (backend) {
   let connection = backend._connection
 
   return function (source, args, context, info) {
-    console.log(chalk.bgRed.white(JSON.stringify(args, null, '  ')))
-
     return r.do(r.now(), r.uuid(), r.uuid(), r.uuid(), (now, workflowRunId, stepRunId, workflowRunThreadId) => {
         return workflowRun.insert({
           id: workflowRunId,
@@ -75,10 +73,6 @@ export function createWorkflowRun (backend) {
           })
       })
       .run(connection)
-      .then((res) => {
-        console.log(chalk.blue(JSON.stringify(res, null, '  ')))
-        return res
-      })
   }
 }
 

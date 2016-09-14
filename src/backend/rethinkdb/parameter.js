@@ -28,7 +28,6 @@ export function readParameter (backend) {
   let table = backend._db.table(backend._tables.Parameter.table)
   let connection = backend._connection
   return function (source, args, context, info) {
-    console.log(chalk.green(source))
     if (!source) return table.run(connection)
     if (source.parameter) {
       return table.get(source.parameter).run(connection)

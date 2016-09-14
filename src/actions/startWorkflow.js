@@ -2,6 +2,7 @@ import _ from 'lodash'
 import chalk from 'chalk'
 import factory from 'graphql-factory'
 import { gqlResult, convertType } from './common'
+import runStep from './runStep'
 let { toObjectString, Enum } = factory.utils
 
 export function createWorkflowRun (runner, context, done, wf) {
@@ -26,26 +27,11 @@ export function createWorkflowRun (runner, context, done, wf) {
       input: ${toObjectString(input)},
       parameters: ${toObjectString(wf.parameters)},
       step: ${toObjectString(step)}
-    ) {
-      id,
-      workflow { name },
-      args,
-      input,
-      context { parameter { name }, value },
-      threads {
-        currentStepRun { step { name } },
-        stepRuns { step { name } },
-        status
-      },
-      started,
-      ended,
-      status
-    }
+    ) { id }
   }`)
     .then((result) => gqlResult(this, result, (err, data) => {
       if (err) throw err
-      console.log(chalk.green(JSON.stringify(data, null, '  ')))
-      return done(null)
+      return runStep(this)(runner, { id: data.createWorkflowRun.id }, done)
     }))
     .catch((err) => {
       return done(err)

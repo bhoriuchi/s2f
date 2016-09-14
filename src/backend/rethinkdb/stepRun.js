@@ -30,9 +30,7 @@ export function readStepRun (backend) {
     if (_.isArray(info.path) && info.path.join('.').match(/stepRuns$/) && source && source.id) {
       return table.filter({ workflowRunThread: source.id }).run(connection)
     }
-    console.log(source)
     if (source && source.currentStepRun) {
-      console.log('here2')
       return table.get(source.currentStepRun).run(connection)
     }
     if (args.id) return table.filter({ id: args.id }).run(connection)
