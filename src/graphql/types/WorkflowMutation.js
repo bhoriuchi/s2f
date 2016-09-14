@@ -155,6 +155,17 @@ export default {
         id: { type: 'String', nullable: false }
       },
       resolve: 'deleteTask'
+    },
+    createWorkflowRun: {
+      type: 'WorkflowRun',
+      args: {
+        workflow: { type: 'String' },
+        args: { type: 'FactoryJSON' },
+        input: { type: 'FactoryJSON' },
+        parameters: { type: ['ParameterInput'] },
+        step: { type: 'StepInput' }
+      },
+      resolve: 'createWorkflowRun'
     }
   }
 }

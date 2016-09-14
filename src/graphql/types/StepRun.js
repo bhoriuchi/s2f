@@ -1,5 +1,5 @@
 export default {
-  extendFields: ['Entity', 'Named'],
+  extendFields: ['Entity'],
   fields: {
     context: {
       type: ['ParameterRun']

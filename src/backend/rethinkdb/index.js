@@ -16,6 +16,7 @@ import { createTable, DEFAULT_TABLES, now } from './common'
 import { createStep, readStep, updateStep, deleteStep } from './step'
 import { createParameter, readParameter, updateParameter, deleteParameter } from './parameter'
 import { createTask, readTask, updateTask, deleteTask } from './task'
+import { createWorkflowRun } from './workflowRun'
 import {
   createWorkflow,
   readWorkflow,
@@ -112,6 +113,9 @@ function RethinkDBBackend (r, graphql, scheduler, opts = {}, connection) {
     readTask: readTask(this),
     updateTask: updateTask(this),
     deleteTask: deleteTask(this),
+
+    // workflow run
+    createWorkflowRun: createWorkflowRun(this)
   }
 }
 

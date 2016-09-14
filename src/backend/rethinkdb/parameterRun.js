@@ -1,3 +1,11 @@
-/**
- * Created by bhoriuchi on 9/12/16.
- */
+export default {
+  extendFields: ['Entity', 'Named'],
+  fields: {
+    parameter: {
+      type: 'Parameter'
+    },
+    value: {
+      type: 'FactoryJSON'
+    }
+  }
+}

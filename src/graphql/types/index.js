@@ -5,6 +5,7 @@ import ParameterRun from './ParameterRun'
 import ParameterTypeEnum from './ParameterTypeEnum'
 import ParameterScopeEnum from './ParameterScopeEnum'
 import Step from './Step'
+import StepInput from './StepInput'
 import StepRun from './StepRun'
 import StepRunStatusEnum from './StepRunStatusEnum'
 import StepTypeEnum from './StepTypeEnum'
@@ -22,6 +23,7 @@ export { ParameterRun }
 export { ParameterTypeEnum }
 export { ParameterScopeEnum }
 export { Step }
+export { StepInput }
 export { StepRun }
 export { StepRunStatusEnum }
 export { StepTypeEnum }
@@ -40,6 +42,7 @@ export default {
   ParameterTypeEnum,
   ParameterScopeEnum,
   Step,
+  StepInput,
   StepRun,
   StepRunStatusEnum,
   StepTypeEnum,

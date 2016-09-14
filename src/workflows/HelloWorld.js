@@ -87,8 +87,18 @@ export const Parameter = [
     name: 'name',
     parentId: '68e5264a-89ef-4c85-9235-09d8e944580f',
     required: 'false',
-    scope: 'TASK',
+    scope: 'STEP',
     class: 'INPUT',
+    type: 'STRING'
+  },
+  {
+    entityType: 'PARAMETER',
+    id: '1e5782b6-e8c0-47c0-b4bc-a0eca56805c1',
+    name: 'message',
+    parentId: 'f4a8f894-06ba-4213-80f1-80ff72e1039b',
+    required: 'false',
+    scope: 'WORKFLOW',
+    class: 'ATTRIBUTE',
     type: 'STRING'
   }
 ]

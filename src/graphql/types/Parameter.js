@@ -1,4 +1,5 @@
 export default {
+  type: ['Object', 'Input'],
   extendFields: ['Entity', 'Named', 'Described'],
   fields: {
     type: {
@@ -9,7 +10,8 @@ export default {
     scope: {
       description: 'The scope of the parameter',
       type: 'ParameterScopeEnum',
-      nullable: false
+      nullable: false,
+      omitFrom: 'Input'
     },
     class: {
       description: 'Class of parameter',
