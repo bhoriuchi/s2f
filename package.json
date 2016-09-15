@@ -21,7 +21,8 @@
     "test:types": "npm run build && mocha test/index.js -t 'unit.types'",
     "test:query": "npm run build && mocha test/index.js -t 'unit.query'",
     "copytemporal": "cp ../graphql-factory-temporal/*.js node_modules/graphql-factory-temporal/",
-    "copyyj": "cp ../yellowjacket/*.js node_modules/yellowjacket/"
+    "copyyj": "cp ../yellowjacket/*.js node_modules/yellowjacket/",
+    "copysbx": "cp ../sbx/dist/*.js node_modules/sbx/dist"
   },
   "author": "Branden Horiuchi <bhoriuchi@gmail.com>",
   "dependencies": {

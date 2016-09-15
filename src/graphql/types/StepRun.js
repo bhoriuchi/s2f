@@ -3,6 +3,9 @@ export default {
   fields: {
     context: {
       type: ['ParameterRun'],
+      args: {
+        id: { type: 'String' }
+      },
       resolve: 'readParameterRun'
     },
     step: {

@@ -6,6 +6,7 @@ export default {
     DATE: 'DATE',
     NUMBER: 'NUMBER',
     OBJECT: 'OBJECT',
-    STRING: 'STRING'
+    STRING: 'STRING',
+    PASSWORD: 'PASSWORD'
   }
 }

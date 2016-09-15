@@ -43,7 +43,6 @@ export function createWorkflowRun (backend) {
                   id: stepRunId,
                   workflowRunThread: workflowRunThreadId,
                   step: args.step.id,
-                  started: now,
                   status: 'CREATED'
                 })
               })

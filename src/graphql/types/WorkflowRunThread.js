@@ -10,6 +10,9 @@ export default {
     },
     stepRuns: {
       type: ['StepRun'],
+      args: {
+        id: { type: 'String' }
+      },
       resolve: 'readStepRun'
     },
     status: {

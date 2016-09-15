@@ -23,7 +23,6 @@ export function gqlResult (backend, result, cb) {
   return cb(null, result.data)
 }
 
-
 export function convertType (type, name, value) {
   if (!type || !name) throw new Error('could not determine type of variable name to convert')
   switch (type) {

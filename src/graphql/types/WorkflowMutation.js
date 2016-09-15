@@ -231,6 +231,21 @@ export default {
       },
       resolve: 'deleteStepRun'
     },
+    startStepRun: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false }
+      },
+      resolve: 'startStepRun'
+    },
+    endStepRun: {
+      type: 'Boolean',
+      args: {
+        id: { type: 'String', nullable: false },
+        success: { type: 'Boolean', defaultValue: true }
+      },
+      resolve: 'endStepRun'
+    },
     createParameterRun: {
       type: 'ParameterRun',
       args: {

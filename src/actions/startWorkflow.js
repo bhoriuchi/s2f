@@ -27,11 +27,16 @@ export function createWorkflowRun (runner, context, done, wf) {
       input: ${toObjectString(input)},
       parameters: ${toObjectString(wf.parameters)},
       step: ${toObjectString(step)}
-    ) { id }
+    ) {
+      id,
+      threads { id }
+    }
   }`)
     .then((result) => gqlResult(this, result, (err, data) => {
       if (err) throw err
-      return runStep(this)(runner, { id: data.createWorkflowRun.id }, done)
+      let workflowRun = _.get(data, 'createWorkflowRun.id')
+      let thread = _.get(data, 'createWorkflowRun.threads[0].id')
+      return runStep(this)(runner, { workflowRun, thread }, done)
     }))
     .catch((err) => {
       return done(err)

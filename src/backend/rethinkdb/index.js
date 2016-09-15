@@ -17,7 +17,7 @@ import { createStep, readStep, updateStep, deleteStep } from './step'
 import { createParameter, readParameter, updateParameter, deleteParameter } from './parameter'
 import { createTask, readTask, updateTask, deleteTask } from './task'
 import { createWorkflowRun, readWorkflowRun, updateWorkflowRun, deleteWorkflowRun } from './workflowRun'
-import { createStepRun, readStepRun, updateStepRun, deleteStepRun } from './stepRun'
+import { createStepRun, readStepRun, updateStepRun, deleteStepRun, startStepRun, endStepRun } from './stepRun'
 import { createParameterRun, readParameterRun, updateParameterRun, deleteParameterRun } from './parameterRun'
 import {
   createWorkflowRunThread,
@@ -53,11 +53,12 @@ function RethinkDBBackend (r, graphql, scheduler, opts = {}, connection) {
   this._graphql = graphql
   this._connection = connection
   this._db = r.db(opts.db || 'test')
+  this._vm = _.isObject(opts.vm) ? opts.vm : {}
   this._prefix = opts.prefix || ''
   this._tables = {}
   this.functions = {}
   this.actions = {}
-  this.scheduler = scheduler ? scheduler : (runner, nodes, queue, done) => done(null, [runner.info()])
+  this.scheduler = _.isFunction(scheduler) ? scheduler : (runner, nodes, queue, done) => done(null, [runner.info()])
   this.Workflow = {}
 
   // runner
@@ -139,6 +140,8 @@ function RethinkDBBackend (r, graphql, scheduler, opts = {}, connection) {
     readStepRun: readStepRun(this),
     updateStepRun: updateStepRun(this),
     deleteStepRun: deleteStepRun(this),
+    startStepRun: startStepRun(this),
+    endStepRun: endStepRun(this),
 
     // parameter run
     createParameterRun: createParameterRun(this),

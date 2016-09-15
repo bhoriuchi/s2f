@@ -13,10 +13,16 @@ export default {
     },
     context: {
       type: ['ParameterRun'],
+      args: {
+        id: { type: 'String' }
+      },
       resolve: 'readParameterRun'
     },
     threads: {
       type: ['WorkflowRunThread'],
+      args: {
+        id: { type: 'String' }
+      },
       resolve: 'readWorkflowRunThread'
     },
     started: {
@@ -27,6 +33,9 @@ export default {
     },
     status: {
       type: 'RunStatusEnum'
+    },
+    parentStepRun: {
+      type: 'String'
     }
   }
 }
