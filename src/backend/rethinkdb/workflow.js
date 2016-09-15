@@ -156,6 +156,7 @@ export function createWorkflow (backend) {
     return r.do(r.uuid(), r.uuid(), r.uuid(), (wfId, startId, endId) => {
       args.id = wfId
       args.entityType = 'WORKFLOW'
+      args.endStep = endId
       return createTemporalStep([
         {
           id: startId,

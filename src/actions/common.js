@@ -1,4 +1,42 @@
 import _ from 'lodash'
+import SocketClient from 'socket.io-client'
+
+// cleans up socket connection
+export function disconnectSocket (socket) {
+  socket.emit(DISCONNECT)
+  socket.disconnect(0)
+  return true
+}
+
+/*
+ * Sends a message and then disconnects after response or error
+ */
+export function emitOnce (host, port, evt, listeners, onError = () => false, timeout = 2000) {
+  let disconnected = false
+  let socket = SocketClient(`http://${host}:${port}`, { timeout })
+
+  socket.on(CONNECTED, () => socket.emit(evt))
+
+  _.forEach(listeners, (fn, e) => {
+    socket.on(e, (data) => {
+      disconnected = disconnectSocket(socket)
+      return fn(data)
+    })
+  })
+
+  socket.on(CONNECT_ERROR, () => {
+    if (!disconnected) {
+      disconnected = disconnectSocket(socket)
+      return onError()
+    }
+  })
+  socket.on(CONNECT_TIMEOUT, () => {
+    if (!disconnected) {
+      disconnected = disconnectSocket(socket)
+      return onError()
+    }
+  })
+}
 
 export function expandGQLErrors (errors) {
   if (_.isArray(errors)) {

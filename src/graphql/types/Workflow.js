@@ -25,6 +25,9 @@ export default {
         first: { type: 'Boolean' }
       },
       resolve: 'readStep'
+    },
+    endStep: {
+      type: 'String'
     }
   }
 }

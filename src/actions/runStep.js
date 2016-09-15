@@ -1,32 +1,53 @@
 import _ from 'lodash'
 import chalk from 'chalk'
-import { gqlResult, convertType } from './common'
+import { gqlResult, convertType, emitOnce } from './common'
 import StepTypes from '../graphql/types/StepTypeEnum'
 import ParameterClass from '../graphql/types/ParameterClassEnum'
+import RunStatus from '../graphql/types/RunStatusEnum'
 import sbx from 'sbx'
 
+let { values: { SUCCESS, FAIL, WAITING, JOINING } } = RunStatus
 let { values: { ATTRIBUTE, INPUT, OUTPUT } } = ParameterClass
 let { values: { BASIC, CONDITION, END, FORK, JOIN, LOOP, START, TASK, WORKFLOW } } = StepTypes
 let HAS_SOURCE = [ BASIC, CONDITION, LOOP, TASK ]
 
-export function runSource (context, runner, globalContext, args, step, done) {
+export function endWorkflow (workflowRun, done) {
+  console.log(chalk.green('==== NEXT STEP IS END'))
+  done()
+}
+
+
+export function completeStep (stepRunId, status) {
+  return Workflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
+    .then(() => {
+
+    })
+}
+
+export function runSource (context, payload, done) {
+  let { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId } = payload
   let { async, source, timeout, failsWorkflow, waitOnSuccess, success, fail, parameters } = step
   if (!source) return done(new Error('No source'))
-  return sbx.vm(source, _.merge({ context, timeout }, this._vm))
-    .then((ctx) => {
-      let failed = ctx._exception || ctx._result === false
+  let { workflowRun, thread } = parent
+  let run = sbx.vm(source, _.merge({ context, timeout }, this._vm))
 
-      switch (step.type) {
-        case CONDITION:
-        case LOOP:
-        case BASIC:
-        case TASK:
-        default:
-      }
+  // if async step, complete it first then resolve it
+  if (async) return completeStep(stepRunId, SUCCESS).then(() => run)
 
-      console.log(chalk.green(JSON.stringify(ctx, null, '  ')))
-      done()
-    })
+  // regular steps should wait for the action to resolve
+  return run.then((ctx) => {
+    let failed = ctx._exception || ctx._result === false
+    let nextStep = failed ? fail : success
+
+
+    return Workflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
+      .then(() => {
+        if (nextStep === endStep) endWorkflow(workflowRun, done)
+
+        console.log(chalk.green(JSON.stringify(ctx, null, '  ')))
+        done()
+      })
+  })
     .catch((err) => {
       console.log(chalk.red(err))
       done(err)
@@ -62,6 +83,7 @@ export function runStep (backend) {
 
     return Workflow(`{
       readWorkflowRun (id: "${workflowRun}") {
+        workflow { endStep },
         args,
         input,
         context {
@@ -70,6 +92,7 @@ export function runStep (backend) {
         },
         threads (id: "${thread}") {
           currentStepRun {
+            id,
             step {
               id,
               type,
@@ -90,8 +113,9 @@ export function runStep (backend) {
     }`)
       .then((result) => gqlResult(backend, result, (err, data) => {
         if (err) throw err
-        let { args, input, context, threads } = _.get(data, 'readWorkflowRun[0]', {})
+        let { workflow: { endStep }, args, input, context, threads } = _.get(data, 'readWorkflowRun[0]', {})
         let step = _.get(threads, '[0].currentStepRun.step')
+        let stepRunId = _.get(threads, '[0].currentStepRun.id')
         if (!step) return done(new Error('No step found in thread'))
         backend.logTrace('Successfully queried step', { step: step.id })
 
@@ -103,7 +127,8 @@ export function runStep (backend) {
           .then(() => {
             // run specefic step type methods
             if (_.includes(HAS_SOURCE, step.type)) {
-              return runSource.call(backend, runner, localCtx, context, args, step, done)
+              let payload = { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId }
+              return runSource.call(backend, payload, done)
             }
             return done(null)
           })

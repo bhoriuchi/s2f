@@ -98,7 +98,6 @@ export function endStepRun (backend) {
 
   return function (source, args, context, info) {
     args.ended = r.now()
-    args.status = Boolean(args.success)
 
     return table.get(args.id).eq(null).branch(
       r.error('StepRun not found'),

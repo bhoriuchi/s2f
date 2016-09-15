@@ -242,7 +242,7 @@ export default {
       type: 'Boolean',
       args: {
         id: { type: 'String', nullable: false },
-        success: { type: 'Boolean', defaultValue: true }
+        status: { type: 'RunStatusEnum', nullable: false }
       },
       resolve: 'endStepRun'
     },

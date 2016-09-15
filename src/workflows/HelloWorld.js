@@ -9,7 +9,8 @@ export const Workflow = [
     },
     entityType:  'WORKFLOW',
     id:  'f4a8f894-06ba-4213-80f1-80ff72e1039b',
-    name:  'Hello World'
+    name:  'Hello World',
+    endStep: 'd2618ad7-a4d2-4213-b921-935b6eeafaf4'
   }
 ]
 
