@@ -18,17 +18,17 @@ export function endWorkflow (workflowRun, done) {
 
 
 export function completeStep (stepRunId, status) {
-  return Workflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
+  return this.lib.S2FWorkflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
     .then(() => {
 
     })
 }
 
-export function runSource (context, payload, done) {
+export function runSource (ctx, payload, done) {
   let { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId } = payload
   let { async, source, timeout, failsWorkflow, waitOnSuccess, success, fail, parameters } = step
   if (!source) return done(new Error('No source'))
-  let { workflowRun, thread } = parent
+  // let { workflowRun, thread } = parent
   let run = sbx.vm(source, _.merge({ context, timeout }, this._vm))
 
   // if async step, complete it first then resolve it
@@ -40,7 +40,7 @@ export function runSource (context, payload, done) {
     let nextStep = failed ? fail : success
 
 
-    return Workflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
+    return this.lib.S2FWorkflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
       .then(() => {
         if (nextStep === endStep) endWorkflow(workflowRun, done)
 
@@ -76,12 +76,11 @@ export function mapInput (input, context, parameters) {
 }
 
 export function runStep (backend) {
-  let { Workflow } = backend
   return function (runner, context = {}, done) {
     let { workflowRun, thread } = context
     if (!workflowRun || !thread) return done(new Error('No workflow run or main thead created'))
 
-    return Workflow(`{
+    return backend.lib.S2FWorkflow(`{
       readWorkflowRun (id: "${workflowRun}") {
         workflow { endStep },
         args,
@@ -123,7 +122,7 @@ export function runStep (backend) {
         let localCtx = mapInput(input, context, _.get(step, 'parameters', []))
 
         // everything is ready to run the task, set the task to running
-        return Workflow(`mutation Mutation { startStepRun (id: "${step.id}") }`)
+        return backend.lib.S2FWorkflow(`mutation Mutation { startStepRun (id: "${step.id}") }`)
           .then(() => {
             // run specefic step type methods
             if (_.includes(HAS_SOURCE, step.type)) {

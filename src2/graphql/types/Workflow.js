@@ -20,51 +20,64 @@ export default {
     },
     steps: {
       description: 'Steps in the workflow',
-      type: ['Step'] /* ,
+      type: ['Step'],
       args: {
         id: { type: 'String' },
         first: { type: 'Boolean' }
       },
       resolve: 'readStep'
-      */
     },
     endStep: {
       type: 'String'
-    },
-    _backend: {
-      schema: 'S2FWorkflow',
-      collection: 'workflow',
-      mutation: {
-        create: {
-          resolve: 'createWorkflow'
+    }
+  },
+  _backend: {
+    schema: 'S2FWorkflow',
+    collection: 'workflow',
+    mutation: {
+      create: {
+        type: 'Workflow',
+        args: {
+          name: { type: 'String', nullable: false },
+          description: { type: 'String' }
         },
-        update: {
-          resolve: 'updateWorkflow'
+        resolve: 'createWorkflow'
+      },
+      update: {
+        type: 'Workflow',
+        args: {
+          name: { type: 'String' },
+          description: { type: 'String' }
         },
-        delete: {
-          resolve: 'deleteWorkflow'
+        resolve: 'updateWorkflow'
+      },
+      delete: {
+        type: 'Boolean',
+        args: {
+          id: { type: 'String', nullable: false }
         },
-        branchWorkflow: {
-          type: 'Workflow',
-          args: {
-            id: { type: 'String', nullable: false }
-          },
-          resolve: 'branchWorkflow'
+        resolve: 'deleteWorkflow'
+      },
+      branchWorkflow: {
+        type: 'Workflow',
+        args: {
+          id: { type: 'String', nullable: false }
         },
-        forkWorkflow: {
-          type: 'Workflow',
-          args: {
-            id: { type: 'String', nullable: false }
-          },
-          resolve: 'forkWorkflow'
+        resolve: 'branchWorkflow'
+      },
+      forkWorkflow: {
+        type: 'Workflow',
+        args: {
+          id: { type: 'String', nullable: false }
         },
-        publishWorkflow: {
-          type: 'Workflow',
-          args: {
-            id: { type: 'String', nullable: false }
-          },
-          resolve: 'publishWorkflow'
-        }
+        resolve: 'forkWorkflow'
+      },
+      publishWorkflow: {
+        type: 'Workflow',
+        args: {
+          id: { type: 'String', nullable: false }
+        },
+        resolve: 'publishWorkflow'
       }
     }
   }

@@ -3,10 +3,11 @@ import { isPublished } from './common'
 import { destroyStep } from './step'
 
 export function getFullWorkflow (backend, args) {
-  let r = backend._r
-  let workflow = backend._db.table(backend._tables.Workflow.table)
-  let step = backend._db.table(backend._tables.Step.table)
-  let parameter = backend._db.table(backend._tables.Parameter.table)
+  let { r, connection } = backend
+  let workflow = backend.getTypeCollection('Workflow')
+  let parameter = backend.getTypeCollection('Parameter')
+  let step = backend.getTypeCollection('Step')
+
   return workflow.get(args.id)
     .eq(null)
     .branch(
@@ -76,11 +77,11 @@ export function remapObjects (wf, idmap) {
 }
 
 export function cloneWorkflow (type, backend, args) {
-  let r = backend._r
-  let workflow = backend._db.table(backend._tables.Workflow.table)
-  let step = backend._db.table(backend._tables.Step.table)
-  let parameter = backend._db.table(backend._tables.Parameter.table)
-  let connection = backend._connection
+  let { r, connection } = backend
+  let workflow = backend.getTypeCollection('Workflow')
+  let parameter = backend.getTypeCollection('Parameter')
+  let step = backend.getTypeCollection('Step')
+
   let idmap = {}
 
   // first get the entire workflow version as 1 object
@@ -115,11 +116,11 @@ export function forkWorkflow (backend) {
 }
 
 export function publishWorkflow (backend) {
-  let r = backend._r
-  let step = backend._db.table(backend._tables.Step.table)
-  let tableName = backend._tables.Workflow.table
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let step = backend.getTypeCollection('Step')
+    let tableName = backend.getTypeComputed('Workflow').collection
+
     let { extendPublish } = this.globals._temporal
     return extendPublish(tableName, args).then((wf) => {
       let { _temporal: { version, validFrom, validTo }, id } = wf
@@ -132,10 +133,11 @@ export function publishWorkflow (backend) {
 }
 
 export function readWorkflowInputs (backend) {
-  let step = backend._db.table(backend._tables.Step.table)
-  let parameter = backend._db.table(backend._tables.Parameter.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let parameter = backend.getTypeCollection('Parameter')
+    let step = backend.getTypeCollection('Step')
+
     return step.filter({ workflowId: source.id })
       .map((s) => {
         return parameter.filter({parentId: s('id'), class: 'INPUT'})
@@ -149,9 +151,9 @@ export function readWorkflowInputs (backend) {
 
 
 export function createWorkflow (backend) {
-  let r = backend._r
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+
     let { createTemporalWorkflow, createTemporalStep } = this.globals._temporal
     return r.do(r.uuid(), r.uuid(), r.uuid(), (wfId, startId, endId) => {
       args.id = wfId
@@ -193,10 +195,10 @@ export function createWorkflow (backend) {
 }
 
 export function readWorkflow (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.Workflow.table)
-  let connection = backend._connection
   return function (source, args, context = {}, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('Workflow')
+
     let { filterTemporalWorkflow } = this.globals._temporal
     if (source && source.workflow) return table.get(source.workflow).run(connection)
     context.date = args.date || context.date
@@ -205,10 +207,10 @@ export function readWorkflow (backend) {
 }
 
 export function updateWorkflow (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.Workflow.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('Workflow')
+
     return isPublished(backend, 'Workflow', args.id).branch(
       r.error('This workflow is published and cannot be modified'),
       table.get(args.id)
@@ -220,12 +222,12 @@ export function updateWorkflow (backend) {
 }
 
 export function deleteWorkflow (backend) {
-  let r = backend._r
-  let step = backend._db.table(backend._tables.Step.table)
-  let workflow = backend._db.table(backend._tables.Workflow.table)
-  let parameter = backend._db.table(backend._tables.Parameter.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let workflow = backend.getTypeCollection('Workflow')
+    let parameter = backend.getTypeCollection('Parameter')
+    let step = backend.getTypeCollection('Step')
+
     return isPublished(backend, 'Workflow', args.id).branch(
       r.error('This workflow is published and cannot be deleted'),
       step.filter({ workflowId: args.id })

@@ -1,9 +1,10 @@
 import _ from 'lodash'
 
 export function createWorkflowRunThread (backend) {
-  let table = backend._db.table(backend._tables.WorkflowRunThread.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('WorkflowRunThread')
+
     args.status = 'CREATED'
     return table.insert(args, { returnChanges: true })('changes')
       .nth(0)('new_val')
@@ -12,9 +13,10 @@ export function createWorkflowRunThread (backend) {
 }
 
 export function readWorkflowRunThread (backend) {
-  let table = backend._db.table(backend._tables.WorkflowRunThread.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('WorkflowRunThread')
+
     if (_.isArray(info.path) && info.path.join('.').match(/threads$/) && source && source.id) {
       return table.filter({ workflowRun: source.id }).run(connection)
     }
@@ -24,10 +26,10 @@ export function readWorkflowRunThread (backend) {
 }
 
 export function updateWorkflowRunThread (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.WorkflowRunThread.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('WorkflowRunThread')
+
     return table.get(args.id).eq(null).branch(
       r.error('WorkflowRunThead not found'),
       table.get(args.id).update(_.omit(args, 'id'))
@@ -38,10 +40,10 @@ export function updateWorkflowRunThread (backend) {
 }
 
 export function deleteWorkflowRunThread (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.WorkflowRunThread.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('WorkflowRunThread')
+
     return table.get(args.id).eq(null).branch(
       r.error('WorkflowRunThead not found'),
       table.get(args.id).delete()

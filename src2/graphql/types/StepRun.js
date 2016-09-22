@@ -36,7 +36,28 @@ export default {
     collection: 'step_run',
     mutation: {
       create: {
+        type: 'StepRun',
+        args: {
+          step: { type: 'String', nullable: false },
+          workflowRunThread: { type: 'String', nullable: false }
+        },
         resolve: 'createStepRun'
+      },
+      update: {
+        type: 'StepRun',
+        args: {
+          id: { type: 'String', nullable: false },
+          status: { type: 'RunStatusEnum'},
+          ended: { type: 'FactoryDateTime' }
+        },
+        resolve: 'updateStepRun'
+      },
+      delete: {
+        type: 'Boolean',
+        args: {
+          id: { type: 'String', nullable: false }
+        },
+        resolve: 'deleteStepRun'
       },
       startStepRun: {
         type: 'Boolean',

@@ -2,10 +2,10 @@ import _ from 'lodash'
 import { isPublished } from './common'
 
 export function createTask (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.Task.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('Task')
+
     let { createTemporalTask } = this.globals._temporal
     args.entityType = 'TASK'
     return table.filter((t) => t('name').match(`(?i)^${args.name}$`))
@@ -20,9 +20,9 @@ export function createTask (backend) {
 }
 
 export function readTask (backend) {
-  let r = backend._r
-  let connection = backend._connection
   return function (source, args, context = {}, info) {
+    let { r, connection } = backend
+
     let { filterTemporalTask } = this.globals._temporal
     context.date = args.date || context.date
     let filter = r.expr(null)
@@ -43,10 +43,10 @@ export function readTask (backend) {
 }
 
 export function updateTask (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.Task.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('Task')
+
     return isPublished(backend, 'Task', args.id).branch(
       r.error('This task is published and cannot be modified'),
       table.get(args.id)
@@ -58,12 +58,12 @@ export function updateTask (backend) {
 }
 
 export function deleteTask (backend) {
-  let r = backend._r
-  let task = backend._db.table(backend._tables.Task.table)
-  let parameter = backend._db.table(backend._tables.Parameter.table)
-  let step = backend._db.table(backend._tables.Step.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let task = backend.getTypeCollection('Task')
+    let parameter = backend.getTypeCollection('Parameter')
+    let step = backend.getTypeCollection('Step')
+
     return isPublished(backend, 'Task', args.id).branch(
       r.error('This task is published and cannot be deleted'),
       step.filter((s) => {
