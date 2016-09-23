@@ -1,5 +1,5 @@
 export default {
-  extendFields: ['TemporalType', 'Entity', 'Named', 'Described'],
+  extendFields: ['TemporalType', 'S2FEntity', 'S2FNamed', 'S2FDescribed'],
   fields: {
     inputs: {
       description: 'Inputs from steps',
@@ -34,6 +34,14 @@ export default {
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'workflow',
+    temporal: true,
+    query: {
+      read: {
+        args: {
+          id: { type: 'String' }
+        }
+      }
+    },
     mutation: {
       create: {
         type: 'Workflow',

@@ -1,6 +1,6 @@
 export default {
   type: ['Object', 'Input'],
-  extendFields: ['Entity', 'Named', 'Described'],
+  extendFields: ['S2FEntity', 'S2FNamed', 'S2FDescribed'],
   fields: {
     type: {
       description: 'The data type of the parameter',

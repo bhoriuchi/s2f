@@ -1,6 +1,6 @@
 export default {
   type: 'Input',
-  extendFields: ['Entity', 'Named', 'Described'],
+  extendFields: ['S2FEntity', 'S2FNamed', 'S2FDescribed'],
   fields: {
     type: {
       description: 'Step type (condition, loop, fork, join, workflow, task, etc...)',

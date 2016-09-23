@@ -1,5 +1,5 @@
 export default {
-  extendFields: ['Entity'],
+  extendFields: ['S2FEntity'],
   fields: {
     workflowRunThread: {
       type: 'String',

@@ -1,5 +1,5 @@
 export default {
-  extendFields: ['TemporalType', 'Entity', 'Named', 'Described'],
+  extendFields: ['TemporalType', 'S2FEntity', 'S2FNamed', 'S2FDescribed'],
   fields: {
     source: {
       type: 'String',
@@ -14,6 +14,7 @@ export default {
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'task',
+    temporal: true,
     query: {
       read: {
         resolve: 'readTask'

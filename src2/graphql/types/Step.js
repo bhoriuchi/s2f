@@ -1,5 +1,5 @@
 export default {
-  extendFields: ['TemporalType', 'Entity', 'Named', 'Described'],
+  extendFields: ['TemporalType', 'S2FEntity', 'S2FNamed', 'S2FDescribed'],
   fields: {
     workflowId: {
       description: 'Workflow the step belongs to',
@@ -71,6 +71,7 @@ export default {
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'step',
+    temporal: true,
     query: {
       read: {
         resolve: 'readStep'

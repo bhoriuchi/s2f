@@ -20,14 +20,16 @@ export function createWorkflowRun (runner, context, done, wf) {
     param.type = Enum(param.type)
   })
 
+  let params = {
+    workflow: wf.id,
+    args,
+    input,
+    parameters: wf.parameters,
+    step
+  }
+
   return this.lib.S2FWorkflow(`mutation Mutation {
-    createWorkflowRun (
-      workflow: "${wf.id}",
-      args: ${toObjectString(args)},
-      input: ${toObjectString(input)},
-      parameters: ${toObjectString(wf.parameters)},
-      step: ${toObjectString(step)}
-    ) {
+    createWorkflowRun (${toObjectString(params, { noOuterBraces: true })}) {
       id,
       threads { id }
     }
@@ -91,6 +93,8 @@ export function startWorkflow (backend) {
           if (i.required && !_.has(input, i.name)) throw new Error(`missing required input ${i.name}`)
           if (_.has(input, i.name)) input[i.name] = convertType(i.type, i.name, input[i.name])
         }
+
+        console.log(chalk.green(JSON.stringify(wf, null, '  ')))
 
         // run the
         return createWorkflowRun.call(backend, runner, { args, input }, done, wf)

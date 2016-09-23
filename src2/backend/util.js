@@ -1,13 +1,19 @@
 import _ from 'lodash'
-import FactoryTemporalPlugin from 'graphql-factory-temporal'
 import { types, fields } from '../graphql/index'
 
 export function mergeConfig (config = {}) {
-  // merge plugins
-  let plugin = _.union([ FactoryTemporalPlugin ], _.isArray(config.plugin) ? config.plugin : [])
 
   // merge passed config with required config
-  return _.merge({}, config, { types, fields, plugin })
+  return _.merge({}, config, { types, fields })
+}
+
+export function temporalTables () {
+  return _.omitBy(_.mapValues(types, (type) => {
+    let be = _.get(type, '_backend', {})
+    return be.temporal ? { table: type.collection } : null
+  }), (v) => {
+    return v === null
+  })
 }
 
 export default {

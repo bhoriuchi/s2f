@@ -4,8 +4,6 @@ import rethinkdbdash from 'rethinkdbdash'
 import { rethinkdb as RethinkDBBackend } from '../backend/index'
 let backend = new RethinkDBBackend('_s2f', graphql, rethinkdbdash({ silent: true }))
 
-console.log(backend.lib._definitions.definition.types)
-
 backend.cmd({
   target: 'runner',
   action: 'schedule',

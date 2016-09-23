@@ -27,7 +27,7 @@ export function createWorkflowRun (backend) {
               status: 'CREATED'
             })
               .do(() => {
-                if (!args.parameters.length) return
+                if (!args.parameters || !args.parameters.length) return null
                 return parameterRun.insert(_.map(args.parameters, (param) => {
                   return {
                     parameter: param.id,

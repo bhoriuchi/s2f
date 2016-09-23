@@ -1,13 +1,13 @@
-import Described from './Described'
-import Entity from './Entity'
-import Named from './Named'
+import S2FDescribed from './S2FDescribed'
+import S2FEntity from './S2FEntity'
+import S2FNamed from './S2FNamed'
 
-export { Described }
-export { Entity }
-export { Named }
+export { S2FDescribed }
+export { S2FEntity }
+export { S2FNamed }
 
 export default {
-  Described,
-  Entity,
-  Named
+  S2FDescribed,
+  S2FEntity,
+  S2FNamed
 }

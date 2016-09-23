@@ -1,5 +1,5 @@
 export default {
-  extendFields: ['Entity'],
+  extendFields: ['S2FEntity'],
   fields: {
     workflow: {
       type: 'Workflow',
@@ -44,9 +44,16 @@ export default {
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'workflow_run',
+    query: {
+      read: {
+        args: {
+          id: { type: 'String' }
+        }
+      }
+    },
     mutation: {
       create: {
-        type: 'WorkflowRun',
+        // type: 'WorkflowRun',
         args: {
           workflow: { type: 'String' },
           args: { type: 'FactoryJSON' },
