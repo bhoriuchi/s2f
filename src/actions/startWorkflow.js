@@ -20,14 +20,18 @@ export function createWorkflowRun (runner, context, done, wf) {
     param.type = Enum(param.type)
   })
 
-  return this.Workflow(`mutation Mutation {
-    createWorkflowRun (
-      workflow: "${wf.id}",
-      args: ${toObjectString(args)},
-      input: ${toObjectString(input)},
-      parameters: ${toObjectString(wf.parameters)},
-      step: ${toObjectString(step)}
-    ) {
+  let params = {
+    workflow: wf.id,
+    args,
+    input,
+    parameters: wf.parameters,
+    step
+  }
+
+  console.log(chalk.green(JSON.stringify(params, null, '  ')))
+
+  return this.lib.S2FWorkflow(`mutation Mutation {
+    createWorkflowRun (${toObjectString(params, { noOuterBraces: true })}) {
       id,
       threads { id }
     }
@@ -44,13 +48,12 @@ export function createWorkflowRun (runner, context, done, wf) {
 }
 
 export function startWorkflow (backend) {
-  let { Workflow } = backend
   return function (runner, context = {}, done) {
     let { args, input } = context
     input = input || {}
     if (!args) return done(new Error('No context was supplied'))
 
-    return Workflow(`{
+    return backend.lib.S2FWorkflow(`{
       readWorkflow (${toObjectString(args, { noOuterBraces: true })}) {
         _temporal { recordId },
         id,
@@ -81,7 +84,7 @@ export function startWorkflow (backend) {
         if (!wf) throw new Error('No workflow found')
         if (!step || step.type === 'END') throw new Error('The workflow contains no valid steps')
 
-        backend.logTrace('Successfully queried workflow', { workflow: wf.id })
+        backend.log.trace({ server: backend._server, workflow: wf.id }, 'Successfully queried workflow')
 
         // console.log(chalk.blue(JSON.stringify(wf, null, '  ')))
 
@@ -97,11 +100,11 @@ export function startWorkflow (backend) {
         return createWorkflowRun.call(backend, runner, { args, input }, done, wf)
       }))
       .catch((err) => {
-        console.log(chalk.red(err))
-        backend.logError('Failed to start workflow', {
+        console.log(err)
+        backend.log.error({
           errors: err.message || err,
           stack: err.stack
-        })
+        }, 'Failed to start workflow')
         return done(err)
       })
   }

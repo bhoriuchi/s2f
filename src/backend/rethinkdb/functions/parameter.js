@@ -1,11 +1,10 @@
 import _ from 'lodash'
-import chalk from 'chalk'
 
 export function createParameter (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.Parameter.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('Parameter')
+
     if (args.scope === 'WORKFLOW' && (args.class !== 'ATTRIBUTE')) {
       throw new Error('Workflow parameters can only be of class ATTRIBUTE')
     }
@@ -25,9 +24,10 @@ export function createParameter (backend) {
 }
 
 export function readParameter (backend) {
-  let table = backend._db.table(backend._tables.Parameter.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('Parameter')
+
     if (!source) return table.run(connection)
     if (source.parameter) {
       return table.get(source.parameter).run(connection)
@@ -37,11 +37,11 @@ export function readParameter (backend) {
 }
 
 export function isParentPublished (backend, id) {
-  let r = backend._r
-  let parameter = backend._db.table(backend._tables.Parameter.table)
-  let workflow = backend._db.table(backend._tables.Workflow.table)
-  let step = backend._db.table(backend._tables.Step.table)
-  let task = backend._db.table(backend._tables.Task.table)
+  let { r, connection } = backend
+  let parameter = backend.getTypeCollection('Parameter')
+  let workflow = backend.getTypeCollection('Workflow')
+  let step = backend.getTypeCollection('Step')
+  let task = backend.getTypeCollection('Task')
 
   return parameter.get(id).do((param) => {
     return r.branch(
@@ -68,10 +68,10 @@ export function isParentPublished (backend, id) {
 }
 
 export function updateParameter (backend) {
-  let r = backend._r
-  let parameter = backend._db.table(backend._tables.Parameter.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let parameter = backend.getTypeCollection('Parameter')
+
     return isParentPublished(backend, args.id).branch(
       r.error('This parameter belongs to a published record and cannot be modified'),
       parameter.get(args.id)
@@ -88,10 +88,10 @@ export function updateParameter (backend) {
 }
 
 export function deleteParameter (backend) {
-  let r = backend._r
-  let parameter = backend._db.table(backend._tables.Parameter.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let parameter = backend.getTypeCollection('Parameter')
+
     return isParentPublished(backend, args.id).branch(
       r.error('This parameter belongs to a published record and cannot be deleted'),
       parameter.get(args.id)

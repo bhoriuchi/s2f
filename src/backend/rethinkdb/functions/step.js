@@ -3,9 +3,10 @@ import { GraphQLError } from 'graphql/error'
 import { isPublished } from './common'
 
 export function destroyStep (backend, ids) {
-  let r = backend._r
-  let step = backend._db.table(backend._tables.Step.table)
-  let parameter = backend._db.table(backend._tables.Parameter.table)
+  let { r, connection } = backend
+  let step = backend.getTypeCollection('Step')
+  let parameter = backend.getTypeCollection('Parameter')
+
   ids = _.isString(ids) ? [ids] : ids
   return step.filter((s) => r.expr(ids).contains(s('id')))
     .delete()
@@ -17,12 +18,11 @@ export function destroyStep (backend, ids) {
 }
 
 export function createStep (backend) {
-  let r = backend._r
-  let workflow = backend._db.table(backend._tables.Workflow.table)
-  let parameter = backend._db.table(backend._tables.Parameter.table)
-  //let task = backend._db.table(backend._tables.Task.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let parameter = backend.getTypeCollection('Parameter')
+    let workflow = backend.getTypeCollection('Workflow')
+
     let { createTemporalStep, filterTemporalTask } = this.globals._temporal
 
     if (_.includes(['START', 'END'], args.type)) {
@@ -70,10 +70,10 @@ export function createStep (backend) {
 }
 
 export function readStep (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.Step.table)
-  let connection = backend._connection
   return function (source = {}, args, context = {}, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('Step')
+
     let { filterTemporalStep } = this.globals._temporal
     context.date = args.date || context.date
 
@@ -103,10 +103,10 @@ export function readStep (backend) {
 }
 
 export function updateStep (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.Step.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('Step')
+
     return isPublished(backend, 'Step', args.id).branch(
       r.error('This step is published and cannot be modified'),
       table.get(args.id)
@@ -118,9 +118,9 @@ export function updateStep (backend) {
 }
 
 export function deleteStep (backend) {
-  let r = backend._r
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+
     return isPublished(backend, 'Step', args.id).branch(
       r.error('This step is published and cannot be deleted'),
       destroyStep(backend, args.id)

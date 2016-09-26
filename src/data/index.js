@@ -1,16 +1,11 @@
 import _ from 'lodash'
-
-import HelloWorld from './HelloWorld'
-import tasks from '../tasks/index'
+import tasks from './tasks/index'
+import workflows from './workflows/index'
 
 let Workflow = []
 let Step = []
 let Parameter = []
 let Task = []
-
-let workflows = [
-  HelloWorld
-]
 
 // merge all the workflows
 _.forEach(_.union(workflows, tasks), (def) => {

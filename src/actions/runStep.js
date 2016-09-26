@@ -17,34 +17,37 @@ export function endWorkflow (workflowRun, done) {
 }
 
 
-export function completeStep (stepRunId, status) {
-  return Workflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
-    .then(() => {
-
-    })
+export function setStepStatus (stepRunId, status) {
+  return this.lib.S2FWorkflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
 }
 
-export function runSource (context, payload, done) {
+export function runSource (payload, done) {
+
   let { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId } = payload
   let { async, source, timeout, failsWorkflow, waitOnSuccess, success, fail, parameters } = step
   if (!source) return done(new Error('No source'))
-  let { workflowRun, thread } = parent
-  let run = sbx.vm(source, _.merge({ context, timeout }, this._vm))
+  // let { workflowRun, thread } = parent
+  let run = sbx.vm(source, _.merge({ context: localCtx, timeout }, this._vm))
+
+  fail = fail || endStep
 
   // if async step, complete it first then resolve it
-  if (async) return completeStep(stepRunId, SUCCESS).then(() => run)
+  if (async) return setStepStatus.call(this, stepRunId, SUCCESS).then(() => run)
 
   // regular steps should wait for the action to resolve
   return run.then((ctx) => {
     let failed = ctx._exception || ctx._result === false
     let nextStep = failed ? fail : success
+    let status = failed ? FAILED : SUCCESS
 
+    if (async) {
+      if (nextStep === endStep) endWorkflow.call(this, workflowRun, done)
+      return
+    }
 
-    return Workflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
+    return setStepStatus.call(this, stepRunId, status)
       .then(() => {
-        if (nextStep === endStep) endWorkflow(workflowRun, done)
-
-        console.log(chalk.green(JSON.stringify(ctx, null, '  ')))
+        if (nextStep === endStep) return endWorkflow.call(this, workflowRun, done)
         done()
       })
   })
@@ -76,12 +79,11 @@ export function mapInput (input, context, parameters) {
 }
 
 export function runStep (backend) {
-  let { Workflow } = backend
   return function (runner, context = {}, done) {
     let { workflowRun, thread } = context
     if (!workflowRun || !thread) return done(new Error('No workflow run or main thead created'))
 
-    return Workflow(`{
+    return backend.lib.S2FWorkflow(`{
       readWorkflowRun (id: "${workflowRun}") {
         workflow { endStep },
         args,
@@ -113,17 +115,20 @@ export function runStep (backend) {
     }`)
       .then((result) => gqlResult(backend, result, (err, data) => {
         if (err) throw err
+
+        console.log(JSON.stringify(data, null, '  '))
+
         let { workflow: { endStep }, args, input, context, threads } = _.get(data, 'readWorkflowRun[0]', {})
         let step = _.get(threads, '[0].currentStepRun.step')
         let stepRunId = _.get(threads, '[0].currentStepRun.id')
         if (!step) return done(new Error('No step found in thread'))
-        backend.logTrace('Successfully queried step', { step: step.id })
+        backend.log.trace({ step: step.id }, 'Successfully queried step')
 
         // map all of the parameters
         let localCtx = mapInput(input, context, _.get(step, 'parameters', []))
 
         // everything is ready to run the task, set the task to running
-        return Workflow(`mutation Mutation { startStepRun (id: "${step.id}") }`)
+        return backend.lib.S2FWorkflow(`mutation Mutation { startStepRun (id: "${step.id}") }`)
           .then(() => {
             // run specefic step type methods
             if (_.includes(HAS_SOURCE, step.type)) {
@@ -135,10 +140,10 @@ export function runStep (backend) {
       }))
       .catch((err) => {
         console.log(chalk.red(err))
-        backend.logError('Failed to start step', {
+        backend.log.error({
           errors: err.message || err,
           stack: err.stack
-        })
+        }, 'Failed to start step')
         return done(err)
       })
   }

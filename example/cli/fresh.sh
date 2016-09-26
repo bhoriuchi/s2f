@@ -1,1 +1,0 @@
-./s2finstall.sh && ./s2fcli.sh runner add host localhost port 8091 && ./s2fcli.sh runner start host localhost port 8091 loglevel trace

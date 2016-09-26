@@ -56,7 +56,7 @@ export function expandGQLErrors (errors) {
 }
 
 export function gqlResult (backend, result, cb) {
-  let GraphQLError = backend._graphql.GraphQLError
+  let GraphQLError = backend.graphql.GraphQLError
   if (result.errors) return cb(new GraphQLError(expandGQLErrors(result.errors)))
   return cb(null, result.data)
 }

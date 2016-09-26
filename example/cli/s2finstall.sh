@@ -1,1 +1,0 @@
-node ./s2finstall.js "$@"

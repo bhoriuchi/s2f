@@ -1,12 +1,11 @@
 import _ from 'lodash'
-import chalk from 'chalk'
-export function createStepRun (backend) {
-  let r = backend._r
-  let step = backend._db.table(backend._tables.Step.table)
-  let table = backend._db.table(backend._tables.StepRun.table)
-  let connection = backend._connection
 
+export function createStepRun (backend) {
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let step = backend.getTypeCollection('Step')
+    let table = backend.getTypeCollection('StepRun')
+
     return step.get(args.step).eq(null).branch(
       r.error(`Step ${args.step} not found`),
       table.insert({
@@ -22,11 +21,10 @@ export function createStepRun (backend) {
 }
 
 export function readStepRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.StepRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('StepRun')
+
     if (_.isArray(info.path) && info.path.join('.').match(/stepRuns$/) && source && source.id) {
       return table.filter({ workflowRunThread: source.id }).run(connection)
     }
@@ -39,11 +37,10 @@ export function readStepRun (backend) {
 }
 
 export function updateStepRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.StepRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('StepRun')
+
     return table.get(args.id).eq(null).branch(
       r.error('StepRun not found'),
       table.get(args.id).update(_.omit(args, 'id'))
@@ -54,11 +51,10 @@ export function updateStepRun (backend) {
 }
 
 export function deleteStepRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.StepRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('StepRun')
+
     return table.get(args.id).eq(null).branch(
       r.error('StepRun not found'),
       table.get(args.id).delete()
@@ -69,11 +65,10 @@ export function deleteStepRun (backend) {
 }
 
 export function startStepRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.StepRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('StepRun')
+
     args.started = r.now()
     args.status = 'RUNNING'
 
@@ -92,11 +87,10 @@ export function startStepRun (backend) {
 }
 
 export function endStepRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.StepRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('StepRun')
+
     args.ended = r.now()
 
     return table.get(args.id).eq(null).branch(

@@ -1,13 +1,11 @@
 import _ from 'lodash'
-import chalk from 'chalk'
 
 export function createParameterRun (backend) {
-  let r = backend._r
-  let parameter = backend._db.table(backend._tables.Parameter.table)
-  let table = backend._db.table(backend._tables.ParameterRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let parameter = backend.getTypeCollection('Parameter')
+    let table = backend.getTypeCollection('ParameterRun')
+
     return parameter.get(args.parameter).eq(null).branch(
       r.error(`Parameter ${args.parameter} not found`),
       table.insert(args, { returnChanges: true })('changes')
@@ -18,11 +16,10 @@ export function createParameterRun (backend) {
 }
 
 export function readParameterRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.ParameterRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('ParameterRun')
+
     if (_.isArray(info.path) && info.path.join('.').match(/context$/) && source && source.id) {
       return table.filter({ parentId: source.id }).run(connection)
     }
@@ -32,11 +29,10 @@ export function readParameterRun (backend) {
 }
 
 export function updateParameterRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.ParameterRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('ParameterRun')
+
     return table.get(args.id).eq(null).branch(
       r.error('ParameterRun not found'),
       table.get(args.id).update(_.omit(args, 'id'))
@@ -47,10 +43,10 @@ export function updateParameterRun (backend) {
 }
 
 export function deleteParameterRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.ParameterRun.table)
-  let connection = backend._connection
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('ParameterRun')
+
     return table.get(args.id).eq(null).branch(
       r.error('ParameterRun not found'),
       table.get(args.id).delete()

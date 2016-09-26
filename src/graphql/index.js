@@ -1,24 +1,16 @@
-import fields from './fields'
-import schemas from './schemas'
-import types from './types'
-import GraphQLFactory from 'graphql-factory'
-import FactoryTypePlugin from 'graphql-factory-types'
+// import functions from './functions/index'
+// import queries from './queries/index'
+import fields from './fields/index'
+import types from './types/index'
 
-export default function (backend) {
-  let factory = GraphQLFactory(backend._graphql)
-  let functions = backend.functions
-  let BackendPlugin = backend.plugin
+// export { functions }
+// export { queries }
+export { fields }
+export { types }
 
-  return factory.make({
-    globals: {},
-    functions,
-    fields,
-    types,
-    schemas
-  }, {
-    plugin: [
-      BackendPlugin,
-      FactoryTypePlugin
-    ]
-  })
+export default {
+  // functions,
+  // queries,
+  fields,
+  types
 }

@@ -1,15 +1,14 @@
 import _ from 'lodash'
-import { convertType, isNested } from '../../actions/common'
-import chalk from 'chalk'
-export function createWorkflowRun (backend) {
-  let r = backend._r
-  let workflowRun = backend._db.table(backend._tables.WorkflowRun.table)
-  let parameterRun = backend._db.table(backend._tables.ParameterRun.table)
-  let stepRun = backend._db.table(backend._tables.StepRun.table)
-  let workflowRunThread = backend._db.table(backend._tables.WorkflowRunThread.table)
-  let connection = backend._connection
+import { convertType, isNested } from '../../../actions/common'
 
+export function createWorkflowRun (backend) {
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let workflowRun = backend.getTypeCollection('WorkflowRun')
+    let parameterRun = backend.getTypeCollection('ParameterRun')
+    let stepRun = backend.getTypeCollection('StepRun')
+    let workflowRunThread = backend.getTypeCollection('WorkflowRunThread')
+
     return r.do(r.now(), r.uuid(), r.uuid(), r.uuid(), (now, workflowRunId, stepRunId, workflowRunThreadId) => {
         return workflowRun.insert({
           id: workflowRunId,
@@ -28,7 +27,7 @@ export function createWorkflowRun (backend) {
               status: 'CREATED'
             })
               .do(() => {
-                if (!args.parameters.length) return
+                if (!args.parameters || !args.parameters.length) return null
                 return parameterRun.insert(_.map(args.parameters, (param) => {
                   return {
                     parameter: param.id,
@@ -76,11 +75,10 @@ export function createWorkflowRun (backend) {
 }
 
 export function readWorkflowRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.WorkflowRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('WorkflowRun')
+
     let filter = table
     if (args.id) {
       filter = filter.get(args.id)
@@ -96,11 +94,10 @@ export function readWorkflowRun (backend) {
 }
 
 export function updateWorkflowRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.WorkflowRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('WorkflowRun')
+
     return table.get(args.id).eq(null).branch(
       r.error('WorkflowRun not found'),
       table.get(args.id).update(_.omit(args, 'id'))
@@ -111,11 +108,10 @@ export function updateWorkflowRun (backend) {
 }
 
 export function deleteWorkflowRun (backend) {
-  let r = backend._r
-  let table = backend._db.table(backend._tables.WorkflowRun.table)
-  let connection = backend._connection
-
   return function (source, args, context, info) {
+    let { r, connection } = backend
+    let table = backend.getTypeCollection('WorkflowRun')
+
     return table.get(args.id).eq(null).branch(
       r.error('WorkflowRun not found'),
       table.get(args.id).delete()
