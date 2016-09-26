@@ -38,8 +38,8 @@ export default {
     task: {
       description: 'Published task to use as source for execution code',
       type: 'Task',
-      has: 'id'
-      // resolve: 'readTask'
+      has: 'id',
+      resolve: 'readTask'
     },
     subWorkflow: {
       description: 'Nested workflow to run',
@@ -76,9 +76,13 @@ export default {
     },
     parameters: {
       description: 'Local parameters associated with the step',
-      type: ['Parameter'] /* ,
+      type: ['Parameter'],
       resolve: 'readParameter'
-      */
+    },
+    threads: {
+      description: 'Keeps track of the forked threads for a fork or the threads that will join if a join',
+      type: ['Step'],
+      resolve: 'readStep'
     }
   },
   _backend: {

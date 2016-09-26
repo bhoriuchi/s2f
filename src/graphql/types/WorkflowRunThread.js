@@ -7,6 +7,11 @@ export default {
     entityType: {
       type: 'EntityTypeEnum'
     },
+    parentThread: {
+      type: 'WorkflowRunThread',
+      has: 'id',
+      resolve: 'readWorkflowRunThread'
+    },
     workflowRun: {
       type: 'WorkflowRun',
       belongsTo: {
@@ -15,16 +20,12 @@ export default {
     },
     currentStepRun: {
       type: 'StepRun',
-      has: 'id'
-      // resolve: 'readStepRun'
+      has: 'id',
+      resolve: 'readStepRun'
     },
     stepRuns: {
-      type: ['StepRun'] /* ,
-      args: {
-        id: { type: 'String' }
-      },
+      type: ['StepRun'],
       resolve: 'readStepRun'
-      */
     },
     status: {
       type: 'RunStatusEnum'

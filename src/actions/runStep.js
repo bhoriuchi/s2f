@@ -17,7 +17,7 @@ export function endWorkflow (workflowRun, done) {
 }
 
 
-export function completeStep (stepRunId, status) {
+export function setStepStatus (stepRunId, status) {
   return this.lib.S2FWorkflow(`mutation Mutation { endStepRun (id: "${stepRunId}", status: "${status}") }`)
 }
 
@@ -32,7 +32,7 @@ export function runSource (payload, done) {
   fail = fail || endStep
 
   // if async step, complete it first then resolve it
-  if (async) return completeStep.call(this, stepRunId, SUCCESS).then(() => run)
+  if (async) return setStepStatus.call(this, stepRunId, SUCCESS).then(() => run)
 
   // regular steps should wait for the action to resolve
   return run.then((ctx) => {
@@ -40,16 +40,14 @@ export function runSource (payload, done) {
     let nextStep = failed ? fail : success
     let status = failed ? FAILED : SUCCESS
 
-    console.log (nextStep, endStep, nextStep === endStep)
-
     if (async) {
       if (nextStep === endStep) endWorkflow.call(this, workflowRun, done)
       return
     }
 
-    return completeStep.call(this, stepRunId, status)
+    return setStepStatus.call(this, stepRunId, status)
       .then(() => {
-        if (nextStep === endStep) return endWorkflow(workflowRun, done)
+        if (nextStep === endStep) return endWorkflow.call(this, workflowRun, done)
         done()
       })
   })
