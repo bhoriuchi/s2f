@@ -17,7 +17,8 @@
     "test": "npm run build && mocha test/index.js",
     "copytemporal": "cp ../graphql-factory-temporal/*.js node_modules/graphql-factory-temporal/",
     "copyyj": "cp ../yellowjacket/*.js node_modules/yellowjacket/",
-    "copysbx": "cp ../sbx/dist/*.js node_modules/sbx/dist"
+    "copysbx": "cp ../sbx/dist/*.js node_modules/sbx/dist",
+    "copybe": "cp ../graphql-factory-backend/*.js node_modules/graphql-factory-backend/"
   },
   "author": "Branden Horiuchi <bhoriuchi@gmail.com>",
   "dependencies": {

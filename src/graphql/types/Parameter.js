@@ -1,7 +1,19 @@
 export default {
   type: ['Object', 'Input'],
-  extendFields: ['Entity', 'Named', 'Described'],
   fields: {
+    id: {
+      type: 'String',
+      primary: true
+    },
+    entityType: {
+      type: 'EntityTypeEnum'
+    },
+    name: {
+      type: 'String'
+    },
+    description: {
+      type: 'String'
+    },
     type: {
       description: 'The data type of the parameter',
       type: 'ParameterTypeEnum',
@@ -32,7 +44,27 @@ export default {
     },
     parentId: {
       description: 'Object the parameter belongs to',
-      type: 'String'
+      type: 'String',
+      belongsTo: {
+        Workflow: { parameters: 'id' },
+        Step: { parameters: 'id' },
+        Task: { parameters: 'id' }
+      }
+    }
+  },
+  _backend: {
+    schema: 'S2FWorkflow',
+    collection: 'parameter',
+    mutation: {
+      create: {
+        resolve: 'createParameter'
+      },
+      update: {
+        resolve: 'updateParameter'
+      },
+      delete: {
+        resolve: 'deleteParameter'
+      }
     }
   }
 }

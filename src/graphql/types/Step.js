@@ -1,10 +1,26 @@
 export default {
-  extendFields: ['TemporalType', 'Entity', 'Named', 'Described'],
+  extendFields: ['TemporalType'],
   fields: {
+    id: {
+      type: 'String',
+      primary: true
+    },
+    entityType: {
+      type: 'EntityTypeEnum'
+    },
+    name: {
+      type: 'String'
+    },
+    description: {
+      type: 'String'
+    },
     workflowId: {
       description: 'Workflow the step belongs to',
       type: 'String',
-      nullable: false
+      nullable: false,
+      belongsTo: {
+        Workflow: { steps: 'id' }
+      }
     },
     type: {
       description: 'Step type (condition, loop, fork, join, workflow, task, etc...)',
@@ -22,7 +38,8 @@ export default {
     task: {
       description: 'Published task to use as source for execution code',
       type: 'Task',
-      resolve: 'readTask'
+      has: 'id'
+      // resolve: 'readTask'
     },
     subWorkflow: {
       description: 'Nested workflow to run',
@@ -59,8 +76,65 @@ export default {
     },
     parameters: {
       description: 'Local parameters associated with the step',
-      type: ['Parameter'],
+      type: ['Parameter'] /* ,
       resolve: 'readParameter'
+      */
+    }
+  },
+  _backend: {
+    schema: 'S2FWorkflow',
+    collection: 'step',
+    temporal: true,
+    query: {
+      read: {
+        resolve: 'readStep'
+      }
+    },
+    mutation: {
+      create: {
+        type: 'Step',
+        args: {
+          workflowId: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          type: { type: 'StepTypeEnum', nullable: false },
+          async: { type: 'Boolean', defaultValue: false },
+          source: { type: 'String' },
+          task: { type: 'String' },
+          subWorkflow: { type: 'String' },
+          timeout: { type: 'Int', defaultValue: 0 },
+          failsWorkflow: { type: 'Boolean', defaultValue: false },
+          waitOnSuccess: { type: 'Boolean', defaultValue: false },
+          requireResumeKey: { type: 'Boolean', defaultValue: false },
+          success: { type: 'String' },
+          fail: { type: 'String' }
+        },
+        resolve: 'createStep'
+      },
+      update: {
+        type: 'Step',
+        args: {
+          id: { type: 'String', nullable: false },
+          name: { type: 'String' },
+          async: { type: 'Boolean' },
+          source: { type: 'String' },
+          task: { type: 'String' },
+          subWorkflow: { type: 'String' },
+          timeout: { type: 'Int' },
+          failsWorkflow: { type: 'Boolean' },
+          waitOnSuccess: { type: 'Boolean' },
+          requireResumeKey: { type: 'Boolean' },
+          success: { type: 'String' },
+          fail: { type: 'String' }
+        },
+        resolve: 'updateStep'
+      },
+      delete: {
+        type: 'Boolean',
+        args: {
+          id: { type: 'String', nullable: false }
+        },
+        resolve: 'deleteStep'
+      }
     }
   }
 }

@@ -1,3 +1,2 @@
 require('babel-register')
-// require('./example')
-require('./test')
+require('./index-es6')

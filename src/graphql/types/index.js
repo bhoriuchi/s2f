@@ -11,8 +11,6 @@ import StepRun from './StepRun'
 import StepTypeEnum from './StepTypeEnum'
 import Task from './Task'
 import Workflow from './Workflow'
-import WorkflowQuery from './WorkflowQuery'
-import WorkflowMutation from './WorkflowMutation'
 import WorkflowRun from './WorkflowRun'
 import WorkflowRunThread from './WorkflowRunThread'
 
@@ -29,8 +27,6 @@ export { StepRun }
 export { StepTypeEnum }
 export { Task }
 export { Workflow }
-export { WorkflowQuery }
-export { WorkflowMutation }
 export { WorkflowRun }
 export { WorkflowRunThread }
 
@@ -48,8 +44,6 @@ export default {
   StepTypeEnum,
   Task,
   Workflow,
-  WorkflowQuery,
-  WorkflowMutation,
   WorkflowRun,
   WorkflowRunThread
 }

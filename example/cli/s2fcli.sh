@@ -1,1 +1,0 @@
-node ./s2fcli.js "$@"

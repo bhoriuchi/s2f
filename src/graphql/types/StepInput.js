@@ -1,7 +1,19 @@
 export default {
   type: 'Input',
-  extendFields: ['Entity', 'Named', 'Described'],
   fields: {
+    id: {
+      type: 'String',
+      primary: true
+    },
+    entityType: {
+      type: 'EntityTypeEnum'
+    },
+    name: {
+      type: 'String'
+    },
+    description: {
+      type: 'String'
+    },
     type: {
       description: 'Step type (condition, loop, fork, join, workflow, task, etc...)',
       type: 'StepTypeEnum',
