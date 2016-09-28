@@ -102,11 +102,78 @@ export function endStepRun (backend) {
   }
 }
 
+export function createForks (backend) {
+  return function (source, args, context, info) {
+    let { r, connection } = backend
+    let thread = backend.getTypeCollection('WorkflowRunThread')
+    let stepRun = backend.getTypeCollection('StepRun')
+    let step = backend.getTypeCollection('Step')
+
+    return step.get(args.step)
+      .do((s) => {
+        return s.eq(null).branch(
+          r.error('Step does not exist'),
+          s('type').ne('FORK').branch(
+            r.error('Step is not a FORK'),
+            step.filter({ fork: s('id') })
+              .coerceTo('array')
+              .map((forked) => {
+                return {
+                  threadId: r.uuid(),
+                  stepRunId: r.uuid(),
+                  step: forked('id')
+                }
+              })
+              .do((val) => {
+                return val.map((v) => {
+                  return {
+                    id: v('stepRunId'),
+                    workflowRunThread: args.workflowRun,
+                    step: v('step'),
+                    status: 'CREATED'
+                  }
+                })
+                  .coerceTo('array')
+                  .do((d) => {
+                    return stepRun.insert(d)
+                  })
+                  .do(() => {
+                    return val.map((v) => {
+                      return {
+                        id: v('threadId'),
+                        workflowRun: args.workflowRun,
+                        currentStepRun: v('stepRunId'),
+                        status: 'CREATED',
+                        parentThread: args.thread
+                      }
+                    })
+                      .coerceTo('array')
+                      .do((d) => {
+                        return thread.insert(d, { returnChanges: true })('changes')('new_val')
+                      })
+                  })
+              })
+          )
+        )
+      })
+      .run(connection)
+      .then((res) => {
+        console.log(res)
+        return res
+      })
+      .catch((err) => {
+        console.log(err)
+        throw err
+      })
+  }
+}
+
 export default {
   createStepRun,
   readStepRun,
   updateStepRun,
   deleteStepRun,
   startStepRun,
-  endStepRun
+  endStepRun,
+  createForks
 }

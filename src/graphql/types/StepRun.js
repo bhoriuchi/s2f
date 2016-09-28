@@ -79,6 +79,15 @@ export default {
           status: { type: 'RunStatusEnum', nullable: false }
         },
         resolve: 'endStepRun'
+      },
+      createForks: {
+        // type: ['WorkflowRunThread'],
+        args: {
+          step: { type: 'String', nullable: false },
+          workflowRun: { type: 'String', nullable: false },
+          thread: { type: 'String', nullable: false }
+        },
+        resolve: 'createForks'
       }
     }
   }

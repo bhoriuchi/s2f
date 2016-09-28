@@ -1,7 +1,7 @@
 import { createParameter, updateParameter, deleteParameter } from './parameter'
 import { createParameterRun, updateParameterRun, deleteParameterRun } from './parameterRun'
-import { createStep, readStep, updateStep, deleteStep } from './step'
-import { createStepRun, startStepRun, endStepRun } from './stepRun'
+import { createStep, readStep, updateStep, deleteStep, readStepThreads } from './step'
+import { createStepRun, startStepRun, endStepRun, createForks } from './stepRun'
 import { createTask, readTask, updateTask, deleteTask } from './task'
 import {
   branchWorkflow,
@@ -26,9 +26,11 @@ export default function (backend) {
     readStep,
     updateStep,
     deleteStep,
+    readStepThreads,
     createStepRun,
     startStepRun,
     endStepRun,
+    createForks,
     createTask,
     readTask,
     updateTask,

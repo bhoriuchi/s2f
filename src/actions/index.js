@@ -1,5 +1,5 @@
-import startWorkflow from './startWorkflow'
-import runStep from './runStep'
+import startWorkflow from './startWorkflow/index'
+import runStep from './runStep/index'
 
 export default function (backend) {
   return {

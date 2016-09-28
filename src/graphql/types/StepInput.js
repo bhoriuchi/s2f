@@ -53,8 +53,7 @@ export default {
     },
     success: {
       description: 'Step to execute on success',
-      type: 'String',
-      nullable: false
+      type: 'String'
     },
     fail: {
       description: 'Step to execute on failure, defaults to end',

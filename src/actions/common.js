@@ -1,42 +1,6 @@
 import _ from 'lodash'
-import SocketClient from 'socket.io-client'
-
-// cleans up socket connection
-export function disconnectSocket (socket) {
-  socket.emit(DISCONNECT)
-  socket.disconnect(0)
-  return true
-}
-
-/*
- * Sends a message and then disconnects after response or error
- */
-export function emitOnce (host, port, evt, listeners, onError = () => false, timeout = 2000) {
-  let disconnected = false
-  let socket = SocketClient(`http://${host}:${port}`, { timeout })
-
-  socket.on(CONNECTED, () => socket.emit(evt))
-
-  _.forEach(listeners, (fn, e) => {
-    socket.on(e, (data) => {
-      disconnected = disconnectSocket(socket)
-      return fn(data)
-    })
-  })
-
-  socket.on(CONNECT_ERROR, () => {
-    if (!disconnected) {
-      disconnected = disconnectSocket(socket)
-      return onError()
-    }
-  })
-  socket.on(CONNECT_TIMEOUT, () => {
-    if (!disconnected) {
-      disconnected = disconnectSocket(socket)
-      return onError()
-    }
-  })
-}
+import ParameterClassEnum from '../graphql/types/ParameterClassEnum'
+let { values: { INPUT, OUTPUT } } = ParameterClassEnum
 
 export function expandGQLErrors (errors) {
   if (_.isArray(errors)) {
@@ -98,9 +62,32 @@ export function isNested (info) {
   return _.get(info, 'path', []).length > 1
 }
 
+
+export function mapInput (input, context, parameters) {
+  let params = {}
+
+  _.forEach(parameters, (param) => {
+    if (param.class === OUTPUT) {
+      params[param.name] = null
+    } else if (param.class === INPUT) {
+      if (param.mapsTo) {
+        let { parameter, value } = _.find(context, (ctx) => _.get(ctx, 'parameter.id') === param.mapsTo) || {}
+        if (parameter) params[param.name] = value
+      } else {
+        try {
+          params[param.name] = convertType(param.type, param.name, _.get(input, param.name))
+        } catch (err) {}
+      }
+    }
+  })
+
+  return params
+}
+
 export default {
   expandGQLErrors,
   gqlResult,
   convertType,
-  isNested
+  isNested,
+  mapInput
 }

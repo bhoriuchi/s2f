@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { convertType, isNested } from '../../../actions/common'
+import { convertType } from '../../../actions/common'
 
 export function createWorkflowRun (backend) {
   return function (source, args, context, info) {
@@ -46,7 +46,7 @@ export function createWorkflowRun (backend) {
                 })
               })
               .do(() => {
-                if (!args.step.parameters.length) return
+                if (!args.step.parameters.length) return null
                 let p = []
                 // map the input and attributes to the local step params
                 _.forEach(args.step.parameters, (param) => {

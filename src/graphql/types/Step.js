@@ -67,8 +67,7 @@ export default {
     },
     success: {
       description: 'Step to execute on success',
-      type: 'String',
-      nullable: false
+      type: 'String'
     },
     fail: {
       description: 'Step to execute on failure, defaults to end',
@@ -79,10 +78,22 @@ export default {
       type: ['Parameter'],
       resolve: 'readParameter'
     },
+    fork: {
+      type: 'String',
+      belongsTo: {
+        Step: { threads: 'id' }
+      }
+    },
+    join: {
+      type: 'String',
+      belongsTo: {
+        Step: { threads: 'id' }
+      }
+    },
     threads: {
       description: 'Keeps track of the forked threads for a fork or the threads that will join if a join',
       type: ['Step'],
-      resolve: 'readStep'
+      resolve: 'readStepThreads'
     }
   },
   _backend: {

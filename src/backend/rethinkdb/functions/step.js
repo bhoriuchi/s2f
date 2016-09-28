@@ -69,6 +69,22 @@ export function createStep (backend) {
   }
 }
 
+export function readStepThreads (backend) {
+  return function (source = {}, args, context = {}, info) {
+    let {r, connection} = backend
+    let table = backend.getTypeCollection('Step')
+
+    switch (source.type) {
+      case 'FORK':
+        return table.filter({ fork: source.id }).run(connection)
+      case 'JOIN':
+        return table.filter({ join: source.id }).run(connection)
+      default:
+        return []
+    }
+  }
+}
+
 export function readStep (backend) {
   return function (source = {}, args, context = {}, info) {
     let { r, connection } = backend
@@ -134,5 +150,6 @@ export default {
   createStep,
   readStep,
   updateStep,
-  deleteStep
+  deleteStep,
+  readStepThreads,
 }
