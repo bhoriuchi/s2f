@@ -1,4 +1,8 @@
 import _ from 'lodash'
+import RunStatusEnum from '../../../graphql/types/RunStatusEnum'
+import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
+let { values: { FORKED, CREATED, RUNNING } } = RunStatusEnum
+let { values: { FORK } } = StepTypeEnum
 
 export function createStepRun (backend) {
   return function (source, args, context, info) {
@@ -11,7 +15,7 @@ export function createStepRun (backend) {
       table.insert({
         step: args.step,
         started: r.now(),
-        status: 'RUNNING',
+        status: RUNNING,
         workflowRunThread: args.workflowRunThread
       }, { returnChanges: true })('changes')
         .nth(0)('new_val')
@@ -70,12 +74,12 @@ export function startStepRun (backend) {
     let table = backend.getTypeCollection('StepRun')
 
     args.started = r.now()
-    args.status = 'RUNNING'
+    args.status = RUNNING
 
     return table.get(args.id).do((stepRun) => {
       return stepRun.eq(null).branch(
         r.error('StepRun not found'),
-        stepRun('status').ne('CREATED').branch(
+        stepRun('status').ne(CREATED).branch(
           r.error('StepRun is not in a state that can be started'),
           table.get(args.id).update(_.omit(args, 'id'))
             .do(() => true)
@@ -113,7 +117,7 @@ export function createForks (backend) {
       .do((s) => {
         return s.eq(null).branch(
           r.error('Step does not exist'),
-          s('type').ne('FORK').branch(
+          s('type').ne(FORK).branch(
             r.error('Step is not a FORK'),
             step.filter({ fork: s('id') })
               .coerceTo('array')
@@ -130,7 +134,7 @@ export function createForks (backend) {
                     id: v('stepRunId'),
                     workflowRunThread: args.workflowRun,
                     step: v('step'),
-                    status: 'CREATED'
+                    status: CREATED
                   }
                 })
                   .coerceTo('array')
@@ -138,12 +142,22 @@ export function createForks (backend) {
                     return stepRun.insert(d)
                   })
                   .do(() => {
+                    return thread.get(args.thread)
+                      .do((parentThread) => {
+                        return parentThread.eq(null)
+                          .branch(
+                            r.error('Parent thread does not exist'),
+                            thread.get(args.thread).update({ status: FORKED })
+                          )
+                      })
+                  })
+                  .do(() => {
                     return val.map((v) => {
                       return {
                         id: v('threadId'),
                         workflowRun: args.workflowRun,
                         currentStepRun: v('stepRunId'),
-                        status: 'CREATED',
+                        status: CREATED,
                         parentThread: args.thread
                       }
                     })
@@ -157,14 +171,6 @@ export function createForks (backend) {
         )
       })
       .run(connection)
-      .then((res) => {
-        console.log(res)
-        return res
-      })
-      .catch((err) => {
-        console.log(err)
-        throw err
-      })
   }
 }
 

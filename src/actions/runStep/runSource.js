@@ -1,49 +1,34 @@
 import _ from 'lodash'
 import sbx from 'sbx'
-import chalk from 'chalk'
-import StepTypes from '../../graphql/types/StepTypeEnum'
-import ParameterClass from '../../graphql/types/ParameterClassEnum'
-import RunStatus from '../../graphql/types/RunStatusEnum'
+import { gqlResult } from '../common'
+import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 import setStepStatus from './setStepStatus'
-import endWorkflow from './endWorkflow'
+import handleContext from './handleContext'
 
-let { values: { SUCCESS, FAIL, WAITING, JOINING } } = RunStatus
-let { values: { ATTRIBUTE, INPUT, OUTPUT } } = ParameterClass
-let { values: { BASIC, CONDITION, END, FORK, JOIN, LOOP, START, TASK, WORKFLOW } } = StepTypes
-let HAS_SOURCE = [ BASIC, CONDITION, LOOP, TASK ]
+let { values: { SUCCESS, RUNNING } } = RunStatusEnum
 
 export default function runSource (payload, done) {
 
-  let { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId } = payload
-  let { async, source, timeout, failsWorkflow, waitOnSuccess, success, fail, parameters } = step
+  let { thread, endStep, localCtx, step, stepRunId } = payload
+  let { async, source, timeout, success } = step
   if (!source) return done(new Error('No source'))
-  // let { workflowRun, thread } = parent
-  let run = sbx.vm(source, _.merge({ context: localCtx, timeout }, this._vm))
 
-  fail = fail || endStep
+  return this.lib.S2FWorkflow(`mutation Mutation {
+    updateWorkflowRunThread ( id: "${thread}", status: ${RUNNING} )
+    { id }
+  }`)
+    .then((result) => gqlResult(this, result, (err, data) => {
+      if (err) throw err
 
-  // if async step, complete it first then resolve it
-  if (async) return setStepStatus.call(this, stepRunId, SUCCESS).then(() => run)
+      let run = sbx.vm(source, _.merge({ context: localCtx, timeout }, this._vm))
+        .then(handleContext.call(this, async, payload, done))
 
-  // regular steps should wait for the action to resolve
-  return run.then((ctx) => {
-    let failed = ctx._exception || ctx._result === false
-    let nextStep = failed ? fail : success
-    let status = failed ? FAILED : SUCCESS
+      if (!async || success === endStep) return run
 
-    if (async) {
-      if (nextStep === endStep) endWorkflow.call(this, workflowRun, done)
-      return
-    }
-
-    return setStepStatus.call(this, stepRunId, status)
-      .then(() => {
-        if (nextStep === endStep) return endWorkflow.call(this, workflowRun, done)
-        done()
-      })
-  })
-    .catch((err) => {
-      console.log(chalk.red(err))
-      done(err)
+      // TODO: change this to create the next step run
+      return setStepStatus.call(this, stepRunId, SUCCESS).then(() => run)
+    }))
+    .catch((error) => {
+      done(error)
     })
 }

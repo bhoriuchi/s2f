@@ -28,8 +28,6 @@ export default function createWorkflowRun (runner, context, done, wf) {
     step
   }
 
-  console.log(chalk.green(JSON.stringify(params, null, '  ')))
-
   return this.lib.S2FWorkflow(`mutation Mutation {
     createWorkflowRun (${toObjectString(params, { noOuterBraces: true })}) {
       id,

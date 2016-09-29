@@ -14,18 +14,12 @@ export default {
       }
     },
     context: {
-      type: ['ParameterRun'] /* ,
-      args: {
-        id: { type: 'String' }
-      },
-      resolve: 'readParameterRun'
-      */
+      type: ['ParameterRun']
     },
     step: {
       description: 'The step associated with this run',
       type: 'Step',
       has: 'id'
-      // resolve: 'readStep'
     },
     started: {
       type: 'FactoryDateTime'
@@ -81,7 +75,7 @@ export default {
         resolve: 'endStepRun'
       },
       createForks: {
-        // type: ['WorkflowRunThread'],
+        type: ['WorkflowRunThread'],
         args: {
           step: { type: 'String', nullable: false },
           workflowRun: { type: 'String', nullable: false },

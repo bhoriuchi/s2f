@@ -43,8 +43,6 @@ export default function startWorkflow (backend) {
 
         backend.log.trace({ server: backend._server, workflow: wf.id }, 'Successfully queried workflow')
 
-        // console.log(chalk.blue(JSON.stringify(wf, null, '  ')))
-
         // check that all required inputs are provided and that the types are correct
         // also convert them at this time
         // using a for loop to allow thrown errors to be caught by promise catch

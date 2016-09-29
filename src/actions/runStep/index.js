@@ -6,7 +6,6 @@ import runSource from './runSource'
 import forkSteps from './forkSteps'
 
 let { values: { BASIC, CONDITION, END, FORK, JOIN, LOOP, START, TASK, WORKFLOW } } = StepTypes
-let HAS_SOURCE = [ BASIC, CONDITION, LOOP, TASK ]
 
 export default function runStep (backend) {
   return function (runner, context = {}, done) {
@@ -37,7 +36,6 @@ export default function runStep (backend) {
               requireResumeKey,
               success,
               fail,
-              threads { id },
               parameters { id, name, type, scope, class, mapsTo }
             }
           }
@@ -56,26 +54,34 @@ export default function runStep (backend) {
         let localCtx = mapInput(input, context, _.get(step, 'parameters', []))
 
         // everything is ready to run the task, set the task to running
-        return backend.lib.S2FWorkflow(`mutation Mutation { startStepRun (id: "${step.id}") }`)
-          .then(() => {
+        return backend.lib.S2FWorkflow(`mutation Mutation { startStepRun (id: "${stepRunId}") }`)
+          .then((res) => {
             let payload = { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId }
 
-            // run specefic step type methods
-            if (_.includes(HAS_SOURCE, step.type)) {
-              return runSource.call(backend, payload, done)
-            } else if (step.type === FORK) {
-              return forkSteps.call(backend, payload, done)
+            switch (step.type) {
+              case START:
+              case END:
+              case BASIC:
+                return runSource.call(backend, payload, done)
+              case TASK:
+                return runSource.call(backend, payload, done)
+              case LOOP:
+              case CONDITION:
+              case JOIN:
+              case WORKFLOW:
+              case FORK:
+                return forkSteps.call(backend, payload, done)
+              default:
+                return done(new Error('Invalid step type'))
             }
-            return done(null)
           })
       }))
-      .catch((err) => {
-        console.log(chalk.red(err))
+      .catch((error) => {
         backend.log.error({
-          errors: err.message || err,
-          stack: err.stack
+          errors: error.message || error,
+          stack: error.stack
         }, 'Failed to start step')
-        return done(err)
+        return done(error)
       })
   }
 }

@@ -7,6 +7,8 @@ export default {
     JOINING: 'JOINING',
     FORKING: 'FORKING',
     SUCCESS: 'SUCCESS',
-    FAIL: 'FAIL'
+    FAIL: 'FAIL',
+    FORKED: 'FORKED',
+    JOINED: 'JOINED'
   }
 }
