@@ -2,6 +2,7 @@ import EntityTypeEnum from './EntityTypeEnum'
 import Parameter from './Parameter'
 import ParameterClassEnum from './ParameterClassEnum'
 import ParameterRun from './ParameterRun'
+import ParameterRunValueInput from './ParameterRunValueInput'
 import ParameterTypeEnum from './ParameterTypeEnum'
 import ParameterScopeEnum from './ParameterScopeEnum'
 import RunStatusEnum from './RunStatusEnum'
@@ -18,6 +19,7 @@ export { EntityTypeEnum }
 export { Parameter }
 export { ParameterClassEnum }
 export { ParameterRun }
+export { ParameterRunValueInput }
 export { ParameterTypeEnum }
 export { ParameterScopeEnum }
 export { RunStatusEnum }
@@ -35,6 +37,7 @@ export default {
   Parameter,
   ParameterClassEnum,
   ParameterRun,
+  ParameterRunValueInput,
   ParameterTypeEnum,
   ParameterScopeEnum,
   RunStatusEnum,

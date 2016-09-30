@@ -1,5 +1,5 @@
 import { createParameter, updateParameter, deleteParameter } from './parameter'
-import { createParameterRun, updateParameterRun, deleteParameterRun } from './parameterRun'
+import { createParameterRun, updateParameterRun, deleteParameterRun, updateAttributeValues } from './parameterRun'
 import { createStep, readStep, updateStep, deleteStep, readStepThreads } from './step'
 import { createStepRun, startStepRun, endStepRun, createForks } from './stepRun'
 import { createTask, readTask, updateTask, deleteTask } from './task'
@@ -22,6 +22,7 @@ export default function (backend) {
     createParameterRun,
     updateParameterRun,
     deleteParameterRun,
+    updateAttributeValues,
     createStep,
     readStep,
     updateStep,

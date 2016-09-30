@@ -79,7 +79,7 @@ export default {
         args: {
           step: { type: 'String', nullable: false },
           workflowRun: { type: 'String', nullable: false },
-          thread: { type: 'String', nullable: false }
+          workflowRunThread: { type: 'String', nullable: false }
         },
         resolve: 'createForks'
       }

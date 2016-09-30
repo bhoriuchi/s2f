@@ -10,7 +10,7 @@ export default function forkSteps (payload, done) {
     createForks (
       step: "${id}",
       workflowRun: "${workflowRun}",
-      thread: "${thread}"
+      workflowRunThread: "${thread}"
     )
     {
       id

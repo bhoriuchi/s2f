@@ -1,25 +1,112 @@
 import _ from 'lodash'
 import RunStatusEnum from '../../../graphql/types/RunStatusEnum'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
+import ParameterClassEnum from '../../../graphql/types/ParameterClassEnum'
+let { values: { INPUT } } = ParameterClassEnum
 let { values: { FORKED, CREATED, RUNNING } } = RunStatusEnum
 let { values: { FORK } } = StepTypeEnum
 
+
+export function newStepRun (backend, args, id, returnChanges = true, checkThread = true) {
+  let { r } = backend
+  let thread = backend.getTypeCollection('WorkflowRunThread')
+  let step = backend.getTypeCollection('Step')
+  let stepRun = backend.getTypeCollection('StepRun')
+  let parameterRun = backend.getTypeCollection('ParameterRun')
+  let parameter = backend.getTypeCollection('Parameter')
+  let workflowRun = backend.getTypeCollection('WorkflowRun')
+
+  // verify the step is valid
+  return step.get(args.step)
+
+  // generate an error message if not valid or stepRun uuid if valid
+    .do((_step) => _step.eq(null).branch(r.error('Step does not exist'), id))
+    .do((stepRunId) => {
+      return thread.get(args.workflowRunThread)
+
+      // verify the thread exists
+        .do((_thread) => {
+          return _thread.eq(null)
+            .and(r.expr(checkThread).eq(true))
+            .branch(
+              r.error('Workflow Run Thread not found'),
+              r.expr(args).hasFields('workflowRun').branch(
+                r.expr(args)('workflowRun'),
+                _thread('workflowRun')
+              )
+                .do((wfRunId) => wfRunId.eq(null).branch(r.error('Unable to determine workflow run ID'), wfRunId))
+            )
+        })
+        .do((wfRunId) => {
+
+          // get the workflowRun for its input
+          return workflowRun.get(wfRunId)
+            .do((wfRun) => {
+              return wfRun.eq(null).branch(
+                r.error('WorkflowRun not found'),
+                parameter.filter({ parentId: args.step, class: INPUT })
+                  .coerceTo('array')
+                  .map((_param) => {
+                    return {
+                      parameter: _param('id'),
+                      parentId: stepRunId,
+                      value: _param.hasFields('mapsTo')
+                        .and(_param('mapsTo').ne(null))
+                        .branch(
+                          parameterRun.filter({ parentId: wfRunId, parameter: _param('mapsTo') })
+                            .coerceTo('array')
+                            .do((ctxParam) => {
+                              return ctxParam.count().gt(0).branch(
+                                ctxParam.nth(0)('value'),
+                                wfRun('input').hasFields(_param('name')).branch(
+                                  wfRun('input')(_param('name')),
+                                  _param.hasFields('defaultValue').branch(
+                                    _param('defaultValue'),
+                                    null
+                                  )
+                                )
+                              )
+                            }),
+                          wfRun('input').hasFields(_param('name')).branch(
+                            wfRun('input')(_param('name')),
+                            _param.hasFields('defaultValue').branch(
+                              _param('defaultValue'),
+                              null
+                            )
+                          )
+                        )
+                    }
+                  })
+                  .do((paramRuns) => parameterRun.insert(paramRuns))
+                  .do(() => {
+                    return stepRun.insert({
+                      id: stepRunId,
+                      workflowRunThread: args.workflowRunThread,
+                      step: args.step,
+                      started: r.now(),
+                      status: CREATED
+                    }, { returnChanges })
+                  })
+              )
+            })
+        })
+    })
+}
+
+/*
+
+Args:
+
+step (id),
+workflowRunThread (id)
+input (JSON)
+
+ */
 export function createStepRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let step = backend.getTypeCollection('Step')
-    let table = backend.getTypeCollection('StepRun')
-
-    return step.get(args.step).eq(null).branch(
-      r.error(`Step ${args.step} not found`),
-      table.insert({
-        step: args.step,
-        started: r.now(),
-        status: RUNNING,
-        workflowRunThread: args.workflowRunThread
-      }, { returnChanges: true })('changes')
-        .nth(0)('new_val')
-    )
+    return newStepRun(backend, args, r.uuid())('changes')
+      .nth(0)('new_val')
       .run(connection)
   }
 }
@@ -109,66 +196,65 @@ export function endStepRun (backend) {
 export function createForks (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
+    let workflowRun = backend.getTypeCollection('WorkflowRun')
     let thread = backend.getTypeCollection('WorkflowRunThread')
-    let stepRun = backend.getTypeCollection('StepRun')
     let step = backend.getTypeCollection('Step')
 
-    return step.get(args.step)
-      .do((s) => {
-        return s.eq(null).branch(
-          r.error('Step does not exist'),
-          s('type').ne(FORK).branch(
-            r.error('Step is not a FORK'),
-            step.filter({ fork: s('id') })
-              .coerceTo('array')
-              .map((forked) => {
-                return {
-                  threadId: r.uuid(),
-                  stepRunId: r.uuid(),
-                  step: forked('id')
-                }
-              })
-              .do((val) => {
-                return val.map((v) => {
-                  return {
-                    id: v('stepRunId'),
-                    workflowRunThread: args.workflowRun,
-                    step: v('step'),
-                    status: CREATED
-                  }
-                })
+    return workflowRun.get(args.workflowRun)
+      .do((wfRun) => wfRun.eq(null).branch(r.error('Workflow run does not exist'), wfRun))
+      .do(() => {
+        return step.get(args.step)
+          .do((s) => {
+            return s.eq(null).branch(
+              r.error('Step does not exist'),
+              s('type').ne(FORK).branch(
+                r.error('Step is not a FORK'),
+                step.filter({ fork: s('id') })
                   .coerceTo('array')
-                  .do((d) => {
-                    return stepRun.insert(d)
+                  .map((forked) => {
+                    return {
+                      threadId: r.uuid(),
+                      stepRunId: r.uuid(),
+                      step: forked('id')
+                    }
                   })
-                  .do(() => {
-                    return thread.get(args.thread)
-                      .do((parentThread) => {
-                        return parentThread.eq(null)
-                          .branch(
-                            r.error('Parent thread does not exist'),
-                            thread.get(args.thread).update({ status: FORKED })
-                          )
-                      })
-                  })
-                  .do(() => {
-                    return val.map((v) => {
-                      return {
-                        id: v('threadId'),
+                  .do((val) => {
+                    return val.forEach((v) => {
+                      return newStepRun(backend, {
                         workflowRun: args.workflowRun,
-                        currentStepRun: v('stepRunId'),
-                        status: CREATED,
-                        parentThread: args.thread
-                      }
+                        step: v('step'),
+                        workflowRunThread: v('threadId')
+                      }, v('stepRunId'), false, false)
                     })
-                      .coerceTo('array')
-                      .do((d) => {
-                        return thread.insert(d, { returnChanges: true })('changes')('new_val')
+                      .do(() => {
+                        return thread.get(args.workflowRunThread)
+                          .do((parentThread) => {
+                            return parentThread.eq(null)
+                              .branch(
+                                r.error('Parent thread does not exist'),
+                                thread.get(args.workflowRunThread).update({ status: FORKED })
+                              )
+                          })
+                      })
+                      .do(() => {
+                        return val.map((v) => {
+                          return {
+                            id: v('threadId'),
+                            workflowRun: args.workflowRun,
+                            currentStepRun: v('stepRunId'),
+                            status: CREATED,
+                            parentThread: args.workflowRunThread
+                          }
+                        })
+                          .coerceTo('array')
+                          .do((d) => {
+                            return thread.insert(d, { returnChanges: true })('changes')('new_val')
+                          })
                       })
                   })
-              })
-          )
-        )
+              )
+            )
+          })
       })
       .run(connection)
   }

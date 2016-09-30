@@ -48,6 +48,13 @@ export default {
           id: { type: 'String', nullable: false }
         },
         resolve: 'deleteParameterRun'
+      },
+      updateAttributeValues: {
+        type: 'Boolean',
+        args: {
+          values: { type: ['ParameterRunValueInput'], nullable: false }
+        },
+        resolve: 'updateAttributeValues'
       }
     }
   }

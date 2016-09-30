@@ -68,15 +68,38 @@ export const Step = [
     failsWorkflow: false ,
     id:  '9417a242-0f72-4ef7-b876-61efb23ad446',
     name:  'Fork Left',
-    source:  'console.log("Forking Left")',
+    source:  'console.log("Forking Left", name)',
     requireResumeKey: false,
-    success: 'c6c463db-68bf-4e6f-aeaa-c546dae14525',
+    success: 'aff95d33-9f8a-4ece-87f7-462d1b71eeb9',
     timeout: 0,
     type: 'BASIC',
     waitOnSuccess: false,
     fork: '4cc47451-7115-49b5-ace2-4d05fc3ad09c',
     workflowId: 'dd64cdb7-d089-48e0-8994-33dbc9ed6c4a'
   },
+
+  {
+    _temporal: {
+      changeLog: [],
+      recordId:  'bbfe82e3-6ee6-4001-8ea6-2b00d932f2d3',
+      validFrom: null,
+      validTo: null,
+      version: null
+    } ,
+    async: false,
+    entityType:  "STEP",
+    failsWorkflow: false ,
+    id:  'aff95d33-9f8a-4ece-87f7-462d1b71eeb9',
+    name:  'After Fork Left',
+    source:  'console.log("After Fork Left")',
+    requireResumeKey: false,
+    success: 'c6c463db-68bf-4e6f-aeaa-c546dae14525',
+    timeout: 0,
+    type: 'BASIC',
+    waitOnSuccess: false,
+    workflowId: 'dd64cdb7-d089-48e0-8994-33dbc9ed6c4a'
+  },
+
   {
     _temporal: {
       changeLog: [],
@@ -122,7 +145,40 @@ export const Step = [
   }
 ]
 
-export const Parameter = []
+export const Parameter = [
+  {
+    entityType: 'PARAMETER',
+    id: '912f5d3b-9d4f-4fe5-93f1-a6446b983ed5',
+    name: 'name',
+    parentId: '9417a242-0f72-4ef7-b876-61efb23ad446',
+    required: 'false',
+    scope: 'STEP',
+    class: 'INPUT',
+    type: 'STRING'
+  },
+  {
+    entityType: 'PARAMETER',
+    id: '3361dde6-3db4-4a4e-8b4f-58d7f8fd2a90',
+    name: 'name',
+    parentId: '9417a242-0f72-4ef7-b876-61efb23ad446',
+    required: 'false',
+    scope: 'STEP',
+    mapsTo: '93f439a5-9833-4706-9cd8-7acf19b01901',
+    class: 'OUTPUT',
+    type: 'STRING'
+  },
+  {
+    entityType: 'PARAMETER',
+    id: '93f439a5-9833-4706-9cd8-7acf19b01901',
+    name: 'message',
+    defaultValue: 'Hello',
+    parentId: 'dd64cdb7-d089-48e0-8994-33dbc9ed6c4a',
+    required: 'false',
+    scope: 'WORKFLOW',
+    class: 'ATTRIBUTE',
+    type: 'STRING'
+  }
+]
 
 export default {
   Workflow,

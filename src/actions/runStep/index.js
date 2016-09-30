@@ -10,7 +10,7 @@ let { values: { BASIC, CONDITION, END, FORK, JOIN, LOOP, START, TASK, WORKFLOW }
 export default function runStep (backend) {
   return function (runner, context = {}, done) {
     let { workflowRun, thread } = context
-    if (!workflowRun || !thread) return done(new Error('No workflow run or main thead created'))
+    if (!workflowRun || !thread) return done(new Error('No workflow run or main thread created'))
 
     return backend.lib.S2FWorkflow(`{
       readWorkflowRun (id: "${workflowRun}") {
@@ -18,6 +18,7 @@ export default function runStep (backend) {
         args,
         input,
         context {
+          id,
           parameter { id, name, type, scope, class },
           value
         },
