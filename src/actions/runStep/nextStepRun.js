@@ -5,10 +5,10 @@ import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 let { values: { RUNNING } } = RunStatusEnum
 
 export default function nextStepRun (payload, done) {
-  let event = _.get(this, 'server._emitter')
-  if (!event) return done(new Error('No event emitter'))
+  let { thread, step, async, workflowRun } = payload
 
-  let { thread, step, workflowRun } = payload
+  let event = _.get(this, 'server._emitter')
+  if (!event && !async) return done(new Error('No event emitter'))
 
   return this.lib.S2FWorkflow(`mutation Mutation {
     createStepRun (step: "${step}", workflowRunThread: "${thread}"),
@@ -32,7 +32,7 @@ export default function nextStepRun (payload, done) {
               context: { thread, workflowRun }
             }
           })
-          return done()
+          return async ? true : done()
         }))
     }))
 

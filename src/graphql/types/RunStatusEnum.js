@@ -9,6 +9,8 @@ export default {
     SUCCESS: 'SUCCESS',
     FAIL: 'FAIL',
     FORKED: 'FORKED',
-    JOINED: 'JOINED'
+    JOINED: 'JOINED',
+    ENDING: 'ENDING',
+    ENDED: 'ENDED'
   }
 }

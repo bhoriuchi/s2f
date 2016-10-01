@@ -8,7 +8,7 @@ import ParameterClassEnum from '../../graphql/types/ParameterClassEnum'
 let { values: { SUCCESS, FAIL } } = RunStatusEnum
 let { values: { OUTPUT, ATTRIBUTE } } = ParameterClassEnum
 
-export default function handleContext (async, payload, done) {
+export default function handleContext (payload, done) {
   return (ctx) => {
 
     let { toObjectString } = this.factory.utils
@@ -44,8 +44,8 @@ export default function handleContext (async, payload, done) {
       .then(() => {
         return setStepStatus.call(this, stepRunId, status)
           .then(() => {
-            if (nextStep === endStep) return endWorkflow.call(this, workflowRun, done)
-            else return nextStepRun.call(this, { thread, workflowRun, step: nextStep }, done)
+            if (nextStep === endStep) return endWorkflow.call(this, payload, done)
+            else if (!async) return nextStepRun.call(this, { thread, workflowRun, step: nextStep, async }, done)
             done()
           })
       })

@@ -9,7 +9,7 @@ let { values: { SUCCESS, RUNNING } } = RunStatusEnum
 
 export default function runSource (payload, done) {
 
-  let { thread, endStep, localCtx, step, stepRunId, workflowRun } = payload
+  let { thread, endStep, localCtx, step, workflowRun } = payload
   let { async, source, timeout, success } = step
   if (!source) return done(new Error('No source'))
 
@@ -21,13 +21,13 @@ export default function runSource (payload, done) {
       if (err) throw err
 
       let run = sbx.vm(source, _.merge({ context: localCtx, timeout }, this._vm))
-        .then(handleContext.call(this, async, payload, done))
+        .then(handleContext.call(this, payload, done))
 
       // non-async or last step
       if (!async || success === endStep) return run
 
       // since run has already been called, we just remove the resolve dependency from nextStep
-      return nextStepRun.call(this, { thread, workflowRun, step: success }, done)
+      return nextStepRun.call(this, { thread, workflowRun, step: success, async }, done)
     }))
     .catch((error) => {
       done(error)
