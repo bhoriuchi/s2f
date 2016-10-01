@@ -44,7 +44,6 @@ export default {
     collection: 'workflow_run',
     mutation: {
       create: {
-        // type: 'WorkflowRun',
         args: {
           workflow: { type: 'String' },
           args: { type: 'FactoryJSON' },
@@ -69,6 +68,14 @@ export default {
           id: { type: 'String', nullable: false }
         },
         resolve: 'deleteWorkflowRun'
+      },
+      endWorkflowRun: {
+        type: 'Boolean',
+        args: {
+          id: { type: 'String', nullable: false },
+          status: { type: 'RunStatusEnum', nullable: false }
+        },
+        resolve: 'endWorkflowRun'
       }
     }
   }

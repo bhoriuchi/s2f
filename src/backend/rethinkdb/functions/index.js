@@ -12,7 +12,7 @@ import {
   deleteWorkflow,
   readWorkflowInputs
 } from './workflow'
-import { createWorkflowRun, updateWorkflowRun, deleteWorkflowRun } from './workflowRun'
+import { createWorkflowRun, updateWorkflowRun, deleteWorkflowRun, endWorkflowRun } from './workflowRun'
 
 export default function (backend) {
   return {
@@ -45,6 +45,7 @@ export default function (backend) {
     readWorkflowInputs,
     createWorkflowRun,
     updateWorkflowRun,
-    deleteWorkflowRun
+    deleteWorkflowRun,
+    endWorkflowRun
   }
 }

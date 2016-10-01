@@ -121,10 +121,26 @@ export function deleteWorkflowRun (backend) {
   }
 }
 
+export function endWorkflowRun (backend) {
+  return function (source, args, context, info) {
+    let {r, connection} = backend
+    let table = backend.getTypeCollection('WorkflowRun')
+
+    args.ended = r.now()
+
+    return table.get(args.id).eq(null).branch(
+      r.error('WorkflowRun not found'),
+      table.get(args.id).update(_.omit(args, 'id'))
+        .do(() => true)
+    )
+      .run(connection)
+  }
+}
 
 export default {
   createWorkflowRun,
   readWorkflowRun,
   updateWorkflowRun,
-  deleteWorkflowRun
+  deleteWorkflowRun,
+  endWorkflowRun
 }
