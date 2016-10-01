@@ -1,12 +1,11 @@
 import _ from 'lodash'
-import chalk from 'chalk'
 import setStepStatus from './setStepStatus'
 import endWorkflow from './endWorkflow'
 import nextStepRun from './nextStepRun'
 import { convertType } from '../common'
 import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 import ParameterClassEnum from '../../graphql/types/ParameterClassEnum'
-let { values: { SUCCESS, RUNNING, FAIL, WAITING, JOINING } } = RunStatusEnum
+let { values: { SUCCESS, FAIL } } = RunStatusEnum
 let { values: { OUTPUT, ATTRIBUTE } } = ParameterClassEnum
 
 export default function handleContext (async, payload, done) {

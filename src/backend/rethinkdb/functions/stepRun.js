@@ -186,7 +186,7 @@ export function endStepRun (backend) {
 
     return table.get(args.id).eq(null).branch(
       r.error('StepRun not found'),
-      table.get(args.id).update(_.omit(args, ['id', 'success']))
+      table.get(args.id).update(_.omit(args, 'id'))
         .do(() => true)
     )
       .run(connection)
