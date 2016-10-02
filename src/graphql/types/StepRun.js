@@ -82,6 +82,14 @@ export default {
           workflowRunThread: { type: 'String', nullable: false }
         },
         resolve: 'createForks'
+      },
+      getJoinThreads: {
+        type: ['WorkflowRunThread'],
+        args: {
+          step: { type: 'String', nullable: false },
+          workflowRun: { type: 'String', nullable: false }
+        },
+        resolve: 'getJoinThreads'
       }
     }
   }

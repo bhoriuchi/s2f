@@ -1,19 +1,10 @@
 import _ from 'lodash'
-import { gqlResult } from '../common'
+import { gqlResult, winTieBreak } from '../common'
 import computeWorkflowStatus from './computeWorkflowStatus'
 import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 
 let { values: { CREATED, FORKING, JOINING, ENDING, RUNNING, JOINED } } = RunStatusEnum
 let RUNNING_STATES = [ CREATED, FORKING, JOINING, RUNNING ]
-
-// tie breaker function, looks for ending threads
-// if multiple found, sorts the ids and takes the first
-// as the tie breaker
-export function winTieBreak (thread, ending) {
-  if (!_.without(ending, thread).length) return true
-  return ending.sort()[0] === thread
-}
-
 
 export default function endWorkflow (payload, done) {
   let { workflowRun, thread } = payload

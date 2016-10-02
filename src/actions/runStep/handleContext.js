@@ -45,7 +45,7 @@ export default function handleContext (payload, done) {
         return setStepStatus.call(this, stepRunId, status)
           .then(() => {
             if (nextStep === endStep) return endWorkflow.call(this, payload, done)
-            else if (!async) return nextStepRun.call(this, { thread, workflowRun, step: nextStep, async }, done)
+            else if (!async) return nextStepRun.call(this, { thread, workflowRun, nextStep, async }, done)
             done()
           })
       })

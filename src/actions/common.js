@@ -84,10 +84,16 @@ export function mapInput (input, context, parameters) {
   return params
 }
 
+export function winTieBreak (thread, ending) {
+  if (!_.without(ending, thread).length) return true
+  return ending.sort()[0] === thread
+}
+
 export default {
   expandGQLErrors,
   gqlResult,
   convertType,
   isNested,
-  mapInput
+  mapInput,
+  winTieBreak
 }

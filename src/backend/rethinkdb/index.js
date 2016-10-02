@@ -26,7 +26,7 @@ export class S2fRethinkDBBackend extends YellowjacketRethinkDBBackend {
     this.addInstallData(installData)
 
     // add functions
-    this.addFunctions(functions(this))
+    this.addFunctions(functions)
 
     // add actions
     this.addActions(actions(this))

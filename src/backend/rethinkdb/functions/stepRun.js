@@ -260,6 +260,32 @@ export function createForks (backend) {
   }
 }
 
+export function getJoinThreads (backend) {
+  return function (source, args, context, info) {
+    let {r, connection} = backend
+    let thread = backend.getTypeCollection('WorkflowRunThread')
+    let step = backend.getTypeCollection('Step')
+    let stepRun = backend.getTypeCollection('StepRun')
+
+    // first get steps that should be joined
+    return step.filter({ join: args.step })('id')
+      .coerceTo('array')
+      .do((joins) => {
+
+        // then get threads
+        return thread.filter({ workflowRun: args.workflowRun })
+          .merge((t) => {
+            return {
+              step: stepRun.get(t('currentStepRun')).do((sr) => step.get(sr('step'))('id'))
+            }
+          })
+          .filter((tr) => joins.contains(tr('step')))
+          .coerceTo('array')
+      })
+      .run(connection)
+  }
+}
+
 export default {
   createStepRun,
   readStepRun,
@@ -267,5 +293,6 @@ export default {
   deleteStepRun,
   startStepRun,
   endStepRun,
-  createForks
+  createForks,
+  getJoinThreads
 }

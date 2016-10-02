@@ -4,6 +4,7 @@ import { gqlResult, mapInput } from '../common'
 import StepTypes from '../../graphql/types/StepTypeEnum'
 import runSource from './runSource'
 import forkSteps from './forkSteps'
+import joinThreads from './joinThreads'
 
 let { values: { BASIC, CONDITION, END, FORK, JOIN, LOOP, START, TASK, WORKFLOW } } = StepTypes
 
@@ -69,6 +70,7 @@ export default function runStep (backend) {
               case LOOP:
               case CONDITION:
               case JOIN:
+                return joinThreads.call(backend, payload, done)
               case WORKFLOW:
               case FORK:
                 return forkSteps.call(backend, payload, done)

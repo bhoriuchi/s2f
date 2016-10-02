@@ -27,7 +27,7 @@ export default function runSource (payload, done) {
       if (!async || success === endStep) return run
 
       // since run has already been called, we just remove the resolve dependency from nextStep
-      return nextStepRun.call(this, { thread, workflowRun, step: success, async }, done)
+      return nextStepRun.call(this, { thread, workflowRun, nextStep: success, async }, done)
     }))
     .catch((error) => {
       done(error)
