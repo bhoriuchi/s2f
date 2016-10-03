@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import chalk from 'chalk'
 import { gqlResult } from '../common'
 import setStepStatus from './setStepStatus'
 import RunStatusEnum from '../../graphql/types/RunStatusEnum'

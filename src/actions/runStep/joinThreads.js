@@ -24,21 +24,6 @@ let RUNNING_STATES = [ CREATED, FORKING, JOINING, RUNNING ]
 export default function joinThreads (payload, done) {
   let { workflowRun, thread } = payload
 
-  return this.lib.S2FWorkflow(`{
-    readWorkflowRun (id: "${workflowRun}") {
-      threads {
-        id,
-        status,
-        currentStepRun {
-          step {
-            id,
-            status
-          }
-        }
-      }
-    }
-  }`)
-
   done()
 }
 

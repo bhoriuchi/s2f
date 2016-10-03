@@ -7,10 +7,10 @@ export function mergeConfig (config = {}) {
   return _.merge({}, config, { types, fields })
 }
 
-export function temporalTables () {
-  return _.omitBy(_.mapValues(types, (type) => {
+export function temporalTables (allTypes) {
+  return _.omitBy(_.mapValues(allTypes, (type) => {
     let be = _.get(type, '_backend', {})
-    return be.temporal ? { table: type.collection } : null
+    return be.temporal ? { table: _.get(type, '_backend.collection') } : null
   }), (v) => {
     return v === null
   })

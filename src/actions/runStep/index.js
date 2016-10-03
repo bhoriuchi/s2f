@@ -68,14 +68,16 @@ export default function runStep (backend) {
               case TASK:
                 return runSource.call(backend, payload, done)
               case LOOP:
+                return runSource.call(backend, payload, done)
               case CONDITION:
+                return runSource.call(backend, payload, done)
               case JOIN:
                 return joinThreads.call(backend, payload, done)
               case WORKFLOW:
               case FORK:
                 return forkSteps.call(backend, payload, done)
               default:
-                return done(new Error('Invalid step type'))
+                return done(new Error('Invalid step type or action cannot be performed on type'))
             }
           })
       }))

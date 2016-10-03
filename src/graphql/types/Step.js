@@ -84,12 +84,6 @@ export default {
         Step: { threads: 'id' }
       }
     },
-    join: {
-      type: 'String',
-      belongsTo: {
-        Step: { threads: 'id' }
-      }
-    },
     threads: {
       description: 'Keeps track of the forked threads for a fork or the threads that will join if a join',
       type: ['Step'],

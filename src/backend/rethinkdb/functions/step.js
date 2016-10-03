@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import chalk from 'chalk'
 import { GraphQLError } from 'graphql/error'
 import { isPublished } from './common'
 
@@ -77,8 +78,6 @@ export function readStepThreads (backend) {
     switch (source.type) {
       case 'FORK':
         return table.filter({ fork: source.id }).run(connection)
-      case 'JOIN':
-        return table.filter({ join: source.id }).run(connection)
       default:
         return []
     }
@@ -114,7 +113,7 @@ export function readStep (backend) {
       }
     }
 
-    return filter.run(connection)
+    return filter.coerceTo('array').run(connection)
   }
 }
 

@@ -5,8 +5,10 @@ import nextStepRun from './nextStepRun'
 import { convertType } from '../common'
 import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 import ParameterClassEnum from '../../graphql/types/ParameterClassEnum'
+import StepTypeEnum from '../../graphql/types/StepTypeEnum'
 let { values: { SUCCESS, FAIL } } = RunStatusEnum
 let { values: { OUTPUT, ATTRIBUTE } } = ParameterClassEnum
+let { values: { CONDITION, LOOP } } = StepTypeEnum
 
 export default function handleContext (payload, done) {
   return (ctx) => {
@@ -19,6 +21,17 @@ export default function handleContext (payload, done) {
     let failed = ctx._exception || ctx._result === false
     let nextStep = failed ? fail : success
     let status = failed ? FAIL : SUCCESS
+
+    switch (step.type) {
+      case CONDITION:
+        status = SUCCESS
+        break
+      case LOOP:
+        status = SUCCESS
+        break
+      default:
+        break
+    }
 
     // generate value changes to push
     let outputs = []

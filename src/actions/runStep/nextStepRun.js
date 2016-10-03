@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import chalk from 'chalk'
 import { gqlResult } from '../common'
 import joinThreads from './joinThreads'
 import StepTypeEnum from '../../graphql/types/StepTypeEnum'
@@ -15,8 +16,12 @@ export default function nextStepRun (payload, done) {
 
   return this.lib.S2FWorkflow(`{ readStep (id: "${nextStep}") { type } }`)
     .then((result) => gqlResult(this, result, (err, data) => {
-      if (err) throw err
+      if (err) {
+        console.log(chalk.red(err))
+        throw err
+      }
       let type = _.get(data, 'readStep[0].type')
+
       if (!type) throw new Error('failed to get next step type')
 
       // if the type is join, call the join threads handler to avoid creating multiple

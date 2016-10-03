@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import chalk from 'chalk'
 import { YellowjacketRethinkDBBackend } from 'yellowjacket'
 import FactoryTemporalPlugin from 'graphql-factory-temporal'
 import { rethinkdb as FactoryTemporalBackend } from 'graphql-factory-temporal/backend'
@@ -12,7 +13,7 @@ export class S2fRethinkDBBackend extends YellowjacketRethinkDBBackend {
     config = mergeConfig(config)
 
     // create a temporal plugin
-    let temporalOptions = { tables: temporalTables(), prefix: config.prefix }
+    let temporalOptions = { tables: temporalTables(config.types), prefix: config.prefix }
     let temporalBackend = new FactoryTemporalBackend(r, graphql, temporalOptions, connection)
     let temporalPlugin = FactoryTemporalPlugin(temporalBackend)
 
