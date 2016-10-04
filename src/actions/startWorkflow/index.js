@@ -33,7 +33,7 @@ export default function startWorkflow (backend) {
           parameters { id, name, type, class, required, mapsTo, defaultValue }
         }
       }
-    }`)
+    }`, {}, args)
       .then((result) => gqlResult(backend, result, (err, data) => {
         let wf = _.get(data, 'readWorkflow[0]')
         let step = _.get(wf, 'steps[0]')

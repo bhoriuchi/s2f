@@ -1,6 +1,10 @@
 import _ from 'lodash'
 import { isPublished } from './common'
 import { destroyStep } from './step'
+import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
+import ParameterClassEnum from '../../../graphql/types/ParameterClassEnum'
+let { values: { TASK, WORKFLOW } } = StepTypeEnum
+let { values: { INPUT } } = ParameterClassEnum
 
 export function getFullWorkflow (backend, args) {
   let { r, connection } = backend
@@ -133,16 +137,47 @@ export function publishWorkflow (backend) {
 }
 
 export function readWorkflowInputs (backend) {
-  return function (source, args, context, info) {
-    let { r, connection } = backend
+  return function (source, args, context = {}, info) {
+    let {r, connection} = backend
+    let {filterTemporalWorkflow, filterTemporalTask} = this.globals._temporal
     let parameter = backend.getTypeCollection('Parameter')
     let step = backend.getTypeCollection('Step')
+    context = _.omit(context, ['recordId', 'id'])
 
-    return step.filter({ workflowId: source.id })
+    return step.filter({workflowId: source.id})
       .map((s) => {
-        return parameter.filter({parentId: s('id'), class: 'INPUT'})
-          .filter((p) => p.hasFields('mapsTo').not().or(p('mapsTo').eq(null)))
-          .coerceTo('array')
+        return r.expr([WORKFLOW, TASK]).contains(s('type')).branch(
+          // get the version args, default to context
+          s.hasFields('versionArgs').branch(
+            s('versionArgs').keys().count().ne(0).branch(
+              s('versionArgs'),
+              r.expr(context)
+            ),
+            r.expr(context)
+          )
+            .do((vargs) => {
+              return r.branch(
+                s('type').eq(WORKFLOW).and(s.hasFields('subWorkflow')),
+                filterTemporalWorkflow(vargs.merge({recordId: s('subWorkflow')})),
+                s('type').eq(TASK).and(s.hasFields('task')),
+                filterTemporalTask(vargs.merge({recordId: s('task')})),
+                r.error('Temporal relation missing reference')
+              )
+                .coerceTo('array')
+                .do((recs) => {
+                  return recs.count().eq(0).branch(
+                    null,
+                    recs.nth(0)('id')
+                  )
+                })
+            }),
+          s('id')
+        )
+          .do((id) => {
+            return parameter.filter({parentId: id, class: INPUT})
+              .filter((p) => p.hasFields('mapsTo').not().or(p('mapsTo').eq(null)))
+              .coerceTo('array')
+          })
       })
       .reduce((left, right) => left.union(right))
       .run(connection)

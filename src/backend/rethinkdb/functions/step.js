@@ -2,6 +2,9 @@ import _ from 'lodash'
 import chalk from 'chalk'
 import { GraphQLError } from 'graphql/error'
 import { isPublished } from './common'
+import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
+
+let { values: { WORKFLOW, TASK } } = StepTypeEnum
 
 export function destroyStep (backend, ids) {
   let { r, connection } = backend
@@ -144,6 +147,32 @@ export function deleteStep (backend) {
   }
 }
 
+export function readSource (backend) {
+  return function (source = {}, args, context = {}, info) {
+    let {r, connection} = backend
+    let { filterTemporalTask } = this.globals._temporal
+
+    // if not a workflow or task, simply return the source
+    if (source.type !== TASK) return _.get(source, 'source', null)
+
+    let vargs = _.keys(source.versionArgs).length ? source.versionArgs :
+      _.merge(_.omit(context, ['id', 'recordId']), { recordId: _.get(source, 'task', null) })
+
+    return filterTemporalTask(vargs)
+      .coerceTo('array')
+      .do((t) => {
+        return t.count().eq(0).branch(
+          null,
+          t.nth(0).hasFields('source').branch(
+            t.nth(0)('source'),
+            null
+          )
+        )
+      })
+      .run(connection)
+  }
+}
+
 export default {
   destroyStep,
   createStep,
@@ -151,4 +180,5 @@ export default {
   updateStep,
   deleteStep,
   readStepThreads,
+  readSource
 }

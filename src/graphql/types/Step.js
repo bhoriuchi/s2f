@@ -33,7 +33,8 @@ export default {
     },
     source: {
       description: 'Source code to run. Can be null if a task or subworkflow is being used',
-      type: 'String'
+      type: 'String',
+      resolve: 'readSource'
     },
     task: {
       description: 'Published task to use as source for execution code',
@@ -44,6 +45,10 @@ export default {
     subWorkflow: {
       description: 'Nested workflow to run',
       type: 'String'
+    },
+    versionArgs: {
+      description: 'Lock a task or subworkflow into a specific version',
+      type: 'FactoryJSON'
     },
     timeout: {
       description: 'Time in ms to allow the step to run before timing out',
