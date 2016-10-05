@@ -4,6 +4,7 @@ import { YellowjacketRethinkDBBackend } from 'yellowjacket'
 import FactoryTemporalPlugin from 'graphql-factory-temporal'
 import { rethinkdb as FactoryTemporalBackend } from 'graphql-factory-temporal/backend'
 import { mergeConfig, temporalTables } from '../util'
+import events from '../../events/index'
 import functions from './functions/index'
 import actions from '../../actions/index'
 import installData from '../../data/index'
@@ -31,6 +32,9 @@ export class S2fRethinkDBBackend extends YellowjacketRethinkDBBackend {
 
     // add actions
     this.addActions(actions(this))
+
+    // add events
+    this.addEvents(events)
   }
 }
 
