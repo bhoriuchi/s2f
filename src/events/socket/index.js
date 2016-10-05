@@ -1,5 +1,5 @@
-import readWorkflow from './readWorkflow'
+import workflow from './workflow'
 
 export default {
-  'workflow.read': readWorkflow
+  workflow
 }
