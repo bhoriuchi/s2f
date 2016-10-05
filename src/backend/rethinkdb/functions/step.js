@@ -173,6 +173,46 @@ export function readSource (backend) {
   }
 }
 
+export function readStepParams (backend) {
+  return function (source = {}, args, context = {}, info) {
+    let {r, connection} = backend
+    let {filterTemporalWorkflow, filterTemporalTask} = this.globals._temporal
+    let parameter = backend.getTypeCollection('Parameter')
+    context = _.omit(context, ['recordId', 'id'])
+
+    return r.expr(source).do((s) => {
+      return r.expr([WORKFLOW, TASK]).contains(s('type')).branch(
+        s.hasFields('versionArgs').branch(
+          s('versionArgs').keys().count().ne(0).branch(
+            s('versionArgs'),
+            r.expr(context)
+          ),
+          r.expr(context)
+        )
+          .do((vargs) => {
+            return r.branch(
+              s('type').eq(WORKFLOW).and(s.hasFields('subWorkflow')),
+              filterTemporalWorkflow(vargs.merge({recordId: s('subWorkflow')})),
+              s('type').eq(TASK).and(s.hasFields('task')),
+              filterTemporalTask(vargs.merge({recordId: s('task')})),
+              r.error('Temporal relation missing reference')
+            )
+              .coerceTo('array')
+              .do((recs) => {
+                return recs.count().eq(0).branch(
+                  null,
+                  recs.nth(0)('id')
+                )
+              })
+          }),
+        s('id')
+      )
+        .do((id) => parameter.filter({parentId: id }).coerceTo('array'))
+    })
+      .run(connection)
+  }
+}
+
 export default {
   destroyStep,
   createStep,
@@ -180,5 +220,6 @@ export default {
   updateStep,
   deleteStep,
   readStepThreads,
-  readSource
+  readSource,
+  readStepParams
 }

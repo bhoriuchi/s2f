@@ -327,7 +327,7 @@ var Step = {
     parameters: {
       description: 'Local parameters associated with the step',
       type: ['Parameter'],
-      resolve: 'readParameter'
+      resolve: 'readStepParams'
     },
     fork: {
       type: 'String',
@@ -1260,6 +1260,33 @@ function readSource(backend) {
   };
 }
 
+function readStepParams(backend) {
+  return function () {
+    var source = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+    var args = arguments[1];
+    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var info = arguments[3];
+    var r = backend.r;
+    var connection = backend.connection;
+    var _globals$_temporal2 = this.globals._temporal;
+    var filterTemporalWorkflow = _globals$_temporal2.filterTemporalWorkflow;
+    var filterTemporalTask = _globals$_temporal2.filterTemporalTask;
+
+    var parameter = backend.getTypeCollection('Parameter');
+    context = _.omit(context, ['recordId', 'id']);
+
+    return r.expr(source).do(function (s) {
+      return r.expr([WORKFLOW, TASK]).contains(s('type')).branch(s.hasFields('versionArgs').branch(s('versionArgs').keys().count().ne(0).branch(s('versionArgs'), r.expr(context)), r.expr(context)).do(function (vargs) {
+        return r.branch(s('type').eq(WORKFLOW).and(s.hasFields('subWorkflow')), filterTemporalWorkflow(vargs.merge({ recordId: s('subWorkflow') })), s('type').eq(TASK).and(s.hasFields('task')), filterTemporalTask(vargs.merge({ recordId: s('task') })), r.error('Temporal relation missing reference')).coerceTo('array').do(function (recs) {
+          return recs.count().eq(0).branch(null, recs.nth(0)('id'));
+        });
+      }), s('id')).do(function (id) {
+        return parameter.filter({ parentId: id }).coerceTo('array');
+      });
+    }).run(connection);
+  };
+}
+
 var INPUT = ParameterClassEnum.values.INPUT;
 var _RunStatusEnum$values = RunStatusEnum.values;
 var FORKED = _RunStatusEnum$values.FORKED;
@@ -1993,6 +2020,7 @@ var functions = {
   deleteStep: deleteStep,
   readStepThreads: readStepThreads,
   readSource: readSource,
+  readStepParams: readStepParams,
   createStepRun: createStepRun,
   startStepRun: startStepRun,
   endStepRun: endStepRun,

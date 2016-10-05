@@ -18,6 +18,7 @@ lib.S2FWorkflow(`{
       type,
       name,
       source,
+      parameters { id, name, type, class, required, defaultValue },
       threads {
         id,
         type,
