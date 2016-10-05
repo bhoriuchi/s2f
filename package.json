@@ -11,9 +11,7 @@
   "scripts": {
     "build:copybrc": "cp build/.build.babelrc src/.babelrc",
     "build:rmbrc": "rm -f src/.babelrc",
-    "buildexample": "npm run build && rollup example/example.js --output example/build.js --format cjs && node example/build.js --harmony",
-    "example": "node example/index.js --harmony",
-    "build": "npm run build:copybrc && rollup -c build/rollup.config.js && npm run build:rmbrc",
+    "build": "npm run build:copybrc && rollup -c build/rollup.config.js && rollup -c build/rollup.config.uglify.js && npm run build:rmbrc",
     "test": "npm run build && mocha test/index.js",
     "copytemporal": "cp ../graphql-factory-temporal/*.js node_modules/graphql-factory-temporal/",
     "copyyj": "cp ../yellowjacket/*.js node_modules/yellowjacket/",
@@ -49,6 +47,7 @@
     "rewire": "^2.5.1",
     "rollup": "^0.34.0",
     "rollup-plugin-babel": "^2.6.0",
+    "rollup-plugin-uglify": "^1.0.1",
     "babel-preset-es2015-rollup": "^1.1.0"
   },
   "bugs": {

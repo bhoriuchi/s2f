@@ -2,7 +2,7 @@ import _ from 'lodash'
 import chalk from 'chalk'
 import factory from 'graphql-factory'
 import { gqlResult } from '../common'
-import runStep from '../runStep'
+import runStep from '../runStep/index'
 let { toObjectString, Enum } = factory.utils
 
 export default function createWorkflowRun (runner, context, done, wf) {
