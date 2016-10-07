@@ -30,6 +30,13 @@ export default {
     temporal: true,
     query: {
       read: {
+        type: ['Task'],
+        args: {
+          recordId: { type: 'String' },
+          id: { type: 'String' },
+          version: { type: 'String' },
+          date: { type: 'FactoryDateTime' }
+        },
         resolve: 'readTask'
       }
     },

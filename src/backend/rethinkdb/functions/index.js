@@ -8,6 +8,7 @@ import {
   forkWorkflow,
   publishWorkflow,
   createWorkflow,
+  readWorkflow,
   updateWorkflow,
   deleteWorkflow,
   readWorkflowInputs
@@ -42,6 +43,7 @@ export default {
   forkWorkflow,
   publishWorkflow,
   createWorkflow,
+  readWorkflow,
   updateWorkflow,
   deleteWorkflow,
   readWorkflowInputs,

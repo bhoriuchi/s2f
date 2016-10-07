@@ -48,6 +48,18 @@ export default {
     schema: 'S2FWorkflow',
     collection: 'workflow',
     temporal: true,
+    query: {
+      read: {
+        type: ['Workflow'],
+        args: {
+          recordId: { type: 'String' },
+          id: { type: 'String' },
+          version: { type: 'String' },
+          date: { type: 'FactoryDateTime' }
+        },
+        resolve: 'readWorkflow'
+      }
+    },
     mutation: {
       create: {
         type: 'Workflow',

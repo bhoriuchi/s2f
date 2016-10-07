@@ -610,6 +610,13 @@ var Task = {
     temporal: true,
     query: {
       read: {
+        type: ['Task'],
+        args: {
+          recordId: { type: 'String' },
+          id: { type: 'String' },
+          version: { type: 'String' },
+          date: { type: 'FactoryDateTime' }
+        },
         resolve: 'readTask'
       }
     },
@@ -694,6 +701,18 @@ var Workflow = {
     schema: 'S2FWorkflow',
     collection: 'workflow',
     temporal: true,
+    query: {
+      read: {
+        type: ['Workflow'],
+        args: {
+          recordId: { type: 'String' },
+          id: { type: 'String' },
+          version: { type: 'String' },
+          date: { type: 'FactoryDateTime' }
+        },
+        resolve: 'readWorkflow'
+      }
+    },
     mutation: {
       create: {
         type: 'Workflow',
@@ -1497,11 +1516,14 @@ function readTask(backend) {
     var info = arguments[3];
     var r = backend.r;
     var connection = backend.connection;
-    var filterTemporalTask = this.globals._temporal.filterTemporalTask;
+    var _globals$_temporal = this.globals._temporal;
+    var filterTemporalTask = _globals$_temporal.filterTemporalTask;
+    var mostCurrentTemporalTask = _globals$_temporal.mostCurrentTemporalTask;
 
     context.date = args.date || context.date;
     var filter = r.expr(null);
     if (!source) {
+      if (!_.keys(args).length) return mostCurrentTemporalTask().run(connection);
       filter = filterTemporalTask(args);
     } else if (source.task) {
       filter = filterTemporalTask({ recordId: source.task, date: context.date }).coerceTo('array').do(function (task) {
@@ -1763,6 +1785,26 @@ function createWorkflow(backend) {
         return createTemporalWorkflow(args)('changes').nth(0)('new_val');
       });
     }).run(connection);
+  };
+}
+
+function readWorkflow(backend) {
+  return function (source, args) {
+    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var info = arguments[3];
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var table = backend.getTypeCollection('Workflow');
+
+    var _globals$_temporal3 = this.globals._temporal;
+    var filterTemporalWorkflow = _globals$_temporal3.filterTemporalWorkflow;
+    var mostCurrentTemporalWorkflow = _globals$_temporal3.mostCurrentTemporalWorkflow;
+
+    if (source && source.workflow) return table.get(source.workflow).run(connection);
+    context.date = args.date || context.date;
+    if (_.keys(args).length) return filterTemporalWorkflow(args).run(connection);
+    return mostCurrentTemporalWorkflow().run(connection);
   };
 }
 
@@ -2034,6 +2076,7 @@ var functions = {
   forkWorkflow: forkWorkflow,
   publishWorkflow: publishWorkflow,
   createWorkflow: createWorkflow,
+  readWorkflow: readWorkflow,
   updateWorkflow: updateWorkflow,
   deleteWorkflow: deleteWorkflow,
   readWorkflowInputs: readWorkflowInputs,
@@ -3483,7 +3526,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 
