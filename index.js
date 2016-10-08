@@ -339,6 +339,10 @@ var Step = {
       description: 'Keeps track of the forked threads for a fork or the threads that will join if a join',
       type: ['Step'],
       resolve: 'readStepThreads'
+    },
+    ex: {
+      description: 'Extension data, can be used by plugins for example ui positioning information',
+      type: 'FactoryJSON'
     }
   },
   _backend: {
@@ -3526,7 +3530,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 

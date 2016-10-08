@@ -6,6 +6,7 @@ let backend = RethinkDBBackend('_yj', graphql, rethinkdbdash())
 let lib = backend.lib
 
 // console.log(JSON.stringify(lib._definitions.definition.types.S2FWorkflowQuery.fields.readWorkflow, null, '  '))
+/*
 lib.S2FWorkflow(`{
   readWorkflow {
     _temporal {
@@ -16,8 +17,8 @@ lib.S2FWorkflow(`{
     name
   }
 }`)
+*/
 
-/*
 lib.S2FWorkflow(`{
   readWorkflow {
     id,
@@ -32,12 +33,13 @@ lib.S2FWorkflow(`{
       threads {
         id,
         type,
-        name
+        name,
+        success,
+        fail
       }
     }
   }
 }`)
-*/
 
 /*
 lib.S2FWorkflow(`mutation Mutation {

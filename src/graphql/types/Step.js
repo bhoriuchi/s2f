@@ -93,6 +93,10 @@ export default {
       description: 'Keeps track of the forked threads for a fork or the threads that will join if a join',
       type: ['Step'],
       resolve: 'readStepThreads'
+    },
+    ex: {
+      description: 'Extension data, can be used by plugins for example ui positioning information',
+      type: 'FactoryJSON'
     }
   },
   _backend: {
