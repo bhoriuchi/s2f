@@ -3548,7 +3548,11 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     config = mergeConfig(config);
 
     // create a temporal plugin
-    var temporalOptions = { tables: temporalTables(config.types), prefix: config.prefix };
+    var temporalOptions = {
+      tables: temporalTables(config.types),
+      prefix: _.get(config, 'options.prefix'),
+      db: _.get(config, 'options.store')
+    };
     var temporalBackend = new graphqlFactoryTemporal_backend.rethinkdb(r, graphql, temporalOptions, connection);
     var temporalPlugin = FactoryTemporalPlugin(temporalBackend);
 

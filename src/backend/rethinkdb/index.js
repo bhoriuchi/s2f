@@ -14,7 +14,11 @@ export class S2fRethinkDBBackend extends YellowjacketRethinkDBBackend {
     config = mergeConfig(config)
 
     // create a temporal plugin
-    let temporalOptions = { tables: temporalTables(config.types), prefix: config.prefix }
+    let temporalOptions = {
+      tables: temporalTables(config.types),
+      prefix: _.get(config, 'options.prefix'),
+      db: _.get(config, 'options.store')
+    }
     let temporalBackend = new FactoryTemporalBackend(r, graphql, temporalOptions, connection)
     let temporalPlugin = FactoryTemporalPlugin(temporalBackend)
 
