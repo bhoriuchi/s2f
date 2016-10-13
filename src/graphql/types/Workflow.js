@@ -58,6 +58,15 @@ export default {
           date: { type: 'FactoryDateTime' }
         },
         resolve: 'readWorkflow'
+      },
+      readWorkflowVersions: {
+        type: ['Workflow'],
+        args: {
+          recordId: { type: 'String', nullable: false },
+          limit: { type: 'Int' },
+          offset: { type: 'Int' }
+        },
+        resolve: 'readWorkflowVersions'
       }
     },
     mutation: {

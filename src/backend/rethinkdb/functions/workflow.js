@@ -242,6 +242,17 @@ export function readWorkflow (backend) {
   }
 }
 
+export function readWorkflowVersions (backend) {
+  return function (source, args, context = {}, info) {
+    let {r, connection} = backend
+    let table = backend.getTypeCollection('Workflow')
+    let filter = table.filter({ _temporal: { recordId: args.recordId } })
+    if (args.offset) filter = filter.skip(args.offset)
+    if (args.limit) filter = filter.limit(args.limit)
+    return filter.run(connection)
+  }
+}
+
 export function updateWorkflow (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
@@ -289,5 +300,6 @@ export default {
   readWorkflow,
   updateWorkflow,
   deleteWorkflow,
-  readWorkflowInputs
+  readWorkflowInputs,
+  readWorkflowVersions
 }
