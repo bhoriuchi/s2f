@@ -753,21 +753,27 @@ var Workflow = {
       branchWorkflow: {
         type: 'Workflow',
         args: {
-          id: { type: 'String', nullable: false }
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'branchWorkflow'
       },
       forkWorkflow: {
         type: 'Workflow',
         args: {
-          id: { type: 'String', nullable: false }
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'forkWorkflow'
       },
       publishWorkflow: {
         type: 'Workflow',
         args: {
-          id: { type: 'String', nullable: false }
+          id: { type: 'String', nullable: false },
+          version: { type: 'String' },
+          changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'publishWorkflow'
       }
@@ -1626,12 +1632,14 @@ function getNewUuids(type, r, wf) {
 function remapObjects(wf, idmap) {
   var newSteps = [];
   var newParams = [];
+
   // create the new workflow
   var newWorkflow = _.merge({}, _.omit(wf, ['steps', 'parameters']));
   if (idmap.FORKID) newWorkflow._temporal.recordId = idmap.FORKID;
   newWorkflow._temporal.version = null;
   newWorkflow._temporal.validFrom = null;
   newWorkflow._temporal.validTo = null;
+  newWorkflow._temporal.changeLog = _.isArray(wf._temporal.changeLog) ? wf._temporal.changeLog : [];
   newWorkflow.id = idmap[wf.id];
 
   // start creating the new parameters, steps, and workflows
@@ -1680,6 +1688,11 @@ function cloneWorkflow(type, backend, args) {
       var newSteps = _remapObjects.newSteps;
       var newParams = _remapObjects.newParams;
 
+      newWorkflow._temporal.name = args.name || newWorkflow.id;
+      newWorkflow._temporal.changeLog.push(_.merge(args.changeLog || { user: 'SYSTEM', message: type }, {
+        date: r.now(),
+        type: type === 'branch' ? 'BRANCH' : 'FORK'
+      }));
 
       return r.expr([parameter.insert(newParams), step.insert(newSteps)]).do(function () {
         return workflow.insert(newWorkflow, { returnChanges: true })('changes').nth(0)('new_val');

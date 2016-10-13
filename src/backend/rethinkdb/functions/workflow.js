@@ -49,12 +49,14 @@ export function getNewUuids (type, r, wf) {
 export function remapObjects (wf, idmap) {
   let newSteps = []
   let newParams = []
+
   // create the new workflow
   let newWorkflow = _.merge({}, _.omit(wf, ['steps', 'parameters']))
   if (idmap.FORKID) newWorkflow._temporal.recordId = idmap.FORKID
   newWorkflow._temporal.version = null
   newWorkflow._temporal.validFrom = null
   newWorkflow._temporal.validTo = null
+  newWorkflow._temporal.changeLog = _.isArray(wf._temporal.changeLog) ? wf._temporal.changeLog : []
   newWorkflow.id = idmap[wf.id]
 
   // start creating the new parameters, steps, and workflows
@@ -96,6 +98,11 @@ export function cloneWorkflow (type, backend, args) {
           _.forEach(uuids, (m) => idmap[m.orig] = m.cur)
 
           let { newWorkflow, newSteps, newParams } = remapObjects(wf, idmap)
+          newWorkflow._temporal.name = args.name || newWorkflow.id
+          newWorkflow._temporal.changeLog.push(_.merge(args.changeLog || { user: 'SYSTEM', message: type }, {
+            date: r.now(),
+            type: type === 'branch' ? 'BRANCH' : 'FORK'
+          }))
 
           return r.expr([ parameter.insert(newParams), step.insert(newSteps) ])
             .do(() => {

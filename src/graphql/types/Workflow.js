@@ -96,21 +96,27 @@ export default {
       branchWorkflow: {
         type: 'Workflow',
         args: {
-          id: { type: 'String', nullable: false }
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'branchWorkflow'
       },
       forkWorkflow: {
         type: 'Workflow',
         args: {
-          id: { type: 'String', nullable: false }
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'forkWorkflow'
       },
       publishWorkflow: {
         type: 'Workflow',
         args: {
-          id: { type: 'String', nullable: false }
+          id: { type: 'String', nullable: false },
+          version: { type: 'String' },
+          changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'publishWorkflow'
       }
