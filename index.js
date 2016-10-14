@@ -1652,10 +1652,11 @@ function remapObjects(wf, idmap) {
     st._temporal.version = null;
     st._temporal.validFrom = null;
     st._temporal.validTo = null;
-    st.id = idmap[s.id];
-    st.workflowId = idmap[s.workflowId];
-    st.success = s.success ? idmap[s.success] : null;
-    st.fail = s.fail ? idmap[s.fail] : null;
+    st.id = _.get(idmap, s.id, null);
+    st.workflowId = _.get(idmap, s.workflowId, null);
+    st.success = _.get(idmap, s.success, null);
+    st.fork = _.get(idmap, s.fork, null);
+    st.fail = _.get(idmap, s.fail, null);
     newSteps.push(st);
 
     _.forEach(s.parameters, function (p) {
@@ -3572,7 +3573,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 
