@@ -681,12 +681,11 @@ var Workflow = {
     },
     parameters: {
       description: 'Global parameters',
-      type: ['Parameter'] /* ,
-                          args: {
-                          id: { type: 'String' }
-                          },
-                          resolve: 'readParameter'
-                          */
+      type: ['Parameter'],
+      args: {
+        id: { type: 'String' }
+      },
+      resolve: 'readParameter'
     },
     steps: {
       description: 'Steps in the workflow',
@@ -1588,7 +1587,9 @@ function deleteTask(backend) {
 var _StepTypeEnum$values$1 = StepTypeEnum.values;
 var TASK$1 = _StepTypeEnum$values$1.TASK;
 var WORKFLOW$1 = _StepTypeEnum$values$1.WORKFLOW;
-var INPUT$1 = ParameterClassEnum.values.INPUT;
+var _ParameterClassEnum$v = ParameterClassEnum.values;
+var INPUT$1 = _ParameterClassEnum$v.INPUT;
+var ATTRIBUTE$1 = _ParameterClassEnum$v.ATTRIBUTE;
 
 
 function getFullWorkflow(backend, args) {
@@ -1886,9 +1887,20 @@ function deleteWorkflow(backend) {
   };
 }
 
-var _ParameterClassEnum$v = ParameterClassEnum.values;
-var INPUT$2 = _ParameterClassEnum$v.INPUT;
-var OUTPUT = _ParameterClassEnum$v.OUTPUT;
+function readWorkflowParameters(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var parameter = backend.getTypeCollection('Parameter');
+
+    return parameter.filter({ parentId: source.id, class: ATTRIBUTE$1 }).run(connection);
+  };
+}
+
+var _ParameterClassEnum$v$1 = ParameterClassEnum.values;
+var INPUT$2 = _ParameterClassEnum$v$1.INPUT;
+var OUTPUT = _ParameterClassEnum$v$1.OUTPUT;
 
 
 function expandGQLErrors(errors) {
@@ -2123,6 +2135,7 @@ var functions = {
   deleteWorkflow: deleteWorkflow,
   readWorkflowInputs: readWorkflowInputs,
   readWorkflowVersions: readWorkflowVersions,
+  readWorkflowParameters: readWorkflowParameters,
   createWorkflowRun: createWorkflowRun,
   updateWorkflowRun: updateWorkflowRun,
   deleteWorkflowRun: deleteWorkflowRun,
@@ -2370,9 +2383,9 @@ function endWorkflow(payload, done) {
 var _RunStatusEnum$values$3 = RunStatusEnum.values;
 var SUCCESS$1 = _RunStatusEnum$values$3.SUCCESS;
 var FAIL$1 = _RunStatusEnum$values$3.FAIL;
-var _ParameterClassEnum$v$1 = ParameterClassEnum.values;
-var OUTPUT$1 = _ParameterClassEnum$v$1.OUTPUT;
-var ATTRIBUTE$1 = _ParameterClassEnum$v$1.ATTRIBUTE;
+var _ParameterClassEnum$v$2 = ParameterClassEnum.values;
+var OUTPUT$1 = _ParameterClassEnum$v$2.OUTPUT;
+var ATTRIBUTE$2 = _ParameterClassEnum$v$2.ATTRIBUTE;
 var _StepTypeEnum$values$3 = StepTypeEnum.values;
 var CONDITION$1 = _StepTypeEnum$values$3.CONDITION;
 var LOOP$2 = _StepTypeEnum$values$3.LOOP;
@@ -2423,7 +2436,7 @@ function handleContext(payload, done) {
     _.forEach(parameters, function (param) {
       if (param.class === OUTPUT$1 && _.has(ctx, param.name) && _.has(param, 'mapsTo')) {
         try {
-          var target = _.find(context, { parameter: { id: param.mapsTo, class: ATTRIBUTE$1 } });
+          var target = _.find(context, { parameter: { id: param.mapsTo, class: ATTRIBUTE$2 } });
           if (!target) return;
 
           outputs.push({
