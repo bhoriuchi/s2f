@@ -49,7 +49,7 @@ export const Step = [
     failsWorkflow: false ,
     id:  '6cb7a7e5-1c6c-468e-8106-29abeb585844',
     name:  'Test Name',
-    source:  'console.log("===========");console.log("Sub Workflow Start");console.log("===========");',
+    source:  'console.log("===========");\nconsole.log("Sub Workflow Start");\nconsole.log("===========");',
     requireResumeKey: false,
     task: '5ca86058-4b93-4feb-8136-554195516cd1',
     success: '845a78a5-a2fa-422c-9cd5-806004be0038',
