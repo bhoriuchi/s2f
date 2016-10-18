@@ -18,7 +18,15 @@ lib.S2FWorkflow(`{
   }
 }`)
 */
+lib.S2FWorkflow(`{
+  readWorkflow (id: "f4a8f894-06ba-4213-80f1-80ff72e1039b") {
+    id,
+    name,
+    parameters { id, name, type, class, required, defaultValue }
+  }
+}`)
 
+/*
 lib.S2FWorkflow(`{
   readWorkflow {
     id,
@@ -40,7 +48,7 @@ lib.S2FWorkflow(`{
     }
   }
 }`)
-
+*/
 /*
 lib.S2FWorkflow(`mutation Mutation {
   createForks (

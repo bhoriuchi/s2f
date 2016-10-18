@@ -12,7 +12,8 @@ import {
   updateWorkflow,
   deleteWorkflow,
   readWorkflowInputs,
-  readWorkflowVersions
+  readWorkflowVersions,
+  readWorkflowParameters
 } from './workflow'
 import { createWorkflowRun, updateWorkflowRun, deleteWorkflowRun, endWorkflowRun } from './workflowRun'
 
@@ -49,6 +50,7 @@ export default {
   deleteWorkflow,
   readWorkflowInputs,
   readWorkflowVersions,
+  readWorkflowParameters,
   createWorkflowRun,
   updateWorkflowRun,
   deleteWorkflowRun,

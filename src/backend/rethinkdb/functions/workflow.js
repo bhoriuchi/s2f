@@ -4,7 +4,7 @@ import { destroyStep } from './step'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
 import ParameterClassEnum from '../../../graphql/types/ParameterClassEnum'
 let { values: { TASK, WORKFLOW } } = StepTypeEnum
-let { values: { INPUT } } = ParameterClassEnum
+let { values: { INPUT, ATTRIBUTE } } = ParameterClassEnum
 
 export function getFullWorkflow (backend, args) {
   let { r, connection } = backend
@@ -300,6 +300,16 @@ export function deleteWorkflow (backend) {
   }
 }
 
+export function readWorkflowParameters (backend) {
+  return function (source, args, context, info) {
+    let {r, connection} = backend
+    let parameter = backend.getTypeCollection('Parameter')
+
+    return parameter.filter({ parentId: source.id, class: ATTRIBUTE })
+      .run(connection)
+  }
+}
+
 export default {
   branchWorkflow,
   forkWorkflow,
@@ -309,5 +319,6 @@ export default {
   updateWorkflow,
   deleteWorkflow,
   readWorkflowInputs,
-  readWorkflowVersions
+  readWorkflowVersions,
+  readWorkflowParameters
 }

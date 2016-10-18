@@ -24,12 +24,11 @@ export default {
     },
     parameters: {
       description: 'Global parameters',
-      type: ['Parameter'] /* ,
+      type: ['Parameter'],
       args: {
         id: { type: 'String' }
       },
       resolve: 'readParameter'
-      */
     },
     steps: {
       description: 'Steps in the workflow',
