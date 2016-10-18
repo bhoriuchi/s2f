@@ -13,7 +13,7 @@ let { values: { LOOP } } = StepTypeEnum
 // basic source run
 export function basicRun (runOpts) {
   let { source, context, timeout, payload, done } = runOpts
-  return sbx.vm(source, _.merge({ context, timeout }, this._vm))
+  return sbx.vm(source, _.merge({ context, timeout }, _.get(this.options, 'vm', {})))
     .then(handleContext.call(this, payload, done))
 }
 
@@ -21,7 +21,7 @@ export function basicRun (runOpts) {
 export function loopRun (runOpts, loop = 0) {
   let { source, context, timeout, payload, done } = runOpts
   context.loop = loop
-  return sbx.vm(source, _.merge({ context, timeout }, this._vm))
+  return sbx.vm(source, _.merge({ context, timeout }, _.get(this.options, 'vm', {})))
     .then((ctx) => {
       if (ctx._result === false || ctx._exception) return handleContext.call(this, payload, done)(ctx)
       return loopRun.call(this, { source, context: ctx, timeout, payload, done }, loop++)

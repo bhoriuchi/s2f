@@ -2457,7 +2457,7 @@ function basicRun(runOpts) {
   var payload = runOpts.payload;
   var done = runOpts.done;
 
-  return sbx.vm(source, _.merge({ context: context, timeout: timeout }, this._vm)).then(handleContext.call(this, payload, done));
+  return sbx.vm(source, _.merge({ context: context, timeout: timeout }, _.get(this.options, 'vm', {}))).then(handleContext.call(this, payload, done));
 }
 
 // loop source
@@ -2472,7 +2472,7 @@ function loopRun(runOpts) {
   var done = runOpts.done;
 
   context.loop = loop;
-  return sbx.vm(source, _.merge({ context: context, timeout: timeout }, this._vm)).then(function (ctx) {
+  return sbx.vm(source, _.merge({ context: context, timeout: timeout }, _.get(this.options, 'vm', {}))).then(function (ctx) {
     if (ctx._result === false || ctx._exception) return handleContext.call(_this, payload, done)(ctx);
     return loopRun.call(_this, { source: source, context: ctx, timeout: timeout, payload: payload, done: done }, loop++);
   });
@@ -3573,7 +3573,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 
