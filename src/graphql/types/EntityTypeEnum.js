@@ -8,6 +8,7 @@ export default {
     TASK: 'TASK',
     WORKFLOW: 'WORKFLOW',
     WORKFLOWRUN: 'WORKFLOWRUN',
-    RUNQUEUE: 'RUNQUEUE'
+    RUNQUEUE: 'RUNQUEUE',
+    FOLDER: 'FOLDER'
   }
 }

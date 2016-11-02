@@ -1,4 +1,9 @@
+import EntitySummary from './EntitySummary'
 import EntityTypeEnum from './EntityTypeEnum'
+import Folder from './Folder'
+import FolderChildTypeEnum from './FolderChildTypeEnum'
+import FolderMembership from './FolderMembership'
+import FolderView from './FolderView'
 import Parameter from './Parameter'
 import ParameterClassEnum from './ParameterClassEnum'
 import ParameterRun from './ParameterRun'
@@ -15,7 +20,12 @@ import Workflow from './Workflow'
 import WorkflowRun from './WorkflowRun'
 import WorkflowRunThread from './WorkflowRunThread'
 
+export { EntitySummary }
 export { EntityTypeEnum }
+export { Folder }
+export { FolderChildTypeEnum }
+export { FolderMembership }
+export { FolderView }
 export { Parameter }
 export { ParameterClassEnum }
 export { ParameterRun }
@@ -33,7 +43,12 @@ export { WorkflowRun }
 export { WorkflowRunThread }
 
 export default {
+  EntitySummary,
   EntityTypeEnum,
+  Folder,
+  FolderChildTypeEnum,
+  FolderMembership,
+  FolderView,
   Parameter,
   ParameterClassEnum,
   ParameterRun,

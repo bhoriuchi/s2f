@@ -18,6 +18,7 @@ lib.S2FWorkflow(`{
   }
 }`)
 */
+/*
 lib.S2FWorkflow(`{
   readWorkflow (id: "f4a8f894-06ba-4213-80f1-80ff72e1039b") {
     id,
@@ -25,7 +26,7 @@ lib.S2FWorkflow(`{
     parameters { id, name, type, class, required, defaultValue }
   }
 }`)
-
+*/
 /*
 lib.S2FWorkflow(`{
   readWorkflow {
@@ -61,8 +62,27 @@ lib.S2FWorkflow(`mutation Mutation {
   }
 }`)
 */
-
 // lib.S2FWorkflow(`{ readWorkflowRun { workflow { id, endStep }, id, threads { id, currentStepRun { id } } } }`)
+/*
+lib.S2FWorkflow(`{
+  readRootFolder (type: WORKFLOW) {
+    id,
+    name,
+    type,
+    subFolders { id, name, type },
+    entities { id, name, description }
+  }
+}`)
+*/
+lib.S2FWorkflow(`{
+  readSubFolder (id: "9595014b-5614-4475-8e0e-4d07e4e865b6") {
+    id,
+    name,
+    type,
+    subFolders { id, name, type },
+    entities { id, name }
+  }
+}`)
   .then((res) => {
     console.log(JSON.stringify(res, null, '  '))
     process.exit()

@@ -41,6 +41,14 @@ var fields = {
   S2FNamed: S2FNamed
 };
 
+var EntitySummary = {
+  fields: {
+    id: 'String',
+    name: 'String',
+    description: 'String'
+  }
+};
+
 var EntityTypeEnum = {
   type: 'Enum',
   values: {
@@ -51,7 +59,69 @@ var EntityTypeEnum = {
     TASK: 'TASK',
     WORKFLOW: 'WORKFLOW',
     WORKFLOWRUN: 'WORKFLOWRUN',
-    RUNQUEUE: 'RUNQUEUE'
+    RUNQUEUE: 'RUNQUEUE',
+    FOLDER: 'FOLDER'
+  }
+};
+
+var Folder = {
+  fields: {
+    id: { type: 'String', primary: true },
+    entityType: { type: 'EntityTypeEnum' },
+    name: { type: 'String', nullable: false },
+    parent: { type: 'String', nullable: false },
+    type: { type: 'FolderChildTypeEnum', nullable: false }
+  },
+  _backend: {
+    schema: 'S2FWorkflow',
+    collection: 'folder',
+    query: {
+      readRootFolder: {
+        type: 'FolderView',
+        args: {
+          type: { type: 'FolderChildTypeEnum', nullable: false }
+        },
+        resolve: 'readRootFolder'
+      },
+      readSubFolder: {
+        type: 'FolderView',
+        args: {
+          id: { type: 'String', nullable: false }
+        },
+        resolve: 'readSubFolder'
+      }
+    }
+  }
+};
+
+var FolderChildTypeEnum = {
+  type: 'Enum',
+  values: {
+    WORKFLOW: 'WORKFLOW',
+    TASK: 'TASK'
+  }
+};
+
+var FolderMembership = {
+  fields: {
+    childId: { type: 'String', primary: true },
+    folder: { type: 'String' },
+    childType: { type: 'FolderChildTypeEnum' }
+  },
+  _backend: {
+    schema: 'S2FWorkflow',
+    collection: 'folder_membership'
+  }
+};
+
+var FolderView = {
+  fields: {
+    id: 'String',
+    name: 'String',
+    parent: 'String',
+    type: 'FolderChildTypeEnum',
+    subFolders: ['Folder'],
+    entities: ['EntitySummary']
   }
 };
 
@@ -923,7 +993,12 @@ var WorkflowRunThread = {
 };
 
 var types = {
+  EntitySummary: EntitySummary,
   EntityTypeEnum: EntityTypeEnum,
+  Folder: Folder,
+  FolderChildTypeEnum: FolderChildTypeEnum,
+  FolderMembership: FolderMembership,
+  FolderView: FolderView,
   Parameter: Parameter,
   ParameterClassEnum: ParameterClassEnum,
   ParameterRun: ParameterRun,
@@ -998,6 +1073,108 @@ var events = {
   local: local,
   socket: socket
 };
+
+function createFolder(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var folder = backend.getTypeCollection('Folder');
+  };
+}
+
+function readFolder(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var folder = backend.getTypeCollection('Folder');
+  };
+}
+
+function updateFolder(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var folder = backend.getTypeCollection('Folder');
+  };
+}
+
+function deleteFolder(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var folder = backend.getTypeCollection('Folder');
+  };
+}
+
+function readRootFolder(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var folder = backend.getTypeCollection('Folder');
+    var member = backend.getTypeCollection('FolderMembership');
+    var task = backend.getTypeCollection('Task');
+    var workflow = backend.getTypeCollection('Workflow');
+
+    return folder.filter(function (f) {
+      return f('type').eq(args.type).and(f('parent').eq('ROOT'));
+    }).merge(function (p) {
+      return {
+        subFolders: folder.filter({ parent: p('id') }).coerceTo('array'),
+        entities: member.filter({ folder: p('id') }).map(function (m) {
+          return r.expr(_.toLower(args.type)).eq('task').branch(task, workflow).filter({ _temporal: { recordId: m('childId') } }).coerceTo('array').do(function (e) {
+            return e.count().eq(0).branch(null, e.nth(0).do(function (i) {
+              return {
+                id: i('_temporal')('recordId'),
+                name: i('name')
+              };
+            }));
+          });
+        }).filter(function (r) {
+          return r.eq(null).not();
+        }).coerceTo('array')
+      };
+    }).coerceTo('array').do(function (res) {
+      return res.count().eq(0).branch(null, res.nth(0));
+    }).run(connection);
+  };
+}
+
+function readSubFolder(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var folder = backend.getTypeCollection('Folder');
+    var member = backend.getTypeCollection('FolderMembership');
+    var task = backend.getTypeCollection('Task');
+    var workflow = backend.getTypeCollection('Workflow');
+
+    return folder.filter({ id: args.id }).merge(function (p) {
+      return {
+        subFolders: folder.filter({ parent: p('id') }).coerceTo('array'),
+        entities: member.filter({ folder: p('id') }).map(function (m) {
+          return p('type').eq('TASK').branch(task, workflow).filter({ _temporal: { recordId: m('childId') } }).coerceTo('array').do(function (e) {
+            return e.count().eq(0).branch(null, e.nth(0).do(function (i) {
+              return {
+                id: i('_temporal')('recordId'),
+                name: i('name')
+              };
+            }));
+          });
+        }).filter(function (r) {
+          return r.eq(null).not();
+        }).coerceTo('array')
+      };
+    }).coerceTo('array').do(function (res) {
+      return res.count().eq(0).branch(null, res.nth(0));
+    }).run(connection);
+  };
+}
 
 function createParameter(backend) {
   return function (source, args, context, info) {
@@ -2103,6 +2280,12 @@ function endWorkflowRun(backend) {
 }
 
 var functions = {
+  createFolder: createFolder,
+  readFolder: readFolder,
+  updateFolder: updateFolder,
+  deleteFolder: deleteFolder,
+  readRootFolder: readRootFolder,
+  readSubFolder: readSubFolder,
   createParameter: createParameter,
   updateParameter: updateParameter,
   deleteParameter: deleteParameter,
@@ -3411,6 +3594,54 @@ var Step$1 = [];
 var Parameter$1 = [];
 var Task$1 = [];
 
+var Folder$1 = [{
+  id: 'c841607d-9d26-43fc-9e7e-8eab7c9fd892',
+  entityType: 'FOLDER',
+  name: 'Workflows',
+  parent: 'ROOT',
+  type: 'WORKFLOW'
+}, {
+  id: '4acb1f18-2935-4708-8d3c-69c7209f8d87',
+  entityType: 'FOLDER',
+  name: 'Tasks',
+  parent: 'ROOT',
+  type: 'TASK'
+}, {
+  id: '9595014b-5614-4475-8e0e-4d07e4e865b6',
+  entityType: 'FOLDER',
+  name: 'Examples',
+  parent: 'c841607d-9d26-43fc-9e7e-8eab7c9fd892',
+  type: 'WORKFLOW'
+}, {
+  id: '067c20db-c009-4277-aeda-e3db9af31472',
+  entityType: 'FOLDER',
+  name: 'Examples',
+  parent: '4acb1f18-2935-4708-8d3c-69c7209f8d87',
+  type: 'TASK'
+}];
+
+var FolderMembership$1 = [{
+  folder: '067c20db-c009-4277-aeda-e3db9af31472',
+  childType: 'TASK',
+  childId: '4c35b5a7-e971-4719-9846-ca06db2f8eb2'
+}, {
+  folder: '9595014b-5614-4475-8e0e-4d07e4e865b6',
+  childType: 'WORKFLOW',
+  childId: '72264666-5e7b-4bd7-b6f6-efff3a5aa73c'
+}, {
+  folder: '9595014b-5614-4475-8e0e-4d07e4e865b6',
+  childType: 'WORKFLOW',
+  childId: '151743c4-93ee-48ab-a7d3-608a5d06900e'
+}, {
+  folder: '9595014b-5614-4475-8e0e-4d07e4e865b6',
+  childType: 'WORKFLOW',
+  childId: 'c5801b61-a7cd-4995-964b-c0a1f368de7c'
+}, {
+  folder: '9595014b-5614-4475-8e0e-4d07e4e865b6',
+  childType: 'WORKFLOW',
+  childId: '2464780a-92ba-475b-b7a6-c49a0a9d189b'
+}];
+
 // merge all the workflows
 _.forEach(_.union(workflows, tasks), function (def) {
   if (_.isArray(def.Workflow)) Workflow$1 = _.union(Workflow$1, def.Workflow);
@@ -3419,7 +3650,7 @@ _.forEach(_.union(workflows, tasks), function (def) {
   if (_.isArray(def.Task)) Task$1 = _.union(Task$1, def.Task);
 });
 
-var installData = { Workflow: Workflow$1, Step: Step$1, Parameter: Parameter$1, Task: Task$1 };
+var installData = { Workflow: Workflow$1, Step: Step$1, Parameter: Parameter$1, Task: Task$1, Folder: Folder$1, FolderMembership: FolderMembership$1 };
 
 var asyncGenerator = function () {
   function AwaitValue(value) {
@@ -3586,7 +3817,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 
