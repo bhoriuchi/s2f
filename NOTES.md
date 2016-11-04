@@ -1,11 +1,6 @@
 # Notes
 
-### Versioning
-* Workflows are versioned
-* Tasks are versioned
-* Published workflows cannot be modified directly
-* On branch/fork of Workflow
-  * All Steps should be cloned
-    * All local step parameters should be cloned
-  * All global workflow parameters should be cloned
-  * A mapping should be created for new/old steps and parameters in order to recreate the same step and parameter relationships with the cloned records
+* Steps
+  * Workflow and Task steps are versioned so their parameters need to be cloned to the step scope
+    * This presents an issue with Task and Workflow parameters potentially getting out of sync with steps
+    * In the event a param is added to a TASK after that task is added to a Workflow the new param will need to either be added or a sync function will be required

@@ -2,7 +2,7 @@ import { rethinkdb as RethinkDBBackend } from '../src/backend/index'
 import rethinkdbdash from 'rethinkdbdash'
 import * as graphql from 'graphql'
 
-let backend = RethinkDBBackend('_yj', graphql, rethinkdbdash())
+let backend = RethinkDBBackend('_yj', graphql, rethinkdbdash(), { options: { prefix: 'wf_' } })
 let lib = backend.lib
 
 // console.log(JSON.stringify(lib._definitions.definition.types.S2FWorkflowQuery.fields.readWorkflow, null, '  '))
@@ -18,15 +18,25 @@ lib.S2FWorkflow(`{
   }
 }`)
 */
-/*
+
 lib.S2FWorkflow(`{
-  readWorkflow (id: "f4a8f894-06ba-4213-80f1-80ff72e1039b") {
+  readWorkflow (id: "e38faf1f-1ae4-4450-91b8-afb7c2e472c8") {
     id,
     name,
-    parameters { id, name, type, class, required, defaultValue }
+    inputs { id, name, type, class, required, defaultValue },
+    parameters { id, name, type, class, required, defaultValue },
+    steps {
+      id,
+      name,
+      subWorkflow {
+        id,
+        name,
+        inputs { id, name, type, class, required, defaultValue }
+      }
+    }
   }
 }`)
-*/
+
 /*
 lib.S2FWorkflow(`{
   readWorkflow {
@@ -74,6 +84,7 @@ lib.S2FWorkflow(`{
   }
 }`)
 */
+/*
 lib.S2FWorkflow(`{
   readSubFolder (id: "9595014b-5614-4475-8e0e-4d07e4e865b6") {
     id,
@@ -83,6 +94,7 @@ lib.S2FWorkflow(`{
     entities { id, name }
   }
 }`)
+*/
   .then((res) => {
     console.log(JSON.stringify(res, null, '  '))
     process.exit()

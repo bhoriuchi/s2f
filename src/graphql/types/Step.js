@@ -44,7 +44,9 @@ export default {
     },
     subWorkflow: {
       description: 'Nested workflow to run',
-      type: 'String'
+      type: 'Workflow',
+      has: 'id',
+      resolve: 'readWorkflow'
     },
     versionArgs: {
       description: 'Lock a task or subworkflow into a specific version',

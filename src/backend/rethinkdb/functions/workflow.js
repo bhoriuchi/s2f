@@ -241,12 +241,25 @@ export function readWorkflow (backend) {
   return function (source, args, context = {}, info) {
     let { r, connection } = backend
     let table = backend.getTypeCollection('Workflow')
-
     let { filterTemporalWorkflow, mostCurrentTemporalWorkflow } = this.globals._temporal
-    if (source && source.workflow) return table.get(source.workflow).run(connection)
     context.date = args.date || context.date
-    if (_.keys(args).length) return filterTemporalWorkflow(args).run(connection)
-    return mostCurrentTemporalWorkflow().run(connection)
+    let filter = r.expr(null)
+    if (!source) {
+      if (!_.keys(args).length) return mostCurrentTemporalWorkflow().run(connection)
+      filter = filterTemporalWorkflow(args)
+    } else if (source.workflow) {
+      return table.get(source.workflow).run(connection)
+    } else if (source.subWorkflow) {
+      filter = filterTemporalWorkflow({ recordId: source.subWorkflow, date: context.date })
+        .coerceTo('array')
+        .do((task) => {
+          return task.count().eq(0).branch(
+            null,
+            task.nth(0)
+          )
+        })
+    }
+    return filter.run(connection)
   }
 }
 

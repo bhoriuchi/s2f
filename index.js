@@ -360,7 +360,9 @@ var Step = {
     },
     subWorkflow: {
       description: 'Nested workflow to run',
-      type: 'String'
+      type: 'Workflow',
+      has: 'id',
+      resolve: 'readWorkflow'
     },
     versionArgs: {
       description: 'Lock a task or subworkflow into a specific version',
@@ -2001,15 +2003,23 @@ function readWorkflow(backend) {
     var connection = backend.connection;
 
     var table = backend.getTypeCollection('Workflow');
-
     var _globals$_temporal3 = this.globals._temporal;
     var filterTemporalWorkflow = _globals$_temporal3.filterTemporalWorkflow;
     var mostCurrentTemporalWorkflow = _globals$_temporal3.mostCurrentTemporalWorkflow;
 
-    if (source && source.workflow) return table.get(source.workflow).run(connection);
     context.date = args.date || context.date;
-    if (_.keys(args).length) return filterTemporalWorkflow(args).run(connection);
-    return mostCurrentTemporalWorkflow().run(connection);
+    var filter = r.expr(null);
+    if (!source) {
+      if (!_.keys(args).length) return mostCurrentTemporalWorkflow().run(connection);
+      filter = filterTemporalWorkflow(args);
+    } else if (source.workflow) {
+      return table.get(source.workflow).run(connection);
+    } else if (source.subWorkflow) {
+      filter = filterTemporalWorkflow({ recordId: source.subWorkflow, date: context.date }).coerceTo('array').do(function (task) {
+        return task.count().eq(0).branch(null, task.nth(0));
+      });
+    }
+    return filter.run(connection);
   };
 }
 
@@ -3371,6 +3381,18 @@ var Workflow$4 = [{
   id: 'f4a8f894-06ba-4213-80f1-80ff72e1039b',
   name: 'Hello World',
   endStep: 'd2618ad7-a4d2-4213-b921-935b6eeafaf4'
+}, {
+  _temporal: {
+    changeLog: [],
+    recordId: 'c5801b61-a7cd-4995-964b-c0a1f368de7c',
+    validFrom: 1,
+    validTo: null,
+    version: '0.1.0'
+  },
+  entityType: 'WORKFLOW',
+  id: 'e38faf1f-1ae4-4450-91b8-afb7c2e472c8',
+  name: 'Hello World',
+  endStep: '6c8f92a0-661c-49c8-981d-b44dc5a7feeb'
 }];
 
 var Step$4 = [{
@@ -3434,6 +3456,67 @@ var Step$4 = [{
   type: 'START',
   waitOnSuccess: false,
   workflowId: 'f4a8f894-06ba-4213-80f1-80ff72e1039b'
+}, {
+  _temporal: {
+    changeLog: [],
+    recordId: 'b0199df1-50be-4958-9e51-39104ead1bee',
+    validFrom: null,
+    validTo: null,
+    version: null
+  },
+  description: 'Ending point of the workflow',
+  entityType: 'STEP',
+  fail: '6c8f92a0-661c-49c8-981d-b44dc5a7feeb',
+  failsWorkflow: false,
+  id: '6c8f92a0-661c-49c8-981d-b44dc5a7feeb',
+  name: 'End',
+  requireResumeKey: false,
+  success: '6c8f92a0-661c-49c8-981d-b44dc5a7feeb',
+  timeout: 0,
+  type: 'END',
+  waitOnSuccess: false,
+  workflowId: 'e38faf1f-1ae4-4450-91b8-afb7c2e472c8'
+}, {
+  _temporal: {
+    changeLog: [],
+    recordId: 'cc76353e-5de4-44e8-8523-fd64f5a9149c',
+    validFrom: null,
+    validTo: null,
+    version: null
+  },
+  async: false,
+  entityType: "STEP",
+  failsWorkflow: false,
+  id: 'f8904d60-a73c-4348-867a-6d5df19bf6cc',
+  name: 'Say Hello',
+  requireResumeKey: false,
+  task: '0a75f82d-ac86-443b-b354-8ec7f1b5f7a0',
+  versionArgs: {},
+  success: '6c8f92a0-661c-49c8-981d-b44dc5a7feeb',
+  timeout: 0,
+  type: 'TASK',
+  waitOnSuccess: false,
+  workflowId: 'e38faf1f-1ae4-4450-91b8-afb7c2e472c8'
+}, {
+  _temporal: {
+    changeLog: [],
+    recordId: '758c4bea-0fc0-4f61-888c-7ef45d8fef35',
+    validFrom: null,
+    validTo: null,
+    version: null
+  },
+  description: 'Starting point of the workflow',
+  entityType: 'STEP',
+  fail: '6c8f92a0-661c-49c8-981d-b44dc5a7feeb',
+  failsWorkflow: false,
+  id: '85a7ba22-4d74-41e1-b291-c82f69d15456',
+  name: 'Start',
+  requireResumeKey: false,
+  success: 'f8904d60-a73c-4348-867a-6d5df19bf6cc',
+  timeout: 0,
+  type: 'START',
+  waitOnSuccess: false,
+  workflowId: 'e38faf1f-1ae4-4450-91b8-afb7c2e472c8'
 }];
 
 var Parameter$5 = [{
@@ -3451,6 +3534,25 @@ var Parameter$5 = [{
   name: 'message',
   defaultValue: 'Hello',
   parentId: 'f4a8f894-06ba-4213-80f1-80ff72e1039b',
+  required: 'false',
+  scope: 'WORKFLOW',
+  class: 'ATTRIBUTE',
+  type: 'STRING'
+}, {
+  entityType: 'PARAMETER',
+  id: '97eacabd-6dbd-42fa-b6c4-3e8c49cde118',
+  name: 'name',
+  parentId: 'f8904d60-a73c-4348-867a-6d5df19bf6cc',
+  required: 'false',
+  scope: 'STEP',
+  class: 'INPUT',
+  type: 'STRING'
+}, {
+  entityType: 'PARAMETER',
+  id: 'd01a6dad-9a0a-4eb5-abf6-04a212eda686',
+  name: 'message',
+  defaultValue: 'Hello',
+  parentId: 'e38faf1f-1ae4-4450-91b8-afb7c2e472c8',
   required: 'false',
   scope: 'WORKFLOW',
   class: 'ATTRIBUTE',
@@ -3817,7 +3919,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 
