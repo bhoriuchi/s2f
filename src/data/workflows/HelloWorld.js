@@ -16,7 +16,7 @@ export const Workflow = [
     _temporal: {
       changeLog: [],
       recordId:  'c5801b61-a7cd-4995-964b-c0a1f368de7c',
-      validFrom: 1,
+      validFrom: new Date('2016-01-01'),
       validTo: null,
       version: '0.1.0'
     },
@@ -127,7 +127,7 @@ export const Step = [
     id:  'f8904d60-a73c-4348-867a-6d5df19bf6cc',
     name:  'Say Hello',
     requireResumeKey: false,
-    task: '0a75f82d-ac86-443b-b354-8ec7f1b5f7a0',
+    task: '4c35b5a7-e971-4719-9846-ca06db2f8eb2',
     versionArgs: {},
     success: '6c8f92a0-661c-49c8-981d-b44dc5a7feeb',
     timeout: 0,

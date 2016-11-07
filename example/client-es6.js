@@ -1,8 +1,5 @@
 import chalk from 'chalk'
-import * as graphql from 'graphql'
-import rethinkdbdash from 'rethinkdbdash'
-import { rethinkdb as RethinkDBBackend } from '../src/backend/index'
-let backend = new RethinkDBBackend('_s2f', graphql, rethinkdbdash({ silent: true }))
+import backend from './backend'
 
 let client = backend.client({ loglevel: 'trace' })
 client.emit(

@@ -44,6 +44,8 @@ var fields = {
 var EntitySummary = {
   fields: {
     id: 'String',
+    branchId: 'String',
+    version: 'String',
     name: 'String',
     description: 'String'
   }
@@ -1132,6 +1134,8 @@ function readRootFolder(backend) {
             return e.count().eq(0).branch(null, e.nth(0).do(function (i) {
               return {
                 id: i('_temporal')('recordId'),
+                branchId: i('id'),
+                version: i('_temporal')('version'),
                 name: i('name')
               };
             }));
@@ -1164,6 +1168,8 @@ function readSubFolder(backend) {
             return e.count().eq(0).branch(null, e.nth(0).do(function (i) {
               return {
                 id: i('_temporal')('recordId'),
+                branchId: i('id'),
+                version: i('_temporal')('version'),
                 name: i('name')
               };
             }));
@@ -1924,26 +1930,12 @@ function readWorkflowInputs(backend) {
     var info = arguments[3];
     var r = backend.r;
     var connection = backend.connection;
-    var _globals$_temporal = this.globals._temporal;
-    var filterTemporalWorkflow = _globals$_temporal.filterTemporalWorkflow;
-    var filterTemporalTask = _globals$_temporal.filterTemporalTask;
 
     var parameter = backend.getTypeCollection('Parameter');
     var step = backend.getTypeCollection('Step');
-    context = _.omit(context, ['recordId', 'id']);
 
     return step.filter({ workflowId: source.id }).map(function (s) {
-      return r.expr([WORKFLOW$1, TASK$1]).contains(s('type')).branch(
-      // get the version args, default to context
-      s.hasFields('versionArgs').branch(s('versionArgs').keys().count().ne(0).branch(s('versionArgs'), r.expr(context)), r.expr(context)).do(function (vargs) {
-        return r.branch(s('type').eq(WORKFLOW$1).and(s.hasFields('subWorkflow')), filterTemporalWorkflow(vargs.merge({ recordId: s('subWorkflow') })), s('type').eq(TASK$1).and(s.hasFields('task')), filterTemporalTask(vargs.merge({ recordId: s('task') })), r.error('Temporal relation missing reference')).coerceTo('array').do(function (recs) {
-          return recs.count().eq(0).branch(null, recs.nth(0)('id'));
-        });
-      }), s('id')).do(function (id) {
-        return parameter.filter({ parentId: id, class: INPUT$1 }).filter(function (p) {
-          return p.hasFields('mapsTo').not().or(p('mapsTo').eq(null));
-        }).coerceTo('array');
-      });
+      return parameter.filter({ parentId: s('id') }).coerceTo('array');
     }).reduce(function (left, right) {
       return left.union(right);
     }).run(connection);
@@ -1954,9 +1946,9 @@ function createWorkflow(backend) {
   return function (source, args, context, info) {
     var r = backend.r;
     var connection = backend.connection;
-    var _globals$_temporal2 = this.globals._temporal;
-    var createTemporalWorkflow = _globals$_temporal2.createTemporalWorkflow;
-    var createTemporalStep = _globals$_temporal2.createTemporalStep;
+    var _globals$_temporal = this.globals._temporal;
+    var createTemporalWorkflow = _globals$_temporal.createTemporalWorkflow;
+    var createTemporalStep = _globals$_temporal.createTemporalStep;
 
     return r.do(r.uuid(), r.uuid(), r.uuid(), function (wfId, startId, endId) {
       args.id = wfId;
@@ -2003,9 +1995,9 @@ function readWorkflow(backend) {
     var connection = backend.connection;
 
     var table = backend.getTypeCollection('Workflow');
-    var _globals$_temporal3 = this.globals._temporal;
-    var filterTemporalWorkflow = _globals$_temporal3.filterTemporalWorkflow;
-    var mostCurrentTemporalWorkflow = _globals$_temporal3.mostCurrentTemporalWorkflow;
+    var _globals$_temporal2 = this.globals._temporal;
+    var filterTemporalWorkflow = _globals$_temporal2.filterTemporalWorkflow;
+    var mostCurrentTemporalWorkflow = _globals$_temporal2.mostCurrentTemporalWorkflow;
 
     context.date = args.date || context.date;
     var filter = r.expr(null);
@@ -3385,7 +3377,7 @@ var Workflow$4 = [{
   _temporal: {
     changeLog: [],
     recordId: 'c5801b61-a7cd-4995-964b-c0a1f368de7c',
-    validFrom: 1,
+    validFrom: new Date('2016-01-01'),
     validTo: null,
     version: '0.1.0'
   },

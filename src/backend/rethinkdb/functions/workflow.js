@@ -147,46 +147,11 @@ export function publishWorkflow (backend) {
 export function readWorkflowInputs (backend) {
   return function (source, args, context = {}, info) {
     let {r, connection} = backend
-    let {filterTemporalWorkflow, filterTemporalTask} = this.globals._temporal
     let parameter = backend.getTypeCollection('Parameter')
     let step = backend.getTypeCollection('Step')
-    context = _.omit(context, ['recordId', 'id'])
 
     return step.filter({workflowId: source.id})
-      .map((s) => {
-        return r.expr([WORKFLOW, TASK]).contains(s('type')).branch(
-          // get the version args, default to context
-          s.hasFields('versionArgs').branch(
-            s('versionArgs').keys().count().ne(0).branch(
-              s('versionArgs'),
-              r.expr(context)
-            ),
-            r.expr(context)
-          )
-            .do((vargs) => {
-              return r.branch(
-                s('type').eq(WORKFLOW).and(s.hasFields('subWorkflow')),
-                filterTemporalWorkflow(vargs.merge({recordId: s('subWorkflow')})),
-                s('type').eq(TASK).and(s.hasFields('task')),
-                filterTemporalTask(vargs.merge({recordId: s('task')})),
-                r.error('Temporal relation missing reference')
-              )
-                .coerceTo('array')
-                .do((recs) => {
-                  return recs.count().eq(0).branch(
-                    null,
-                    recs.nth(0)('id')
-                  )
-                })
-            }),
-          s('id')
-        )
-          .do((id) => {
-            return parameter.filter({parentId: id, class: INPUT})
-              .filter((p) => p.hasFields('mapsTo').not().or(p('mapsTo').eq(null)))
-              .coerceTo('array')
-          })
-      })
+      .map((s) => parameter.filter({ parentId: s('id') }).coerceTo('array'))
       .reduce((left, right) => left.union(right))
       .run(connection)
   }

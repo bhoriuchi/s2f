@@ -54,6 +54,8 @@ export function readRootFolder (backend) {
                       e.nth(0).do((i) => {
                         return {
                           id: i('_temporal')('recordId'),
+                          branchId: i('id'),
+                          version: i('_temporal')('version'),
                           name: i('name')
                         }
                       })
@@ -96,6 +98,8 @@ export function readSubFolder (backend) {
                       e.nth(0).do((i) => {
                         return {
                           id: i('_temporal')('recordId'),
+                          branchId: i('id'),
+                          version: i('_temporal')('version'),
                           name: i('name')
                         }
                       })

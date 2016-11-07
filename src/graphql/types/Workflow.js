@@ -118,6 +118,17 @@ export default {
           changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'publishWorkflow'
+      },
+      syncWorkflow: {
+        type: 'Workflow',
+        args: {
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          description: { type: 'String' },
+          parameters: ['SyncParameterInput'],
+          steps: ['SyncStepInput']
+        },
+        resolve: 'syncWorkflow'
       }
     }
   }

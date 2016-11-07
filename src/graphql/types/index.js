@@ -15,6 +15,9 @@ import Step from './Step'
 import StepInput from './StepInput'
 import StepRun from './StepRun'
 import StepTypeEnum from './StepTypeEnum'
+import SyncIdInput from './SyncIdInput'
+import SyncParameterInput from './SyncParameterInput'
+import SyncStepInput from './SyncStepInput'
 import Task from './Task'
 import Workflow from './Workflow'
 import WorkflowRun from './WorkflowRun'
@@ -37,6 +40,9 @@ export { Step }
 export { StepInput }
 export { StepRun }
 export { StepTypeEnum }
+export { SyncIdInput }
+export { SyncParameterInput }
+export { SyncStepInput }
 export { Task }
 export { Workflow }
 export { WorkflowRun }
@@ -60,6 +66,9 @@ export default {
   StepInput,
   StepRun,
   StepTypeEnum,
+  SyncIdInput,
+  SyncParameterInput,
+  SyncStepInput,
   Task,
   Workflow,
   WorkflowRun,
