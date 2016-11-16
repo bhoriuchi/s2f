@@ -688,6 +688,7 @@ var SyncStepInput = {
     async: 'Boolean',
     source: 'String',
     versionArgs: 'FactoryJSON',
+    timeout: 'Int',
     failsWorkflow: 'Boolean',
     waitOnSuccess: 'Boolean',
     requireResumeKey: 'Boolean',
