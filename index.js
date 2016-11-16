@@ -2027,7 +2027,8 @@ function syncWorkflow(backend) {
           fail: _.get(ids, '["' + step.fail + '"].id', undefined),
           task: _.get(step, 'task.id'),
           subWorkflow: _.get(step, 'subWorkflow.id'),
-          entityType: STEP
+          entityType: STEP,
+          workflowId: wfId
         };
         if (stepOp === INSERT) makeTemporal(stepObj);
         _.set(op, '["' + stepOp + '"].step["' + stepId + '"]', _.merge({}, _.omit(step, ['threads', 'parameters']), stepObj));
