@@ -656,6 +656,51 @@ var StepTypeEnum = {
   }
 };
 
+var SyncIdInput = {
+  type: 'Input',
+  fields: {
+    id: { type: 'String', nullable: false }
+  }
+};
+
+var SyncParameterInput = {
+  type: 'Input',
+  fields: {
+    id: { type: 'String', nullable: false },
+    name: { type: 'String', nullable: false },
+    description: { type: 'String' },
+    type: { type: 'ParameterTypeEnum', nullable: false },
+    scope: { type: 'ParameterScopeEnum', nullable: false },
+    class: { type: 'ParameterClassEnum', nullable: false },
+    required: { type: 'Boolean' },
+    mapsTo: { type: 'String' },
+    defaultValue: { type: 'String' }
+  }
+};
+
+var SyncStepInput = {
+  type: 'Input',
+  fields: {
+    id: { type: 'String', nullable: false },
+    name: { type: 'String', nullable: false },
+    description: { type: 'String' },
+    type: { type: 'StepTypeEnum', nullable: false },
+    async: 'Boolean',
+    source: 'String',
+    versionArgs: 'FactoryJSON',
+    failsWorkflow: 'Boolean',
+    waitOnSuccess: 'Boolean',
+    requireResumeKey: 'Boolean',
+    parameters: ['SyncParameterInput'],
+    task: 'SyncIdInput',
+    subWorkflow: 'SyncIdInput',
+    success: 'String',
+    fail: 'String',
+    ex: 'FactoryJSON',
+    threads: ['SyncIdInput']
+  }
+};
+
 var Task = {
   extendFields: ['TemporalType'],
   fields: {
@@ -849,6 +894,17 @@ var Workflow = {
           changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'publishWorkflow'
+      },
+      syncWorkflow: {
+        type: 'Workflow',
+        args: {
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          description: { type: 'String' },
+          parameters: ['SyncParameterInput'],
+          steps: ['SyncStepInput']
+        },
+        resolve: 'syncWorkflow'
       }
     }
   }
@@ -1014,6 +1070,9 @@ var types = {
   StepInput: StepInput,
   StepRun: StepRun,
   StepTypeEnum: StepTypeEnum,
+  SyncIdInput: SyncIdInput,
+  SyncParameterInput: SyncParameterInput,
+  SyncStepInput: SyncStepInput,
   Task: Task,
   Workflow: Workflow,
   WorkflowRun: WorkflowRun,
@@ -1697,6 +1756,338 @@ function getJoinThreads(backend) {
   };
 }
 
+var asyncGenerator = function () {
+  function AwaitValue(value) {
+    this.value = value;
+  }
+
+  function AsyncGenerator(gen) {
+    var front, back;
+
+    function send(key, arg) {
+      return new Promise(function (resolve, reject) {
+        var request = {
+          key: key,
+          arg: arg,
+          resolve: resolve,
+          reject: reject,
+          next: null
+        };
+
+        if (back) {
+          back = back.next = request;
+        } else {
+          front = back = request;
+          resume(key, arg);
+        }
+      });
+    }
+
+    function resume(key, arg) {
+      try {
+        var result = gen[key](arg);
+        var value = result.value;
+
+        if (value instanceof AwaitValue) {
+          Promise.resolve(value.value).then(function (arg) {
+            resume("next", arg);
+          }, function (arg) {
+            resume("throw", arg);
+          });
+        } else {
+          settle(result.done ? "return" : "normal", result.value);
+        }
+      } catch (err) {
+        settle("throw", err);
+      }
+    }
+
+    function settle(type, value) {
+      switch (type) {
+        case "return":
+          front.resolve({
+            value: value,
+            done: true
+          });
+          break;
+
+        case "throw":
+          front.reject(value);
+          break;
+
+        default:
+          front.resolve({
+            value: value,
+            done: false
+          });
+          break;
+      }
+
+      front = front.next;
+
+      if (front) {
+        resume(front.key, front.arg);
+      } else {
+        back = null;
+      }
+    }
+
+    this._invoke = send;
+
+    if (typeof gen.return !== "function") {
+      this.return = undefined;
+    }
+  }
+
+  if (typeof Symbol === "function" && Symbol.asyncIterator) {
+    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+      return this;
+    };
+  }
+
+  AsyncGenerator.prototype.next = function (arg) {
+    return this._invoke("next", arg);
+  };
+
+  AsyncGenerator.prototype.throw = function (arg) {
+    return this._invoke("throw", arg);
+  };
+
+  AsyncGenerator.prototype.return = function (arg) {
+    return this._invoke("return", arg);
+  };
+
+  return {
+    wrap: function (fn) {
+      return function () {
+        return new AsyncGenerator(fn.apply(this, arguments));
+      };
+    },
+    await: function (value) {
+      return new AwaitValue(value);
+    }
+  };
+}();
+
+var classCallCheck = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+};
+
+var defineProperty = function (obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+};
+
+var inherits = function (subClass, superClass) {
+  if (typeof superClass !== "function" && superClass !== null) {
+    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+  }
+
+  subClass.prototype = Object.create(superClass && superClass.prototype, {
+    constructor: {
+      value: subClass,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+};
+
+var possibleConstructorReturn = function (self, call) {
+  if (!self) {
+    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  }
+
+  return call && (typeof call === "object" || typeof call === "function") ? call : self;
+};
+
+var UPDATE = 'update';
+var INSERT = 'insert';
+var END = StepTypeEnum.values.END;
+var _EntityTypeEnum$value = EntityTypeEnum.values;
+var PARAMETER = _EntityTypeEnum$value.PARAMETER;
+var WORKFLOW$1 = _EntityTypeEnum$value.WORKFLOW;
+var STEP = _EntityTypeEnum$value.STEP;
+
+
+function isNewId(id) {
+  return id.match(/^new:/) !== null;
+}
+
+function mapIds(args, r) {
+  var ids = {};
+
+  // workflow id
+  ids[args.id] = isNewId(args.id) ? { op: INSERT, id: r.uuid() } : { op: UPDATE, id: args.id };
+
+  // workflow parameters
+  _.forEach(args.parameters, function (param) {
+    ids[param.id] = isNewId(param.id) ? { op: INSERT, id: r.uuid() } : { op: UPDATE, id: param.id };
+  });
+
+  // steps
+  _.forEach(args.steps, function (step) {
+    ids[step.id] = isNewId(step.id) ? { op: INSERT, id: r.uuid() } : { op: UPDATE, id: step.id };
+    _.forEach(step.parameters, function (param) {
+      ids[param.id] = isNewId(param.id) ? { op: INSERT, id: r.uuid() } : { op: UPDATE, id: param.id };
+    });
+  });
+
+  return ids;
+}
+
+function getOp(ids, uuid, prefix) {
+  var _ref;
+
+  var _$get = _.get(ids, uuid, {});
+
+  var op = _$get.op;
+  var id = _$get.id;
+
+  return _ref = {}, defineProperty(_ref, prefix + 'Id', id), defineProperty(_ref, prefix + 'Op', op), _ref;
+}
+
+function syncWorkflow(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var parameter = backend.getTypeCollection('Parameter');
+    var workflow = backend.getTypeCollection('Workflow');
+    var step = backend.getTypeCollection('Step');
+
+    return r.expr(mapIds(args, r)).run(connection).then(function (ids) {
+      var _op;
+
+      var mutations = [];
+      var endStep = args.endStep;
+      var op = (_op = {}, defineProperty(_op, INSERT, {
+        workflow: {},
+        parameter: {},
+        step: {}
+      }), defineProperty(_op, UPDATE, {
+        workflow: {},
+        parameter: {},
+        step: {}
+      }), _op);
+
+      // re-map workflow
+
+      var _getOp = getOp(ids, args.id, 'wf');
+
+      var wfId = _getOp.wfId;
+      var wfOp = _getOp.wfOp;
+
+      _.set(op, '["' + wfOp + '"].workflow["' + wfId + '"]', _.merge({}, _.omit(args, ['parameters', 'steps']), {
+        id: wfId,
+        entityType: WORKFLOW$1
+      }));
+
+      // re-map attributes
+      _.forEach(args.parameters, function (param) {
+        var _getOp2 = getOp(ids, param.id, 'param');
+
+        var paramId = _getOp2.paramId;
+        var paramOp = _getOp2.paramOp;
+
+        _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
+          id: paramId,
+          parentId: wfId,
+          entityType: PARAMETER
+        }));
+      });
+
+      // re-map steps
+      _.forEach(args.steps, function (step) {
+        var _getOp3 = getOp(ids, step.id, 'step');
+
+        var stepId = _getOp3.stepId;
+        var stepOp = _getOp3.stepOp;
+
+        if (step.type === END) endStep = stepId;
+        _.set(op, '["' + stepOp + '"].step["' + stepId + '"]', _.merge({}, _.omit(step, ['threads', 'parameters']), {
+          id: stepId,
+          success: _.get(ids, '["' + step.success + '"].id', undefined),
+          fail: _.get(ids, '["' + step.fail + '"].id', undefined),
+          task: _.get(step, 'task.id'),
+          subWorkflow: _.get(step, 'subWorkflow.id'),
+          entityType: STEP
+        }));
+
+        // re-map step params
+        _.forEach(step.parameters, function (param) {
+          var _getOp4 = getOp(ids, param.id, 'param');
+
+          var paramId = _getOp4.paramId;
+          var paramOp = _getOp4.paramOp;
+
+          _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
+            id: paramId,
+            parentId: stepId,
+            entityType: PARAMETER
+          }));
+        });
+      });
+
+      // apply forks
+      _.forEach(args.steps, function (step) {
+        var _getOp5 = getOp(ids, step.id);
+
+        var stepId = _getOp5.stepId;
+
+        _.forEach(step.threads, function (thread) {
+          var _getOp6 = getOp(ids, thread.id, 'thread');
+
+          var threadId = _getOp6.threadId;
+
+          if (threadId) {
+            var s = _.get(op[INSERT].step, threadId) || _.get(op[UPDATE].step, threadId);
+            if (s) s.fork = stepId;
+          }
+        });
+      });
+
+      // create a flattened array of actions
+      _.forEach(op, function (colls, opName) {
+        _.forEach(colls, function (coll, collName) {
+          _.forEach(coll, function (obj, objId) {
+            mutations.push({
+              id: objId,
+              op: opName,
+              collection: collName,
+              data: obj
+            });
+          });
+        });
+      });
+
+      // update endstep
+      var wf = _.get(op[INSERT].workflow, wfId) || _.get(op[UPDATE].workflow, wfId);
+      wf.endStep = endStep;
+
+      // process all mutations
+      return r.expr(mutations).forEach(function (m) {
+        return m('op').eq(INSERT).branch(r.branch(m('collection').eq('workflow'), workflow.insert(m('data')), m('collection').eq('step'), step.insert(m('data')), parameter.insert(m('data'))), r.branch(m('collection').eq('workflow'), workflow.get(m('id')).update(m('data')), m('collection').eq('step'), step.get(m('id')).update(m('data')), parameter.get(m('id')).update(m('data'))));
+      }).do(function () {
+        return workflow.get(wfId);
+      }).run(connection);
+    });
+  };
+}
+
 function createTask(backend) {
   return function (source, args, context, info) {
     var r = backend.r;
@@ -1771,7 +2162,7 @@ function deleteTask(backend) {
 
 var _StepTypeEnum$values$1 = StepTypeEnum.values;
 var TASK$1 = _StepTypeEnum$values$1.TASK;
-var WORKFLOW$1 = _StepTypeEnum$values$1.WORKFLOW;
+var WORKFLOW$2 = _StepTypeEnum$values$1.WORKFLOW;
 var _ParameterClassEnum$v = ParameterClassEnum.values;
 var INPUT$1 = _ParameterClassEnum$v.INPUT;
 var ATTRIBUTE$1 = _ParameterClassEnum$v.ATTRIBUTE;
@@ -2307,6 +2698,7 @@ var functions = {
   endStepRun: endStepRun,
   createForks: createForks,
   getJoinThreads: getJoinThreads,
+  syncWorkflow: syncWorkflow,
   createTask: createTask,
   readTask: readTask,
   updateTask: updateTask,
@@ -2330,7 +2722,7 @@ var functions = {
 var _StepTypeEnum$values$2 = StepTypeEnum.values;
 var BASIC$1 = _StepTypeEnum$values$2.BASIC;
 var TASK$3 = _StepTypeEnum$values$2.TASK;
-var WORKFLOW$3 = _StepTypeEnum$values$2.WORKFLOW;
+var WORKFLOW$4 = _StepTypeEnum$values$2.WORKFLOW;
 var _RunStatusEnum$values$2 = RunStatusEnum.values;
 var FAIL = _RunStatusEnum$values$2.FAIL;
 var SUCCESS = _RunStatusEnum$values$2.SUCCESS;
@@ -2373,7 +2765,7 @@ function computeWorkflowStatus(payload, done) {
       }, []);
 
       var success = _.reduce(stepRuns, function (left, stepRun) {
-        var failable = _.includes([BASIC$1, TASK$3, WORKFLOW$3], stepRun.type);
+        var failable = _.includes([BASIC$1, TASK$3, WORKFLOW$4], stepRun.type);
         var stepSuccess = !(stepRun.failsWorkflow && failable && stepRun.status !== FAIL);
         return left && stepSuccess;
       }, true);
@@ -2752,13 +3144,13 @@ function forkSteps(payload, done) {
 var _StepTypes$values = StepTypeEnum.values;
 var BASIC = _StepTypes$values.BASIC;
 var CONDITION = _StepTypes$values.CONDITION;
-var END = _StepTypes$values.END;
+var END$1 = _StepTypes$values.END;
 var FORK$1 = _StepTypes$values.FORK;
 var JOIN = _StepTypes$values.JOIN;
 var LOOP = _StepTypes$values.LOOP;
 var START = _StepTypes$values.START;
 var TASK$2 = _StepTypes$values.TASK;
-var WORKFLOW$2 = _StepTypes$values.WORKFLOW;
+var WORKFLOW$3 = _StepTypes$values.WORKFLOW;
 
 
 function runStep(backend) {
@@ -2796,7 +3188,7 @@ function runStep(backend) {
 
           switch (step.type) {
             case START:
-            case END:
+            case END$1:
             case BASIC:
               return runSource.call(backend, payload, done);
             case TASK$2:
@@ -2807,7 +3199,7 @@ function runStep(backend) {
               return runSource.call(backend, payload, done);
             case JOIN:
               return joinThreads.call(backend, payload, done);
-            case WORKFLOW$2:
+            case WORKFLOW$3:
             case FORK$1:
               return forkSteps.call(backend, payload, done);
             default:
@@ -3482,7 +3874,7 @@ var Step$4 = [{
   id: 'f8904d60-a73c-4348-867a-6d5df19bf6cc',
   name: 'Say Hello',
   requireResumeKey: false,
-  task: '0a75f82d-ac86-443b-b354-8ec7f1b5f7a0',
+  task: '4c35b5a7-e971-4719-9846-ca06db2f8eb2',
   versionArgs: {},
   success: '6c8f92a0-661c-49c8-981d-b44dc5a7feeb',
   timeout: 0,
@@ -3746,149 +4138,6 @@ _.forEach(_.union(workflows, tasks), function (def) {
 
 var installData = { Workflow: Workflow$1, Step: Step$1, Parameter: Parameter$1, Task: Task$1, Folder: Folder$1, FolderMembership: FolderMembership$1 };
 
-var asyncGenerator = function () {
-  function AwaitValue(value) {
-    this.value = value;
-  }
-
-  function AsyncGenerator(gen) {
-    var front, back;
-
-    function send(key, arg) {
-      return new Promise(function (resolve, reject) {
-        var request = {
-          key: key,
-          arg: arg,
-          resolve: resolve,
-          reject: reject,
-          next: null
-        };
-
-        if (back) {
-          back = back.next = request;
-        } else {
-          front = back = request;
-          resume(key, arg);
-        }
-      });
-    }
-
-    function resume(key, arg) {
-      try {
-        var result = gen[key](arg);
-        var value = result.value;
-
-        if (value instanceof AwaitValue) {
-          Promise.resolve(value.value).then(function (arg) {
-            resume("next", arg);
-          }, function (arg) {
-            resume("throw", arg);
-          });
-        } else {
-          settle(result.done ? "return" : "normal", result.value);
-        }
-      } catch (err) {
-        settle("throw", err);
-      }
-    }
-
-    function settle(type, value) {
-      switch (type) {
-        case "return":
-          front.resolve({
-            value: value,
-            done: true
-          });
-          break;
-
-        case "throw":
-          front.reject(value);
-          break;
-
-        default:
-          front.resolve({
-            value: value,
-            done: false
-          });
-          break;
-      }
-
-      front = front.next;
-
-      if (front) {
-        resume(front.key, front.arg);
-      } else {
-        back = null;
-      }
-    }
-
-    this._invoke = send;
-
-    if (typeof gen.return !== "function") {
-      this.return = undefined;
-    }
-  }
-
-  if (typeof Symbol === "function" && Symbol.asyncIterator) {
-    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
-      return this;
-    };
-  }
-
-  AsyncGenerator.prototype.next = function (arg) {
-    return this._invoke("next", arg);
-  };
-
-  AsyncGenerator.prototype.throw = function (arg) {
-    return this._invoke("throw", arg);
-  };
-
-  AsyncGenerator.prototype.return = function (arg) {
-    return this._invoke("return", arg);
-  };
-
-  return {
-    wrap: function (fn) {
-      return function () {
-        return new AsyncGenerator(fn.apply(this, arguments));
-      };
-    },
-    await: function (value) {
-      return new AwaitValue(value);
-    }
-  };
-}();
-
-var classCallCheck = function (instance, Constructor) {
-  if (!(instance instanceof Constructor)) {
-    throw new TypeError("Cannot call a class as a function");
-  }
-};
-
-var inherits = function (subClass, superClass) {
-  if (typeof superClass !== "function" && superClass !== null) {
-    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
-  }
-
-  subClass.prototype = Object.create(superClass && superClass.prototype, {
-    constructor: {
-      value: subClass,
-      enumerable: false,
-      writable: true,
-      configurable: true
-    }
-  });
-  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
-};
-
-var possibleConstructorReturn = function (self, call) {
-  if (!self) {
-    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-  }
-
-  return call && (typeof call === "object" || typeof call === "function") ? call : self;
-};
-
 var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
   inherits(S2fRethinkDBBackend, _YellowjacketRethinkD);
 
@@ -3911,7 +4160,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 

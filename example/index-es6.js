@@ -11,12 +11,12 @@ let sync = {
     "validTo": null,
     "version": null
   },
-  "id": "e2ce343b-61a8-4b45-bef3-3219db141657",
+  "id": "new:e2ce343b-61a8-4b45-bef3-3219db141657",
   "name": "Hello World",
   "description": null,
   "parameters": [
     {
-      "id": "4f681b3c-4be1-47af-baf0-20329947d8a3",
+      "id": "new:4f681b3c-4be1-47af-baf0-20329947d8a3",
       "name": "message",
       "description": null,
       "type": "STRING",
@@ -29,7 +29,7 @@ let sync = {
   ],
   "steps": [
     {
-      "id": "e270d54e-ad05-4137-98a7-c1273f1038e9",
+      "id": "new:e270d54e-ad05-4137-98a7-c1273f1038e9",
       "name": "End",
       "description": "Ending point of the workflow",
       "type": "END",
@@ -42,8 +42,8 @@ let sync = {
       "task": null,
       "subWorkflow": null,
       "parameters": [],
-      "success": "e270d54e-ad05-4137-98a7-c1273f1038e9",
-      "fail": "e270d54e-ad05-4137-98a7-c1273f1038e9",
+      "success": "new:e270d54e-ad05-4137-98a7-c1273f1038e9",
+      "fail": "new:e270d54e-ad05-4137-98a7-c1273f1038e9",
       "ex": {
         "ui": {
           "x": 566,
@@ -54,7 +54,7 @@ let sync = {
       "cell": "0ba244a1-2c9b-41bc-b947-3f33146d0c3f"
     },
     {
-      "id": "ec7e87be-fbc9-41f5-8739-803333ba7e13",
+      "id": "new:ec7e87be-fbc9-41f5-8739-803333ba7e13",
       "name": "Say Hello",
       "description": null,
       "type": "TASK",
@@ -79,7 +79,7 @@ let sync = {
       "cell": "6ea0c747-cf6b-485d-bcb6-a5c02a378024"
     },
     {
-      "id": "ae8217d4-6847-4afa-b973-2280b6ef814b",
+      "id": "new:ae8217d4-6847-4afa-b973-2280b6ef814b",
       "name": "Start",
       "description": "Starting point of the workflow",
       "type": "START",
@@ -92,8 +92,8 @@ let sync = {
       "task": null,
       "subWorkflow": null,
       "parameters": [],
-      "success": "ec7e87be-fbc9-41f5-8739-803333ba7e13",
-      "fail": "e270d54e-ad05-4137-98a7-c1273f1038e9",
+      "success": "new:ec7e87be-fbc9-41f5-8739-803333ba7e13",
+      "fail": "new:e270d54e-ad05-4137-98a7-c1273f1038e9",
       "ex": {
         "ui": {
           "x": 30,
@@ -125,7 +125,7 @@ let sync = {
         }
       ],
       "threads": [],
-      "success": "e270d54e-ad05-4137-98a7-c1273f1038e9",
+      "success": "new:e270d54e-ad05-4137-98a7-c1273f1038e9",
       "fail": null,
       "ex": {
         "ui": {
