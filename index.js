@@ -1969,20 +1969,24 @@ function syncWorkflow(backend) {
     var workflow = backend.getTypeCollection('Workflow');
     var step = backend.getTypeCollection('Step');
 
+    var makeTemporal = function makeTemporal(obj) {
+      return _.merge(obj, {
+        _temporal: {
+          changeLog: [],
+          recordId: r.uuid(),
+          validFrom: null,
+          validTo: null,
+          version: null
+        }
+      });
+    };
+
     return r.expr(mapIds(args, r)).run(connection).then(function (ids) {
       var _op;
 
       var mutations = [];
       var endStep = args.endStep;
-      var op = (_op = {}, defineProperty(_op, INSERT, {
-        workflow: {},
-        parameter: {},
-        step: {}
-      }), defineProperty(_op, UPDATE, {
-        workflow: {},
-        parameter: {},
-        step: {}
-      }), _op);
+      var op = (_op = {}, defineProperty(_op, INSERT, { workflow: {}, parameter: {}, step: {} }), defineProperty(_op, UPDATE, { workflow: {}, parameter: {}, step: {} }), _op);
 
       // re-map workflow
 
@@ -1991,10 +1995,9 @@ function syncWorkflow(backend) {
       var wfId = _getOp.wfId;
       var wfOp = _getOp.wfOp;
 
-      _.set(op, '["' + wfOp + '"].workflow["' + wfId + '"]', _.merge({}, _.omit(args, ['parameters', 'steps']), {
-        id: wfId,
-        entityType: WORKFLOW$1
-      }));
+      var wfObj = { id: wfId, entityType: WORKFLOW$1 };
+      if (wfOp === INSERT) makeTemporal(wfObj);
+      _.set(op, '["' + wfOp + '"].workflow["' + wfId + '"]', _.merge({}, _.omit(args, ['parameters', 'steps']), wfObj));
 
       // re-map attributes
       _.forEach(args.parameters, function (param) {
@@ -2018,14 +2021,16 @@ function syncWorkflow(backend) {
         var stepOp = _getOp3.stepOp;
 
         if (step.type === END) endStep = stepId;
-        _.set(op, '["' + stepOp + '"].step["' + stepId + '"]', _.merge({}, _.omit(step, ['threads', 'parameters']), {
+        var stepObj = {
           id: stepId,
           success: _.get(ids, '["' + step.success + '"].id', undefined),
           fail: _.get(ids, '["' + step.fail + '"].id', undefined),
           task: _.get(step, 'task.id'),
           subWorkflow: _.get(step, 'subWorkflow.id'),
           entityType: STEP
-        }));
+        };
+        if (stepOp === INSERT) makeTemporal(stepObj);
+        _.set(op, '["' + stepOp + '"].step["' + stepId + '"]', _.merge({}, _.omit(step, ['threads', 'parameters']), stepObj));
 
         // re-map step params
         _.forEach(step.parameters, function (param) {

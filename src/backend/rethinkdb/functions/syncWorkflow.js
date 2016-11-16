@@ -48,30 +48,33 @@ export default function syncWorkflow (backend) {
     let workflow = backend.getTypeCollection('Workflow')
     let step = backend.getTypeCollection('Step')
 
+    let makeTemporal = (obj) => {
+      return _.merge(obj, {
+        _temporal: {
+          changeLog: [],
+          recordId: r.uuid(),
+          validFrom: null,
+          validTo: null,
+          version: null
+        }
+      })
+    }
+
     return r.expr(mapIds(args, r))
       .run(connection)
       .then((ids) => {
         let mutations = []
         let endStep = args.endStep
         let op = {
-          [INSERT]: {
-            workflow: {},
-            parameter: {},
-            step: {}
-          },
-          [UPDATE]: {
-            workflow: {},
-            parameter: {},
-            step: {}
-          }
+          [INSERT]: { workflow: {}, parameter: {}, step: {} },
+          [UPDATE]: { workflow: {}, parameter: {}, step: {} }
         }
 
         // re-map workflow
         let { wfId, wfOp } = getOp(ids, args.id, 'wf')
-        _.set(op, `["${wfOp}"].workflow["${wfId}"]`, _.merge({}, _.omit(args, ['parameters', 'steps']), {
-          id: wfId,
-          entityType: WORKFLOW
-        }))
+        let wfObj = { id: wfId, entityType: WORKFLOW }
+        if (wfOp === INSERT) makeTemporal(wfObj)
+        _.set(op, `["${wfOp}"].workflow["${wfId}"]`, _.merge({}, _.omit(args, ['parameters', 'steps']), wfObj))
 
         // re-map attributes
         _.forEach(args.parameters, (param) => {
@@ -87,14 +90,16 @@ export default function syncWorkflow (backend) {
         _.forEach(args.steps, (step) => {
           let { stepId, stepOp } = getOp(ids, step.id, 'step')
           if (step.type === END) endStep = stepId
-          _.set(op, `["${stepOp}"].step["${stepId}"]`, _.merge({}, _.omit(step, ['threads', 'parameters']), {
+          let stepObj = {
             id: stepId,
             success: _.get(ids, `["${step.success}"].id`, undefined),
             fail: _.get(ids, `["${step.fail}"].id`, undefined),
             task: _.get(step, 'task.id'),
             subWorkflow: _.get(step, 'subWorkflow.id'),
             entityType: STEP
-          }))
+          }
+          if (stepOp === INSERT) makeTemporal(stepObj)
+          _.set(op, `["${stepOp}"].step["${stepId}"]`, _.merge({}, _.omit(step, ['threads', 'parameters']), stepObj))
 
           // re-map step params
           _.forEach(step.parameters, (param) => {
