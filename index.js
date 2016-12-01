@@ -2051,7 +2051,7 @@ function syncWorkflow(backend) {
 
       // apply forks
       _.forEach(args.steps, function (step) {
-        var _getOp5 = getOp(ids, step.id);
+        var _getOp5 = getOp(ids, step.id, 'step');
 
         var stepId = _getOp5.stepId;
 

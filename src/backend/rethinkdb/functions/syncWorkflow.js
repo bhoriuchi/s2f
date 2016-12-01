@@ -115,7 +115,7 @@ export default function syncWorkflow (backend) {
 
         // apply forks
         _.forEach(args.steps, (step) => {
-          let { stepId } = getOp(ids, step.id)
+          let { stepId } = getOp(ids, step.id, 'step')
           _.forEach(step.threads, (thread) => {
             let { threadId } = getOp(ids, thread.id, 'thread')
             if (threadId) {
