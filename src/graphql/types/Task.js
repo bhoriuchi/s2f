@@ -19,9 +19,8 @@ export default {
       nullable: false
     },
     parameters: {
-      type: ['Parameter'] /* ,
+      type: ['Parameter'],
       resolve: 'readParameter'
-      */
     }
   },
   _backend: {

@@ -151,12 +151,13 @@ export function readSource (backend) {
   return function (source = {}, args, context = {}, info) {
     let {r, connection} = backend
     let { filterTemporalTask } = this.globals._temporal
+    let taskId = _.get(source, 'task') || _.get(source, 'task.id') || null
 
     // if not a workflow or task, simply return the source
     if (source.type !== TASK) return _.get(source, 'source', null)
 
     let vargs = _.keys(source.versionArgs).length ? source.versionArgs :
-      _.merge(_.omit(context, ['id', 'recordId']), { recordId: _.get(source, 'task', null) })
+      _.merge(_.omit(context, ['id', 'recordId']), { recordId: taskId })
 
     return filterTemporalTask(vargs)
       .coerceTo('array')

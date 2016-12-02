@@ -83,7 +83,7 @@ export default {
     parameters: {
       description: 'Local parameters associated with the step',
       type: ['Parameter'],
-      resolve: 'readStepParams'
+      resolve: 'readParameter'
     },
     fork: {
       type: 'String',

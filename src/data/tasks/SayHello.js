@@ -16,7 +16,7 @@ export const Task = [
     },
     entityType:  'TASK',
     id:  '0ea85a8a-ba97-4c31-8ed0-37926989b384',
-    name:  'Task1',
+    name:  'Say Hello',
     source:  'console.log("Hello", name)'
   },
   {
@@ -24,10 +24,11 @@ export const Task = [
       recordId:  '4c35b5a7-e971-4719-9846-ca06db2f8eb2',
       validFrom: null,
       validTo: null,
+      version: null
     },
     entityType:  'TASK',
     id:  'b98548c6-d294-4406-88c1-3d7cffb97cfa',
-    name:  'Task1',
+    name:  'Say Hello',
     source:  'console.log("Hi", name)'
   }
 ]

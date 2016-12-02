@@ -27,10 +27,10 @@ export function readParameter (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
     let table = backend.getTypeCollection('Parameter')
-
+    let paramId = _.get(source, 'parameter') || _.get(source, 'parameter.id')
     if (!source) return table.run(connection)
-    if (source.parameter) {
-      return table.get(source.parameter).run(connection)
+    if (paramId) {
+      return table.get(paramId).run(connection)
     }
     return table.filter({ parentId: source.id }).run(connection)
   }

@@ -401,7 +401,7 @@ var Step = {
     parameters: {
       description: 'Local parameters associated with the step',
       type: ['Parameter'],
-      resolve: 'readStepParams'
+      resolve: 'readParameter'
     },
     fork: {
       type: 'String',
@@ -693,12 +693,27 @@ var SyncStepInput = {
     waitOnSuccess: 'Boolean',
     requireResumeKey: 'Boolean',
     parameters: ['SyncParameterInput'],
-    task: 'SyncIdInput',
-    subWorkflow: 'SyncIdInput',
+    task: 'SyncTemporalInput',
+    subWorkflow: 'SyncTemporalInput',
     success: 'String',
     fail: 'String',
     ex: 'FactoryJSON',
     threads: ['SyncIdInput']
+  }
+};
+
+var SyncTemporalInput = {
+  type: 'Input',
+  fields: {
+    _temporal: { type: 'SyncTemporalMetadataInput' },
+    id: { type: 'String' }
+  }
+};
+
+var SyncTemporalMetadataInput = {
+  type: 'Input',
+  fields: {
+    recordId: { type: 'String' }
   }
 };
 
@@ -723,9 +738,8 @@ var Task = {
       nullable: false
     },
     parameters: {
-      type: ['Parameter'] /* ,
-                          resolve: 'readParameter'
-                          */
+      type: ['Parameter'],
+      resolve: 'readParameter'
     }
   },
   _backend: {
@@ -1074,6 +1088,8 @@ var types = {
   SyncIdInput: SyncIdInput,
   SyncParameterInput: SyncParameterInput,
   SyncStepInput: SyncStepInput,
+  SyncTemporalInput: SyncTemporalInput,
+  SyncTemporalMetadataInput: SyncTemporalMetadataInput,
   Task: Task,
   Workflow: Workflow,
   WorkflowRun: WorkflowRun,
@@ -1530,11 +1546,12 @@ function readSource(backend) {
     var connection = backend.connection;
     var filterTemporalTask = this.globals._temporal.filterTemporalTask;
 
-    // if not a workflow or task, simply return the source
+    var taskId = _.get(source, 'task') || _.get(source, 'task.id') || null;
 
+    // if not a workflow or task, simply return the source
     if (source.type !== TASK) return _.get(source, 'source', null);
 
-    var vargs = _.keys(source.versionArgs).length ? source.versionArgs : _.merge(_.omit(context, ['id', 'recordId']), { recordId: _.get(source, 'task', null) });
+    var vargs = _.keys(source.versionArgs).length ? source.versionArgs : _.merge(_.omit(context, ['id', 'recordId']), { recordId: taskId });
 
     return filterTemporalTask(vargs).coerceTo('array').do(function (t) {
       return t.count().eq(0).branch(null, t.nth(0).hasFields('source').branch(t.nth(0)('source'), null));
@@ -2010,6 +2027,7 @@ function syncWorkflow(backend) {
         _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
           id: paramId,
           parentId: wfId,
+          scope: ParameterScopeEnum.ATTRIBUTE,
           entityType: PARAMETER
         }));
       });
@@ -2026,8 +2044,8 @@ function syncWorkflow(backend) {
           id: stepId,
           success: _.get(ids, '["' + step.success + '"].id', undefined),
           fail: _.get(ids, '["' + step.fail + '"].id', undefined),
-          task: _.get(step, 'task.id'),
-          subWorkflow: _.get(step, 'subWorkflow.id'),
+          task: _.get(step, 'task._temporal.recordId'),
+          subWorkflow: _.get(step, 'subWorkflow._temporal.recordId'),
           entityType: STEP,
           workflowId: wfId
         };
@@ -2044,6 +2062,7 @@ function syncWorkflow(backend) {
           _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
             id: paramId,
             parentId: stepId,
+            scope: ParameterScopeEnum.STEP,
             entityType: PARAMETER
           }));
         });
@@ -2117,6 +2136,9 @@ function readTask(backend) {
     var info = arguments[3];
     var r = backend.r;
     var connection = backend.connection;
+
+    var sourceTask = _.get(source, 'task') || _.get(source, 'task.id');
+
     var _globals$_temporal = this.globals._temporal;
     var filterTemporalTask = _globals$_temporal.filterTemporalTask;
     var mostCurrentTemporalTask = _globals$_temporal.mostCurrentTemporalTask;
@@ -2126,8 +2148,8 @@ function readTask(backend) {
     if (!source) {
       if (!_.keys(args).length) return mostCurrentTemporalTask().run(connection);
       filter = filterTemporalTask(args);
-    } else if (source.task) {
-      filter = filterTemporalTask({ recordId: source.task, date: context.date }).coerceTo('array').do(function (task) {
+    } else if (sourceTask) {
+      filter = filterTemporalTask({ recordId: sourceTask, date: context.date }).coerceTo('array').do(function (task) {
         return task.count().eq(0).branch(null, task.nth(0));
       });
     }
@@ -3357,17 +3379,18 @@ var Task$2 = [{
   },
   entityType: 'TASK',
   id: '0ea85a8a-ba97-4c31-8ed0-37926989b384',
-  name: 'Task1',
+  name: 'Say Hello',
   source: 'console.log("Hello", name)'
 }, {
   _temporal: {
     recordId: '4c35b5a7-e971-4719-9846-ca06db2f8eb2',
     validFrom: null,
-    validTo: null
+    validTo: null,
+    version: null
   },
   entityType: 'TASK',
   id: 'b98548c6-d294-4406-88c1-3d7cffb97cfa',
-  name: 'Task1',
+  name: 'Say Hello',
   source: 'console.log("Hi", name)'
 }];
 

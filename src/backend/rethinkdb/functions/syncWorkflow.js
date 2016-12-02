@@ -3,6 +3,7 @@ const UPDATE = 'update'
 const INSERT = 'insert'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
 import EntityTypeEnum from '../../../graphql/types/EntityTypeEnum'
+import ParameterScopeEnum from '../../../graphql/types/ParameterScopeEnum'
 
 let { values: { END } } = StepTypeEnum
 let { values: { PARAMETER, WORKFLOW, STEP } } = EntityTypeEnum
@@ -82,6 +83,7 @@ export default function syncWorkflow (backend) {
           _.set(op, `["${paramOp}"].parameter["${paramId}"]`, _.merge({}, param, {
             id: paramId,
             parentId: wfId,
+            scope: ParameterScopeEnum.ATTRIBUTE,
             entityType: PARAMETER
           }))
         })
@@ -94,8 +96,8 @@ export default function syncWorkflow (backend) {
             id: stepId,
             success: _.get(ids, `["${step.success}"].id`, undefined),
             fail: _.get(ids, `["${step.fail}"].id`, undefined),
-            task: _.get(step, 'task.id'),
-            subWorkflow: _.get(step, 'subWorkflow.id'),
+            task: _.get(step, 'task._temporal.recordId'),
+            subWorkflow: _.get(step, 'subWorkflow._temporal.recordId'),
             entityType: STEP,
             workflowId: wfId
           }
@@ -108,6 +110,7 @@ export default function syncWorkflow (backend) {
             _.set(op, `["${paramOp}"].parameter["${paramId}"]`, _.merge({}, param, {
               id: paramId,
               parentId: stepId,
+              scope: ParameterScopeEnum.STEP,
               entityType: PARAMETER
             }))
           })
