@@ -48,6 +48,8 @@ export default function syncWorkflow (backend) {
     let parameter = backend.getTypeCollection('Parameter')
     let workflow = backend.getTypeCollection('Workflow')
     let step = backend.getTypeCollection('Step')
+    let folder = backend.getTypeCollection('Folder')
+    let membership = backend.getTypeCollection('FolderMembership')
 
     let makeTemporal = (obj) => {
       return _.merge(obj, {
@@ -64,6 +66,7 @@ export default function syncWorkflow (backend) {
     return r.expr(mapIds(args, r))
       .run(connection)
       .then((ids) => {
+        let isNewWorkflow = false
         let mutations = []
         let endStep = args.endStep
         let op = {
@@ -74,8 +77,13 @@ export default function syncWorkflow (backend) {
         // re-map workflow
         let { wfId, wfOp } = getOp(ids, args.id, 'wf')
         let wfObj = { id: wfId, entityType: WORKFLOW }
-        if (wfOp === INSERT) makeTemporal(wfObj)
+        if (wfOp === INSERT) {
+          isNewWorkflow = true
+          makeTemporal(wfObj)
+        }
         _.set(op, `["${wfOp}"].workflow["${wfId}"]`, _.merge({}, _.omit(args, ['parameters', 'steps']), wfObj))
+        let recordId = _.get(wfObj, '_temporal.recordId')
+
 
         // re-map attributes
         _.forEach(args.parameters, (param) => {
@@ -165,6 +173,22 @@ export default function syncWorkflow (backend) {
             )
           )
         })
+          .do(() => {
+            return folder.get(args.folder || '').ne(null).branch(
+              r.expr(isNewWorkflow).branch(
+                membership.insert({ folder: args.folder, childId: recordId, childType: 'WORKFLOW' }),
+                membership.get(recordId).update({ folder: args.folder })
+              ),
+              folder.filter({ type: 'WORKFLOW', parent: 'ROOT' })
+                .nth(0)
+                .do((rootFolder) => {
+                  return r.expr(isNewWorkflow).branch(
+                    membership.insert({ folder: rootFolder('id'), childId: recordId, childType: 'WORKFLOW' }),
+                    membership.get(recordId).update({ folder: rootFolder('id') })
+                  )
+                })
+            )
+          })
           .do(() => workflow.get(wfId))
           .run(connection)
       })

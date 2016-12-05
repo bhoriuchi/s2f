@@ -28,6 +28,14 @@ export function deleteFolder (backend) {
   }
 }
 
+export function readWorkflowFolder (backend) {
+  return function (source, args, context, info) {
+    let {r, connection} = backend
+    let membership = backend.getTypeCollection('FolderMembership')
+    return membership.get(source.id).run(connection)
+  }
+}
+
 export function readRootFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
@@ -117,6 +125,7 @@ export function readSubFolder (backend) {
 }
 
 export default {
+  readWorkflowFolder,
   createFolder,
   readFolder,
   updateFolder,

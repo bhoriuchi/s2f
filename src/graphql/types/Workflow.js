@@ -14,6 +14,10 @@ export default {
     description: {
       type: 'String'
     },
+    folder: {
+      type: 'String',
+      resolve: 'readWorkflowFolder'
+    },
     inputs: {
       description: 'Inputs from steps',
       type: ['Parameter'],
@@ -125,6 +129,7 @@ export default {
           id: { type: 'String', nullable: false },
           name: { type: 'String', nullable: false },
           description: { type: 'String' },
+          folder: { type: 'String' },
           parameters: ['SyncParameterInput'],
           steps: ['SyncStepInput']
         },

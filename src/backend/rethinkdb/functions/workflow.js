@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import chalk from 'chalk'
 import { isPublished } from './common'
 import { destroyStep } from './step'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'

@@ -1,4 +1,12 @@
-import { createFolder, readFolder, updateFolder, deleteFolder, readRootFolder, readSubFolder } from './folder'
+import {
+  createFolder,
+  readFolder,
+  updateFolder,
+  deleteFolder,
+  readRootFolder,
+  readSubFolder,
+  readWorkflowFolder
+} from './folder'
 import { createParameter, updateParameter, deleteParameter } from './parameter'
 import { createParameterRun, updateParameterRun, deleteParameterRun, updateAttributeValues } from './parameterRun'
 import { createStep, readStep, updateStep, deleteStep, readStepThreads, readSource, readStepParams } from './step'
@@ -26,6 +34,7 @@ export default {
   deleteFolder,
   readRootFolder,
   readSubFolder,
+  readWorkflowFolder,
   createParameter,
   updateParameter,
   deleteParameter,

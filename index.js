@@ -805,6 +805,10 @@ var Workflow = {
     description: {
       type: 'String'
     },
+    folder: {
+      type: 'String',
+      resolve: 'readWorkflowFolder'
+    },
     inputs: {
       description: 'Inputs from steps',
       type: ['Parameter'],
@@ -916,6 +920,7 @@ var Workflow = {
           id: { type: 'String', nullable: false },
           name: { type: 'String', nullable: false },
           description: { type: 'String' },
+          folder: { type: 'String' },
           parameters: ['SyncParameterInput'],
           steps: ['SyncStepInput']
         },
@@ -1187,6 +1192,16 @@ function deleteFolder(backend) {
     var connection = backend.connection;
 
     var folder = backend.getTypeCollection('Folder');
+  };
+}
+
+function readWorkflowFolder(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var membership = backend.getTypeCollection('FolderMembership');
+    return membership.get(source.id).run(connection);
   };
 }
 
@@ -1986,6 +2001,8 @@ function syncWorkflow(backend) {
     var parameter = backend.getTypeCollection('Parameter');
     var workflow = backend.getTypeCollection('Workflow');
     var step = backend.getTypeCollection('Step');
+    var folder = backend.getTypeCollection('Folder');
+    var membership = backend.getTypeCollection('FolderMembership');
 
     var makeTemporal = function makeTemporal(obj) {
       return _.merge(obj, {
@@ -2002,6 +2019,7 @@ function syncWorkflow(backend) {
     return r.expr(mapIds(args, r)).run(connection).then(function (ids) {
       var _op;
 
+      var isNewWorkflow = false;
       var mutations = [];
       var endStep = args.endStep;
       var op = (_op = {}, defineProperty(_op, INSERT, { workflow: {}, parameter: {}, step: {} }), defineProperty(_op, UPDATE, { workflow: {}, parameter: {}, step: {} }), _op);
@@ -2014,8 +2032,12 @@ function syncWorkflow(backend) {
       var wfOp = _getOp.wfOp;
 
       var wfObj = { id: wfId, entityType: WORKFLOW$1 };
-      if (wfOp === INSERT) makeTemporal(wfObj);
+      if (wfOp === INSERT) {
+        isNewWorkflow = true;
+        makeTemporal(wfObj);
+      }
       _.set(op, '["' + wfOp + '"].workflow["' + wfId + '"]', _.merge({}, _.omit(args, ['parameters', 'steps']), wfObj));
+      var recordId = _.get(wfObj, '_temporal.recordId');
 
       // re-map attributes
       _.forEach(args.parameters, function (param) {
@@ -2107,6 +2129,10 @@ function syncWorkflow(backend) {
       // process all mutations
       return r.expr(mutations).forEach(function (m) {
         return m('op').eq(INSERT).branch(r.branch(m('collection').eq('workflow'), workflow.insert(m('data')), m('collection').eq('step'), step.insert(m('data')), parameter.insert(m('data'))), r.branch(m('collection').eq('workflow'), workflow.get(m('id')).update(m('data')), m('collection').eq('step'), step.get(m('id')).update(m('data')), parameter.get(m('id')).update(m('data'))));
+      }).do(function () {
+        return folder.get(args.folder || '').ne(null).branch(r.expr(isNewWorkflow).branch(membership.insert({ folder: args.folder, childId: recordId, childType: 'WORKFLOW' }), membership.get(recordId).update({ folder: args.folder })), folder.filter({ type: 'WORKFLOW', parent: 'ROOT' }).nth(0).do(function (rootFolder) {
+          return r.expr(isNewWorkflow).branch(membership.insert({ folder: rootFolder('id'), childId: recordId, childType: 'WORKFLOW' }), membership.get(recordId).update({ folder: rootFolder('id') }));
+        }));
       }).do(function () {
         return workflow.get(wfId);
       }).run(connection);
@@ -2708,6 +2734,7 @@ var functions = {
   deleteFolder: deleteFolder,
   readRootFolder: readRootFolder,
   readSubFolder: readSubFolder,
+  readWorkflowFolder: readWorkflowFolder,
   createParameter: createParameter,
   updateParameter: updateParameter,
   deleteParameter: deleteParameter,
@@ -4190,7 +4217,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 
