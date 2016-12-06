@@ -1960,8 +1960,12 @@ function isNewId(id) {
   return id.match(/^new:/) !== null;
 }
 
-function mapIds(args, r) {
-  var ids = {};
+function mapIds(args, r, workflow) {
+  var id = arguments.length <= 3 || arguments[3] === undefined ? '' : arguments[3];
+
+  var ids = {
+    recordId: workflow.get(id).eq(null).branch(r.uuid(), workflow.get(id)('_temporal')('recordId'))
+  };
 
   // workflow id
   ids[args.id] = isNewId(args.id) ? { op: INSERT, id: r.uuid() } : { op: UPDATE, id: args.id };
@@ -2004,11 +2008,11 @@ function syncWorkflow(backend) {
     var folder = backend.getTypeCollection('Folder');
     var membership = backend.getTypeCollection('FolderMembership');
 
-    var makeTemporal = function makeTemporal(obj) {
+    var makeTemporal = function makeTemporal(obj, recordId) {
       return _.merge(obj, {
         _temporal: {
           changeLog: [],
-          recordId: r.uuid(),
+          recordId: recordId,
           validFrom: null,
           validTo: null,
           version: null
@@ -2016,7 +2020,7 @@ function syncWorkflow(backend) {
       });
     };
 
-    return r.expr(mapIds(args, r)).run(connection).then(function (ids) {
+    return r.expr(mapIds(args, r, workflow, args.id)).run(connection).then(function (ids) {
       var _op;
 
       var isNewWorkflow = false;
@@ -2034,10 +2038,9 @@ function syncWorkflow(backend) {
       var wfObj = { id: wfId, entityType: WORKFLOW$1 };
       if (wfOp === INSERT) {
         isNewWorkflow = true;
-        makeTemporal(wfObj);
+        makeTemporal(wfObj, ids.recordId);
       }
       _.set(op, '["' + wfOp + '"].workflow["' + wfId + '"]', _.merge({}, _.omit(args, ['parameters', 'steps']), wfObj));
-      var recordId = _.get(wfObj, '_temporal.recordId');
 
       // re-map attributes
       _.forEach(args.parameters, function (param) {
@@ -2130,8 +2133,8 @@ function syncWorkflow(backend) {
       return r.expr(mutations).forEach(function (m) {
         return m('op').eq(INSERT).branch(r.branch(m('collection').eq('workflow'), workflow.insert(m('data')), m('collection').eq('step'), step.insert(m('data')), parameter.insert(m('data'))), r.branch(m('collection').eq('workflow'), workflow.get(m('id')).update(m('data')), m('collection').eq('step'), step.get(m('id')).update(m('data')), parameter.get(m('id')).update(m('data'))));
       }).do(function () {
-        return folder.get(args.folder || '').ne(null).branch(r.expr(isNewWorkflow).branch(membership.insert({ folder: args.folder, childId: recordId, childType: 'WORKFLOW' }), membership.get(recordId).update({ folder: args.folder })), folder.filter({ type: 'WORKFLOW', parent: 'ROOT' }).nth(0).do(function (rootFolder) {
-          return r.expr(isNewWorkflow).branch(membership.insert({ folder: rootFolder('id'), childId: recordId, childType: 'WORKFLOW' }), membership.get(recordId).update({ folder: rootFolder('id') }));
+        return folder.get(args.folder || '').ne(null).branch(r.expr(isNewWorkflow).branch(membership.insert({ folder: args.folder, childId: ids.recordId, childType: 'WORKFLOW' }), membership.get(ids.recordId).update({ folder: args.folder })), folder.filter({ type: 'WORKFLOW', parent: 'ROOT' }).nth(0).do(function (rootFolder) {
+          return r.expr(isNewWorkflow).branch(membership.insert({ folder: rootFolder('id'), childId: ids.recordId, childType: 'WORKFLOW' }), membership.get(ids.recordId).update({ folder: rootFolder('id') }));
         }));
       }).do(function () {
         return workflow.get(wfId);

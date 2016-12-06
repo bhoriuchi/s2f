@@ -4,6 +4,7 @@ const INSERT = 'insert'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
 import EntityTypeEnum from '../../../graphql/types/EntityTypeEnum'
 import ParameterScopeEnum from '../../../graphql/types/ParameterScopeEnum'
+import chalk from 'chalk'
 
 let { values: { END } } = StepTypeEnum
 let { values: { PARAMETER, WORKFLOW, STEP } } = EntityTypeEnum
@@ -12,8 +13,13 @@ export function isNewId (id) {
   return id.match(/^new:/) !== null
 }
 
-export function mapIds (args, r) {
-  let ids = {}
+export function mapIds (args, r, workflow, id = '') {
+  let ids = {
+    recordId: workflow.get(id).eq(null).branch(
+      r.uuid(),
+      workflow.get(id)('_temporal')('recordId')
+    )
+  }
 
   // workflow id
   ids[args.id] = isNewId(args.id) ? { op: INSERT, id: r.uuid() } : { op: UPDATE, id: args.id }
@@ -51,11 +57,11 @@ export default function syncWorkflow (backend) {
     let folder = backend.getTypeCollection('Folder')
     let membership = backend.getTypeCollection('FolderMembership')
 
-    let makeTemporal = (obj) => {
+    let makeTemporal = (obj, recordId) => {
       return _.merge(obj, {
         _temporal: {
           changeLog: [],
-          recordId: r.uuid(),
+          recordId,
           validFrom: null,
           validTo: null,
           version: null
@@ -63,7 +69,7 @@ export default function syncWorkflow (backend) {
       })
     }
 
-    return r.expr(mapIds(args, r))
+    return r.expr(mapIds(args, r, workflow, args.id))
       .run(connection)
       .then((ids) => {
         let isNewWorkflow = false
@@ -79,11 +85,9 @@ export default function syncWorkflow (backend) {
         let wfObj = { id: wfId, entityType: WORKFLOW }
         if (wfOp === INSERT) {
           isNewWorkflow = true
-          makeTemporal(wfObj)
+          makeTemporal(wfObj, ids.recordId)
         }
         _.set(op, `["${wfOp}"].workflow["${wfId}"]`, _.merge({}, _.omit(args, ['parameters', 'steps']), wfObj))
-        let recordId = _.get(wfObj, '_temporal.recordId')
-
 
         // re-map attributes
         _.forEach(args.parameters, (param) => {
@@ -176,15 +180,15 @@ export default function syncWorkflow (backend) {
           .do(() => {
             return folder.get(args.folder || '').ne(null).branch(
               r.expr(isNewWorkflow).branch(
-                membership.insert({ folder: args.folder, childId: recordId, childType: 'WORKFLOW' }),
-                membership.get(recordId).update({ folder: args.folder })
+                membership.insert({ folder: args.folder, childId: ids.recordId, childType: 'WORKFLOW' }),
+                membership.get(ids.recordId).update({ folder: args.folder })
               ),
               folder.filter({ type: 'WORKFLOW', parent: 'ROOT' })
                 .nth(0)
                 .do((rootFolder) => {
                   return r.expr(isNewWorkflow).branch(
-                    membership.insert({ folder: rootFolder('id'), childId: recordId, childType: 'WORKFLOW' }),
-                    membership.get(recordId).update({ folder: rootFolder('id') })
+                    membership.insert({ folder: rootFolder('id'), childId: ids.recordId, childType: 'WORKFLOW' }),
+                    membership.get(ids.recordId).update({ folder: rootFolder('id') })
                   )
                 })
             )
