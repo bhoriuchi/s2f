@@ -74,6 +74,8 @@ export default function syncWorkflow (backend) {
       .then((ids) => {
         let isNewWorkflow = false
         let mutations = []
+        let forks = []
+        let steps = []
         let endStep = args.endStep
         let op = {
           [INSERT]: { workflow: {}, parameter: {}, step: {} },
@@ -103,11 +105,12 @@ export default function syncWorkflow (backend) {
         // re-map steps
         _.forEach(args.steps, (step) => {
           let { stepId, stepOp } = getOp(ids, step.id, 'step')
+          steps.push(stepId)
           if (step.type === END) endStep = stepId
           let stepObj = {
             id: stepId,
-            success: _.get(ids, `["${step.success}"].id`, undefined),
-            fail: _.get(ids, `["${step.fail}"].id`, undefined),
+            success: _.get(ids, `["${step.success}"].id`, null),
+            fail: _.get(ids, `["${step.fail}"].id`, null),
             task: _.get(step, 'task._temporal.recordId'),
             subWorkflow: _.get(step, 'subWorkflow._temporal.recordId'),
             entityType: STEP,
@@ -131,6 +134,7 @@ export default function syncWorkflow (backend) {
         // apply forks
         _.forEach(args.steps, (step) => {
           let { stepId } = getOp(ids, step.id, 'step')
+          if (step.threads.length) forks.push(stepId)
           _.forEach(step.threads, (thread) => {
             let { threadId } = getOp(ids, thread.id, 'thread')
             if (threadId) {
@@ -138,6 +142,13 @@ export default function syncWorkflow (backend) {
               if (s) s.fork = stepId
             }
           })
+        })
+
+        // remove deleted forks
+        _.forEach(args.steps, (step) => {
+          let { stepId } = getOp(ids, step.id, 'step')
+          let s = _.get(op[INSERT].step, stepId) || _.get(op[UPDATE].step, stepId)
+          s.fork = _.includes(forks, s.fork) ? s.fork : null
         })
 
         // create a flattened array of actions
@@ -177,6 +188,7 @@ export default function syncWorkflow (backend) {
             )
           )
         })
+          // folder updates
           .do(() => {
             return folder.get(args.folder || '').ne(null).branch(
               r.expr(isNewWorkflow).branch(
@@ -192,6 +204,12 @@ export default function syncWorkflow (backend) {
                   )
                 })
             )
+          })
+          // remove steps that no longer exist
+          .do(() => {
+            return step.filter({ workflowId: wfId })
+              .filter((st) => r.expr(steps).contains(st('id')).not())
+              .delete()
           })
           .do(() => workflow.get(wfId))
           .run(connection)

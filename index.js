@@ -2025,6 +2025,8 @@ function syncWorkflow(backend) {
 
       var isNewWorkflow = false;
       var mutations = [];
+      var forks = [];
+      var steps = [];
       var endStep = args.endStep;
       var op = (_op = {}, defineProperty(_op, INSERT, { workflow: {}, parameter: {}, step: {} }), defineProperty(_op, UPDATE, { workflow: {}, parameter: {}, step: {} }), _op);
 
@@ -2064,11 +2066,12 @@ function syncWorkflow(backend) {
         var stepId = _getOp3.stepId;
         var stepOp = _getOp3.stepOp;
 
+        steps.push(stepId);
         if (step.type === END) endStep = stepId;
         var stepObj = {
           id: stepId,
-          success: _.get(ids, '["' + step.success + '"].id', undefined),
-          fail: _.get(ids, '["' + step.fail + '"].id', undefined),
+          success: _.get(ids, '["' + step.success + '"].id', null),
+          fail: _.get(ids, '["' + step.fail + '"].id', null),
           task: _.get(step, 'task._temporal.recordId'),
           subWorkflow: _.get(step, 'subWorkflow._temporal.recordId'),
           entityType: STEP,
@@ -2099,6 +2102,7 @@ function syncWorkflow(backend) {
 
         var stepId = _getOp5.stepId;
 
+        if (step.threads.length) forks.push(stepId);
         _.forEach(step.threads, function (thread) {
           var _getOp6 = getOp(ids, thread.id, 'thread');
 
@@ -2109,6 +2113,16 @@ function syncWorkflow(backend) {
             if (s) s.fork = stepId;
           }
         });
+      });
+
+      // remove deleted forks
+      _.forEach(args.steps, function (step) {
+        var _getOp7 = getOp(ids, step.id, 'step');
+
+        var stepId = _getOp7.stepId;
+
+        var s = _.get(op[INSERT].step, stepId) || _.get(op[UPDATE].step, stepId);
+        s.fork = _.includes(forks, s.fork) ? s.fork : null;
       });
 
       // create a flattened array of actions
@@ -2132,10 +2146,18 @@ function syncWorkflow(backend) {
       // process all mutations
       return r.expr(mutations).forEach(function (m) {
         return m('op').eq(INSERT).branch(r.branch(m('collection').eq('workflow'), workflow.insert(m('data')), m('collection').eq('step'), step.insert(m('data')), parameter.insert(m('data'))), r.branch(m('collection').eq('workflow'), workflow.get(m('id')).update(m('data')), m('collection').eq('step'), step.get(m('id')).update(m('data')), parameter.get(m('id')).update(m('data'))));
-      }).do(function () {
+      })
+      // folder updates
+      .do(function () {
         return folder.get(args.folder || '').ne(null).branch(r.expr(isNewWorkflow).branch(membership.insert({ folder: args.folder, childId: ids.recordId, childType: 'WORKFLOW' }), membership.get(ids.recordId).update({ folder: args.folder })), folder.filter({ type: 'WORKFLOW', parent: 'ROOT' }).nth(0).do(function (rootFolder) {
           return r.expr(isNewWorkflow).branch(membership.insert({ folder: rootFolder('id'), childId: ids.recordId, childType: 'WORKFLOW' }), membership.get(ids.recordId).update({ folder: rootFolder('id') }));
         }));
+      })
+      // remove steps that no longer exist
+      .do(function () {
+        return step.filter({ workflowId: wfId }).filter(function (st) {
+          return r.expr(steps).contains(st('id')).not();
+        }).delete();
       }).do(function () {
         return workflow.get(wfId);
       }).run(connection);
