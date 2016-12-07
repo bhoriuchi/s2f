@@ -1140,8 +1140,23 @@ var workflow = {
   }
 };
 
+var workflowcmd = {
+  handler: function handler(_ref) {
+    var payload = _ref.payload;
+    var socket = _ref.socket;
+    var requestId = _ref.requestId;
+
+    return this.backend.cmd(payload).then(function (result) {
+      return socket.emit("result." + requestId, result);
+    }).catch(function (error) {
+      return socket.emit("result." + requestId, { errors: [error] });
+    });
+  }
+};
+
 var local = {
-  workflow: workflow
+  workflow: workflow,
+  workflowcmd: workflowcmd
 };
 
 var workflow$1 = {
@@ -1200,8 +1215,11 @@ function readWorkflowFolder(backend) {
     var r = backend.r;
     var connection = backend.connection;
 
+    var folder = backend.getTypeCollection('Folder');
     var membership = backend.getTypeCollection('FolderMembership');
-    return membership.get(source.id).run(connection);
+    return membership.get(source._temporal.recordId).do(function (m) {
+      return m.eq(null).branch(folder.filter({ type: 'WORKFLOW', parent: 'ROOT' }).nth(0)('id'), m('folder'));
+    }).run(connection);
   };
 }
 
