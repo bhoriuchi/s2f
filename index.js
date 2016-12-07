@@ -1133,30 +1133,15 @@ var workflow = {
     var operationName = payload.operationName;
 
     return this.backend.lib.S2FWorkflow(query, rootValue, contextValue, variableValues, operationName).then(function (result) {
-      return socket.emit('result.' + requestId, result);
+      if (socket) socket.emit("result." + requestId, result);
     }).catch(function (error) {
-      return socket.emit('result.' + requestId, { errors: [error] });
-    });
-  }
-};
-
-var workflowcmd = {
-  handler: function handler(_ref) {
-    var payload = _ref.payload;
-    var socket = _ref.socket;
-    var requestId = _ref.requestId;
-
-    return this.backend.cmd(payload).then(function (result) {
-      return socket.emit("result." + requestId, result);
-    }).catch(function (error) {
-      return socket.emit("result." + requestId, { errors: [error] });
+      if (socket) socket.emit("result." + requestId, { errors: [error] });
     });
   }
 };
 
 var local = {
-  workflow: workflow,
-  workflowcmd: workflowcmd
+  workflow: workflow
 };
 
 var workflow$1 = {
@@ -2490,7 +2475,7 @@ function readWorkflow(backend) {
 
     context.date = args.date || context.date;
     var filter = r.expr(null);
-    if (!source) {
+    if (_.isEmpty(source)) {
       if (!_.keys(args).length) return mostCurrentTemporalWorkflow().run(connection);
       filter = filterTemporalWorkflow(args);
     } else if (source.workflow) {
@@ -3261,7 +3246,7 @@ function runStep(backend) {
 
     if (!workflowRun || !thread) return done(new Error('No workflow run or main thread created'));
 
-    return backend.lib.S2FWorkflow('{\n      readWorkflowRun (id: "' + workflowRun + '") {\n        workflow { endStep },\n        args,\n        input,\n        context {\n          id,\n          parameter { id, name, type, scope, class },\n          value\n        },\n        threads (id: "' + thread + '") {\n          currentStepRun {\n            id,\n            step {\n              id,\n              type,\n              async,\n              source,\n              subWorkflow,\n              timeout,\n              failsWorkflow,\n              waitOnSuccess,\n              requireResumeKey,\n              success,\n              fail,\n              parameters { id, name, type, scope, class, mapsTo }\n            }\n          }\n        }\n      }\n    }').then(function (result) {
+    return backend.lib.S2FWorkflow('{\n      readWorkflowRun (id: "' + workflowRun + '") {\n        workflow { endStep },\n        args,\n        input,\n        context {\n          id,\n          parameter { id, name, type, scope, class },\n          value\n        },\n        threads (id: "' + thread + '") {\n          currentStepRun {\n            id,\n            step {\n              id,\n              type,\n              async,\n              source,\n              subWorkflow { id },\n              timeout,\n              failsWorkflow,\n              waitOnSuccess,\n              requireResumeKey,\n              success,\n              fail,\n              parameters { id, name, type, scope, class, mapsTo }\n            }\n          }\n        }\n      }\n    }').then(function (result) {
       return gqlResult(backend, result, function (err, data) {
         if (err) throw err;
 
@@ -3373,7 +3358,7 @@ function startWorkflow(backend) {
     input = input || {};
     if (!args) return done(new Error('No context was supplied'));
 
-    return backend.lib.S2FWorkflow('{\n      readWorkflow (' + toObjectString(args, { noOuterBraces: true }) + ') {\n        _temporal { recordId },\n        id,\n        name,\n        inputs { id, name, type, class, required, defaultValue },\n        parameters { id, name, class, type, required, defaultValue },\n        steps (first: true) {\n          id,\n          name,\n          type,\n          async,\n          source,\n          subWorkflow,\n          timeout,\n          failsWorkflow,\n          waitOnSuccess,\n          requireResumeKey,\n          success,\n          fail,\n          parameters { id, name, type, class, required, mapsTo, defaultValue }\n        }\n      }\n    }', {}, args).then(function (result) {
+    return backend.lib.S2FWorkflow('{\n      readWorkflow (' + toObjectString(args, { noOuterBraces: true }) + ') {\n        _temporal { recordId },\n        id,\n        name,\n        inputs { id, name, type, class, required, defaultValue },\n        parameters { id, name, class, type, required, defaultValue },\n        steps (first: true) {\n          id,\n          name,\n          type,\n          async,\n          source,\n          subWorkflow { id },\n          timeout,\n          failsWorkflow,\n          waitOnSuccess,\n          requireResumeKey,\n          success,\n          fail,\n          parameters { id, name, type, class, required, mapsTo, defaultValue }\n        }\n      }\n    }', {}, args).then(function (result) {
       return gqlResult(backend, result, function (err, data) {
         var wf = _.get(data, 'readWorkflow[0]');
         var step = _.get(wf, 'steps[0]');

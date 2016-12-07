@@ -31,7 +31,7 @@ export default function runStep (backend) {
               type,
               async,
               source,
-              subWorkflow,
+              subWorkflow { id },
               timeout,
               failsWorkflow,
               waitOnSuccess,
