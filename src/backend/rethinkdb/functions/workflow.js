@@ -210,7 +210,7 @@ export function readWorkflow (backend) {
     let { filterTemporalWorkflow, mostCurrentTemporalWorkflow } = this.globals._temporal
     context.date = args.date || context.date
     let filter = r.expr(null)
-    if (!source) {
+    if (_.isEmpty(source)) {
       if (!_.keys(args).length) return mostCurrentTemporalWorkflow().run(connection)
       filter = filterTemporalWorkflow(args)
     } else if (source.workflow) {

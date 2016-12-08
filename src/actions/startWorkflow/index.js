@@ -23,7 +23,7 @@ export default function startWorkflow (backend) {
           type,
           async,
           source,
-          subWorkflow,
+          subWorkflow { id },
           timeout,
           failsWorkflow,
           waitOnSuccess,

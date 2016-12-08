@@ -31,8 +31,16 @@ export function deleteFolder (backend) {
 export function readWorkflowFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
+    let folder = backend.getTypeCollection('Folder')
     let membership = backend.getTypeCollection('FolderMembership')
-    return membership.get(source.id).run(connection)
+    return membership.get(source._temporal.recordId)
+      .do((m) => {
+        return m.eq(null).branch(
+          folder.filter({ type: 'WORKFLOW', parent: 'ROOT' }).nth(0)('id'),
+          m('folder')
+        )
+      })
+      .run(connection)
   }
 }
 
