@@ -756,6 +756,15 @@ var Task = {
           date: { type: 'FactoryDateTime' }
         },
         resolve: 'readTask'
+      },
+      readTaskVersions: {
+        type: ['Task'],
+        args: {
+          recordId: { type: 'String', nullable: false },
+          limit: { type: 'Int' },
+          offset: { type: 'Int' }
+        },
+        resolve: 'readTaskVersions'
       }
     },
     mutation: {
@@ -2211,6 +2220,21 @@ function readTask(backend) {
   };
 }
 
+function readTaskVersions(backend) {
+  return function (source, args) {
+    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var info = arguments[3];
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var table = backend.getTypeCollection('Task');
+    var filter = table.filter({ _temporal: { recordId: args.recordId } });
+    if (args.offset) filter = filter.skip(args.offset);
+    if (args.limit) filter = filter.limit(args.limit);
+    return filter.run(connection);
+  };
+}
+
 function updateTask(backend) {
   return function (source, args, context, info) {
     var r = backend.r;
@@ -2785,6 +2809,7 @@ var functions = {
   syncWorkflow: syncWorkflow,
   createTask: createTask,
   readTask: readTask,
+  readTaskVersions: readTaskVersions,
   updateTask: updateTask,
   deleteTask: deleteTask,
   branchWorkflow: branchWorkflow,
@@ -4245,7 +4270,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 

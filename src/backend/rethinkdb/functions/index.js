@@ -12,7 +12,7 @@ import { createParameterRun, updateParameterRun, deleteParameterRun, updateAttri
 import { createStep, readStep, updateStep, deleteStep, readStepThreads, readSource, readStepParams } from './step'
 import { createStepRun, startStepRun, endStepRun, createForks, getJoinThreads } from './stepRun'
 import syncWorkflow from './syncWorkflow'
-import { createTask, readTask, updateTask, deleteTask } from './task'
+import { createTask, readTask, readTaskVersions, updateTask, deleteTask } from './task'
 import {
   branchWorkflow,
   forkWorkflow,
@@ -57,6 +57,7 @@ export default {
   syncWorkflow,
   createTask,
   readTask,
+  readTaskVersions,
   updateTask,
   deleteTask,
   branchWorkflow,

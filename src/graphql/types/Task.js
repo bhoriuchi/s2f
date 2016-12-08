@@ -37,6 +37,15 @@ export default {
           date: { type: 'FactoryDateTime' }
         },
         resolve: 'readTask'
+      },
+      readTaskVersions: {
+        type: ['Task'],
+        args: {
+          recordId: { type: 'String', nullable: false },
+          limit: { type: 'Int' },
+          offset: { type: 'Int' }
+        },
+        resolve: 'readTaskVersions'
       }
     },
     mutation: {
