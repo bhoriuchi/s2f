@@ -101,6 +101,7 @@ export default {
         args: {
           id: { type: 'String', nullable: false },
           name: { type: 'String', nullable: false },
+          owner: { type: 'String' },
           changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'branchWorkflow'
@@ -110,6 +111,7 @@ export default {
         args: {
           id: { type: 'String', nullable: false },
           name: { type: 'String', nullable: false },
+          owner: { type: 'String' },
           changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'forkWorkflow'
@@ -126,6 +128,7 @@ export default {
       syncWorkflow: {
         type: 'Workflow',
         args: {
+          owner: { type: 'String' },
           id: { type: 'String', nullable: false },
           name: { type: 'String', nullable: false },
           description: { type: 'String' },

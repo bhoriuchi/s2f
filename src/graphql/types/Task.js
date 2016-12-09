@@ -74,6 +74,35 @@ export default {
           id: { type: 'String', nullable: false }
         },
         resolve: 'deleteTask'
+      },
+      branchTask: {
+        type: 'Task',
+        args: {
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          owner: { type: 'String' },
+          changeLog: { type: 'TemporalChangeLogInput' }
+        },
+        resolve: 'branchTemporalTask'
+      },
+      forkTask: {
+        type: 'Task',
+        args: {
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          owner: { type: 'String' },
+          changeLog: { type: 'TemporalChangeLogInput' }
+        },
+        resolve: 'forkTemporalTask'
+      },
+      publishTask: {
+        type: 'Task',
+        args: {
+          id: { type: 'String', nullable: false },
+          version: { type: 'String' },
+          changeLog: { type: 'TemporalChangeLogInput' }
+        },
+        resolve: 'publishTemporalTask'
       }
     }
   }

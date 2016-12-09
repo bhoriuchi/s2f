@@ -99,8 +99,9 @@ export function cloneWorkflow (type, backend, args) {
         .then((uuids) => {
           _.forEach(uuids, (m) => idmap[m.orig] = m.cur)
 
-          let { newWorkflow, newSteps, newParams } = remapObjects(wf, idmap)
+          let { newWorkflow, newSteps, newParams } = remapObjects(wf, idmap, args)
           newWorkflow._temporal.name = args.name || newWorkflow.id
+          newWorkflow._temporal.owner = args.owner || null
           newWorkflow._temporal.changeLog.push(_.merge(args.changeLog || { user: 'SYSTEM', message: type }, {
             date: r.now(),
             type: type === 'branch' ? 'BRANCH' : 'FORK'

@@ -56,15 +56,24 @@ export default function syncWorkflow (backend) {
     let step = backend.getTypeCollection('Step')
     let folder = backend.getTypeCollection('Folder')
     let membership = backend.getTypeCollection('FolderMembership')
+    let owner = args.owner || null
 
     let makeTemporal = (obj, recordId) => {
       return _.merge(obj, {
         _temporal: {
-          changeLog: [],
           recordId,
+          name: 'initial',
           validFrom: null,
           validTo: null,
-          version: null
+          version: null,
+          owner,
+          changeLog: [
+            {
+              type: 'CREATE',
+              user: owner,
+              message: 'created workflow'
+            }
+          ]
         }
       })
     }
@@ -89,7 +98,10 @@ export default function syncWorkflow (backend) {
           isNewWorkflow = true
           makeTemporal(wfObj, ids.recordId)
         }
-        _.set(op, `["${wfOp}"].workflow["${wfId}"]`, _.merge({}, _.omit(args, ['parameters', 'steps']), wfObj))
+        _.set(op, `["${wfOp}"].workflow["${wfId}"]`, _.merge(
+          {},
+          _.omit(args, ['parameters', 'steps', '_temporal.owner', '_temporal.name']), wfObj)
+        )
 
         // re-map attributes
         _.forEach(args.parameters, (param) => {

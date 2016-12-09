@@ -793,6 +793,35 @@ var Task = {
           id: { type: 'String', nullable: false }
         },
         resolve: 'deleteTask'
+      },
+      branchTask: {
+        type: 'Task',
+        args: {
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          owner: { type: 'String' },
+          changeLog: { type: 'TemporalChangeLogInput' }
+        },
+        resolve: 'branchTemporalTask'
+      },
+      forkTask: {
+        type: 'Task',
+        args: {
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          owner: { type: 'String' },
+          changeLog: { type: 'TemporalChangeLogInput' }
+        },
+        resolve: 'forkTemporalTask'
+      },
+      publishTask: {
+        type: 'Task',
+        args: {
+          id: { type: 'String', nullable: false },
+          version: { type: 'String' },
+          changeLog: { type: 'TemporalChangeLogInput' }
+        },
+        resolve: 'publishTemporalTask'
       }
     }
   }
@@ -901,6 +930,7 @@ var Workflow = {
         args: {
           id: { type: 'String', nullable: false },
           name: { type: 'String', nullable: false },
+          owner: { type: 'String' },
           changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'branchWorkflow'
@@ -910,6 +940,7 @@ var Workflow = {
         args: {
           id: { type: 'String', nullable: false },
           name: { type: 'String', nullable: false },
+          owner: { type: 'String' },
           changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'forkWorkflow'
@@ -926,6 +957,7 @@ var Workflow = {
       syncWorkflow: {
         type: 'Workflow',
         args: {
+          owner: { type: 'String' },
           id: { type: 'String', nullable: false },
           name: { type: 'String', nullable: false },
           description: { type: 'String' },
@@ -2019,15 +2051,22 @@ function syncWorkflow(backend) {
     var step = backend.getTypeCollection('Step');
     var folder = backend.getTypeCollection('Folder');
     var membership = backend.getTypeCollection('FolderMembership');
+    var owner = args.owner || null;
 
     var makeTemporal = function makeTemporal(obj, recordId) {
       return _.merge(obj, {
         _temporal: {
-          changeLog: [],
           recordId: recordId,
+          name: 'initial',
           validFrom: null,
           validTo: null,
-          version: null
+          version: null,
+          owner: owner,
+          changeLog: [{
+            type: 'CREATE',
+            user: owner,
+            message: 'created workflow'
+          }]
         }
       });
     };
@@ -2054,7 +2093,7 @@ function syncWorkflow(backend) {
         isNewWorkflow = true;
         makeTemporal(wfObj, ids.recordId);
       }
-      _.set(op, '["' + wfOp + '"].workflow["' + wfId + '"]', _.merge({}, _.omit(args, ['parameters', 'steps']), wfObj));
+      _.set(op, '["' + wfOp + '"].workflow["' + wfId + '"]', _.merge({}, _.omit(args, ['parameters', 'steps', '_temporal.owner', '_temporal.name']), wfObj));
 
       // re-map attributes
       _.forEach(args.parameters, function (param) {
@@ -2367,13 +2406,14 @@ function cloneWorkflow(type, backend, args) {
         return idmap[m.orig] = m.cur;
       });
 
-      var _remapObjects = remapObjects(wf, idmap);
+      var _remapObjects = remapObjects(wf, idmap, args);
 
       var newWorkflow = _remapObjects.newWorkflow;
       var newSteps = _remapObjects.newSteps;
       var newParams = _remapObjects.newParams;
 
       newWorkflow._temporal.name = args.name || newWorkflow.id;
+      newWorkflow._temporal.owner = args.owner || null;
       newWorkflow._temporal.changeLog.push(_.merge(args.changeLog || { user: 'SYSTEM', message: type }, {
         date: r.now(),
         type: type === 'branch' ? 'BRANCH' : 'FORK'
@@ -4270,7 +4310,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 
