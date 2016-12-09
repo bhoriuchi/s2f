@@ -99,6 +99,7 @@ var Folder = {
 var FolderChildTypeEnum = {
   type: 'Enum',
   values: {
+    ROOT: 'ROOT',
     WORKFLOW: 'WORKFLOW',
     TASK: 'TASK'
   }
@@ -822,6 +823,19 @@ var Task = {
           changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'publishTemporalTask'
+      },
+      syncTask: {
+        type: 'Task',
+        args: {
+          owner: { type: 'String' },
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          description: { type: 'String' },
+          source: { type: 'String', nullable: false },
+          folder: { type: 'String' },
+          parameters: ['SyncParameterInput']
+        },
+        resolve: 'syncTask'
       }
     }
   }
@@ -1993,12 +2007,14 @@ var possibleConstructorReturn = function (self, call) {
 
 var UPDATE = 'update';
 var INSERT = 'insert';
+
 var END = StepTypeEnum.values.END;
 var _EntityTypeEnum$value = EntityTypeEnum.values;
 var PARAMETER = _EntityTypeEnum$value.PARAMETER;
 var WORKFLOW$1 = _EntityTypeEnum$value.WORKFLOW;
 var STEP = _EntityTypeEnum$value.STEP;
 
+var FolderType = FolderChildTypeEnum.values;
 
 function isNewId(id) {
   return id.match(/^new:/) !== null;
@@ -2205,8 +2221,16 @@ function syncWorkflow(backend) {
       })
       // folder updates
       .do(function () {
-        return folder.get(args.folder || '').ne(null).branch(r.expr(isNewWorkflow).branch(membership.insert({ folder: args.folder, childId: ids.recordId, childType: 'WORKFLOW' }), membership.get(ids.recordId).update({ folder: args.folder })), folder.filter({ type: 'WORKFLOW', parent: 'ROOT' }).nth(0).do(function (rootFolder) {
-          return r.expr(isNewWorkflow).branch(membership.insert({ folder: rootFolder('id'), childId: ids.recordId, childType: 'WORKFLOW' }), membership.get(ids.recordId).update({ folder: rootFolder('id') }));
+        return folder.get(args.folder || '').ne(null).branch(r.expr(isNewWorkflow).branch(membership.insert({
+          folder: args.folder,
+          childId: ids.recordId,
+          childType: FolderType.WORKFLOW
+        }), membership.get(ids.recordId).update({ folder: args.folder })), folder.filter({ type: FolderType.WORKFLOW, parent: FolderType.ROOT }).nth(0).do(function (rootFolder) {
+          return r.expr(isNewWorkflow).branch(membership.insert({
+            folder: rootFolder('id'),
+            childId: ids.recordId,
+            childType: FolderType.WORKFLOW
+          }), membership.get(ids.recordId).update({ folder: rootFolder('id') }));
         }));
       })
       // remove steps that no longer exist
@@ -2231,6 +2255,160 @@ function syncWorkflow(backend) {
         });
       }).do(function () {
         return workflow.get(wfId);
+      }).run(connection);
+    });
+  };
+}
+
+var UPDATE$1 = 'update';
+var INSERT$1 = 'insert';
+
+var _EntityTypeEnum$value$1 = EntityTypeEnum.values;
+var PARAMETER$1 = _EntityTypeEnum$value$1.PARAMETER;
+var TASK$1 = _EntityTypeEnum$value$1.TASK;
+
+var FolderType$1 = FolderChildTypeEnum.values;
+
+function isNewId$1(id) {
+  return id.match(/^new:/) !== null;
+}
+
+function mapIds$1(args, r, task) {
+  var id = arguments.length <= 3 || arguments[3] === undefined ? '' : arguments[3];
+
+  var ids = {
+    recordId: task.get(id).eq(null).branch(r.uuid(), task.get(id)('_temporal')('recordId'))
+  };
+
+  // task id
+  ids[args.id] = isNewId$1(args.id) ? { op: INSERT$1, id: r.uuid() } : { op: UPDATE$1, id: args.id };
+
+  // task parameters
+  _.forEach(args.parameters, function (param) {
+    ids[param.id] = isNewId$1(param.id) ? { op: INSERT$1, id: r.uuid() } : { op: UPDATE$1, id: param.id };
+  });
+
+  return ids;
+}
+
+function getOp$1(ids, uuid, prefix) {
+  var _ref;
+
+  var _$get = _.get(ids, uuid, {});
+
+  var op = _$get.op;
+  var id = _$get.id;
+
+  return _ref = {}, defineProperty(_ref, prefix + 'Id', id), defineProperty(_ref, prefix + 'Op', op), _ref;
+}
+
+function syncTask(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var task = backend.getTypeCollection('Task');
+    var parameter = backend.getTypeCollection('Parameter');
+    var folder = backend.getTypeCollection('Folder');
+    var membership = backend.getTypeCollection('FolderMembership');
+    var owner = args.owner || null;
+
+    var makeTemporal = function makeTemporal(obj, recordId) {
+      return _.merge(obj, {
+        _temporal: {
+          recordId: recordId,
+          name: 'initial',
+          validFrom: null,
+          validTo: null,
+          version: null,
+          owner: owner,
+          changeLog: [{
+            type: 'CREATE',
+            user: owner,
+            message: 'created workflow'
+          }]
+        }
+      });
+    };
+
+    return r.expr(mapIds$1(args, r, task, args.id)).run(connection).then(function (ids) {
+      var _op;
+
+      var isNewTask = false;
+      var mutations = [];
+      var params = [];
+      var op = (_op = {}, defineProperty(_op, INSERT$1, { task: {}, parameter: {} }), defineProperty(_op, UPDATE$1, { task: {}, parameter: {} }), _op);
+
+      // re-map workflow
+
+      var _getOp = getOp$1(ids, args.id, 'task');
+
+      var taskId = _getOp.taskId;
+      var taskOp = _getOp.taskOp;
+
+      var taskObj = { id: taskId, entityType: TASK$1 };
+
+      if (taskOp === INSERT$1) {
+        isNewTask = true;
+        makeTemporal(taskObj, ids.recordId);
+      }
+      _.set(op, '["' + taskOp + '"].task["' + taskId + '"]', _.merge({}, _.omit(args, ['parameters', 'steps', '_temporal.owner', '_temporal.name']), taskObj));
+
+      // re-map parameters
+      _.forEach(args.parameters, function (param) {
+        var _getOp2 = getOp$1(ids, param.id, 'param');
+
+        var paramId = _getOp2.paramId;
+        var paramOp = _getOp2.paramOp;
+
+        params.push(paramId);
+        _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
+          id: paramId,
+          parentId: taskId,
+          scope: ParameterScopeEnum.TASK,
+          entityType: PARAMETER$1
+        }));
+      });
+
+      // create a flattened array of actions
+      _.forEach(op, function (colls, opName) {
+        _.forEach(colls, function (coll, collName) {
+          _.forEach(coll, function (obj, objId) {
+            mutations.push({
+              id: objId,
+              op: opName,
+              collection: collName,
+              data: obj
+            });
+          });
+        });
+      });
+
+      // process all mutations
+      return r.expr(mutations).forEach(function (m) {
+        return m('op').eq(INSERT$1).branch(r.branch(m('collection').eq('task'), task.insert(m('data')), parameter.insert(m('data'))), r.branch(m('collection').eq('task'), task.get(m('id')).update(m('data')), parameter.get(m('id')).update(m('data'))));
+      })
+      // folder updates
+      .do(function () {
+        return folder.get(args.folder || '').ne(null).branch(r.expr(isNewTask).branch(membership.insert({
+          folder: args.folder,
+          childId: ids.recordId,
+          childType: FolderType$1.TASK
+        }), membership.get(ids.recordId).update({ folder: args.folder })), folder.filter({ type: FolderType$1.TASK, parent: FolderType$1.ROOT }).nth(0).do(function (rootFolder) {
+          return r.expr(isNewTask).branch(membership.insert({
+            folder: rootFolder('id'),
+            childId: ids.recordId,
+            childType: FolderType$1.TASK
+          }), membership.get(ids.recordId).update({ folder: rootFolder('id') }));
+        }));
+      })
+      // remove parameters that are no longer used
+      .do(function () {
+        return parameter.filter({ parentId: taskId }).filter(function (p) {
+          return r.expr(params).contains(p('id')).not();
+        }).delete();
+      }).do(function () {
+        return task.get(taskId);
       }).run(connection);
     });
   };
@@ -2327,7 +2505,7 @@ function deleteTask(backend) {
 }
 
 var _StepTypeEnum$values$1 = StepTypeEnum.values;
-var TASK$1 = _StepTypeEnum$values$1.TASK;
+var TASK$2 = _StepTypeEnum$values$1.TASK;
 var WORKFLOW$2 = _StepTypeEnum$values$1.WORKFLOW;
 var _ParameterClassEnum$v = ParameterClassEnum.values;
 var INPUT$1 = _ParameterClassEnum$v.INPUT;
@@ -2867,6 +3045,7 @@ var functions = {
   createForks: createForks,
   getJoinThreads: getJoinThreads,
   syncWorkflow: syncWorkflow,
+  syncTask: syncTask,
   createTask: createTask,
   readTask: readTask,
   readTaskVersions: readTaskVersions,
@@ -2890,7 +3069,7 @@ var functions = {
 
 var _StepTypeEnum$values$2 = StepTypeEnum.values;
 var BASIC$1 = _StepTypeEnum$values$2.BASIC;
-var TASK$3 = _StepTypeEnum$values$2.TASK;
+var TASK$4 = _StepTypeEnum$values$2.TASK;
 var WORKFLOW$4 = _StepTypeEnum$values$2.WORKFLOW;
 var _RunStatusEnum$values$2 = RunStatusEnum.values;
 var FAIL = _RunStatusEnum$values$2.FAIL;
@@ -2934,7 +3113,7 @@ function computeWorkflowStatus(payload, done) {
       }, []);
 
       var success = _.reduce(stepRuns, function (left, stepRun) {
-        var failable = _.includes([BASIC$1, TASK$3, WORKFLOW$4], stepRun.type);
+        var failable = _.includes([BASIC$1, TASK$4, WORKFLOW$4], stepRun.type);
         var stepSuccess = !(stepRun.failsWorkflow && failable && stepRun.status !== FAIL);
         return left && stepSuccess;
       }, true);
@@ -3318,7 +3497,7 @@ var FORK$1 = _StepTypes$values.FORK;
 var JOIN = _StepTypes$values.JOIN;
 var LOOP = _StepTypes$values.LOOP;
 var START = _StepTypes$values.START;
-var TASK$2 = _StepTypes$values.TASK;
+var TASK$3 = _StepTypes$values.TASK;
 var WORKFLOW$3 = _StepTypes$values.WORKFLOW;
 
 
@@ -3360,7 +3539,7 @@ function runStep(backend) {
             case END$1:
             case BASIC:
               return runSource.call(backend, payload, done);
-            case TASK$2:
+            case TASK$3:
               return runSource.call(backend, payload, done);
             case LOOP:
               return runSource.call(backend, payload, done);

@@ -1,13 +1,14 @@
 import _ from 'lodash'
-const UPDATE = 'update'
-const INSERT = 'insert'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
 import EntityTypeEnum from '../../../graphql/types/EntityTypeEnum'
 import ParameterScopeEnum from '../../../graphql/types/ParameterScopeEnum'
-import chalk from 'chalk'
+import FolderChildTypeEnum from '../../../graphql/types/FolderChildTypeEnum'
+const UPDATE = 'update'
+const INSERT = 'insert'
 
 let { values: { END } } = StepTypeEnum
 let { values: { PARAMETER, WORKFLOW, STEP } } = EntityTypeEnum
+let FolderType = FolderChildTypeEnum.values
 
 export function isNewId (id) {
   return id.match(/^new:/) !== null
@@ -209,14 +210,22 @@ export default function syncWorkflow (backend) {
           .do(() => {
             return folder.get(args.folder || '').ne(null).branch(
               r.expr(isNewWorkflow).branch(
-                membership.insert({ folder: args.folder, childId: ids.recordId, childType: 'WORKFLOW' }),
+                membership.insert({
+                  folder: args.folder,
+                  childId: ids.recordId,
+                  childType: FolderType.WORKFLOW
+                }),
                 membership.get(ids.recordId).update({ folder: args.folder })
               ),
-              folder.filter({ type: 'WORKFLOW', parent: 'ROOT' })
+              folder.filter({ type: FolderType.WORKFLOW, parent: FolderType.ROOT })
                 .nth(0)
                 .do((rootFolder) => {
                   return r.expr(isNewWorkflow).branch(
-                    membership.insert({ folder: rootFolder('id'), childId: ids.recordId, childType: 'WORKFLOW' }),
+                    membership.insert({
+                      folder: rootFolder('id'),
+                      childId: ids.recordId,
+                      childType: FolderType.WORKFLOW
+                    }),
                     membership.get(ids.recordId).update({ folder: rootFolder('id') })
                   )
                 })

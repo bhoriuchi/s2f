@@ -103,6 +103,19 @@ export default {
           changeLog: { type: 'TemporalChangeLogInput' }
         },
         resolve: 'publishTemporalTask'
+      },
+      syncTask: {
+        type: 'Task',
+        args: {
+          owner: { type: 'String' },
+          id: { type: 'String', nullable: false },
+          name: { type: 'String', nullable: false },
+          description: { type: 'String' },
+          source: { type: 'String', nullable: false },
+          folder: { type: 'String' },
+          parameters: ['SyncParameterInput']
+        },
+        resolve: 'syncTask'
       }
     }
   }
