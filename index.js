@@ -2078,6 +2078,7 @@ function syncWorkflow(backend) {
       var mutations = [];
       var forks = [];
       var steps = [];
+      var params = {};
       var endStep = args.endStep;
       var op = (_op = {}, defineProperty(_op, INSERT, { workflow: {}, parameter: {}, step: {} }), defineProperty(_op, UPDATE, { workflow: {}, parameter: {}, step: {} }), _op);
 
@@ -2089,6 +2090,7 @@ function syncWorkflow(backend) {
       var wfOp = _getOp.wfOp;
 
       var wfObj = { id: wfId, entityType: WORKFLOW$1 };
+      params[wfId] = [];
       if (wfOp === INSERT) {
         isNewWorkflow = true;
         makeTemporal(wfObj, ids.recordId);
@@ -2102,6 +2104,7 @@ function syncWorkflow(backend) {
         var paramId = _getOp2.paramId;
         var paramOp = _getOp2.paramOp;
 
+        params[wfId].push(paramId);
         _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
           id: paramId,
           parentId: wfId,
@@ -2117,6 +2120,7 @@ function syncWorkflow(backend) {
         var stepId = _getOp3.stepId;
         var stepOp = _getOp3.stepOp;
 
+        params[stepId] = [];
         steps.push(stepId);
         if (step.type === END) endStep = stepId;
         var stepObj = {
@@ -2138,6 +2142,7 @@ function syncWorkflow(backend) {
           var paramId = _getOp4.paramId;
           var paramOp = _getOp4.paramOp;
 
+          params[stepId].push(paramId);
           _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
             id: paramId,
             parentId: stepId,
@@ -2208,7 +2213,22 @@ function syncWorkflow(backend) {
       .do(function () {
         return step.filter({ workflowId: wfId }).filter(function (st) {
           return r.expr(steps).contains(st('id')).not();
-        }).delete();
+        }).forEach(function (st) {
+          return parameter.filter({ parentId: st('id') }).delete().do(function () {
+            return step.get(st('id')).delete();
+          });
+        });
+      })
+      // remove parameters that are no longer used
+      .do(function () {
+        var paramMap = _.map(params, function (parameters, parentId) {
+          return { parentId: parentId, parameters: parameters };
+        });
+        return r.expr(paramMap).forEach(function (p) {
+          return parameter.filter({ parentId: p('parentId') }).filter(function (pm) {
+            return p('parameters').contains(pm('id')).not();
+          }).delete();
+        });
       }).do(function () {
         return workflow.get(wfId);
       }).run(connection);
@@ -4310,7 +4330,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 

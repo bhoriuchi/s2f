@@ -85,6 +85,7 @@ export default function syncWorkflow (backend) {
         let mutations = []
         let forks = []
         let steps = []
+        let params = {}
         let endStep = args.endStep
         let op = {
           [INSERT]: { workflow: {}, parameter: {}, step: {} },
@@ -94,6 +95,7 @@ export default function syncWorkflow (backend) {
         // re-map workflow
         let { wfId, wfOp } = getOp(ids, args.id, 'wf')
         let wfObj = { id: wfId, entityType: WORKFLOW }
+        params[wfId] = []
         if (wfOp === INSERT) {
           isNewWorkflow = true
           makeTemporal(wfObj, ids.recordId)
@@ -106,6 +108,7 @@ export default function syncWorkflow (backend) {
         // re-map attributes
         _.forEach(args.parameters, (param) => {
           let { paramId, paramOp } = getOp(ids, param.id, 'param')
+          params[wfId].push(paramId)
           _.set(op, `["${paramOp}"].parameter["${paramId}"]`, _.merge({}, param, {
             id: paramId,
             parentId: wfId,
@@ -117,6 +120,7 @@ export default function syncWorkflow (backend) {
         // re-map steps
         _.forEach(args.steps, (step) => {
           let { stepId, stepOp } = getOp(ids, step.id, 'step')
+          params[stepId] = []
           steps.push(stepId)
           if (step.type === END) endStep = stepId
           let stepObj = {
@@ -134,6 +138,7 @@ export default function syncWorkflow (backend) {
           // re-map step params
           _.forEach(step.parameters, (param) => {
             let { paramId, paramOp } = getOp(ids, param.id, 'param')
+            params[stepId].push(paramId)
             _.set(op, `["${paramOp}"].parameter["${paramId}"]`, _.merge({}, param, {
               id: paramId,
               parentId: stepId,
@@ -221,7 +226,22 @@ export default function syncWorkflow (backend) {
           .do(() => {
             return step.filter({ workflowId: wfId })
               .filter((st) => r.expr(steps).contains(st('id')).not())
-              .delete()
+              .forEach((st) => {
+                return parameter.filter({ parentId: st('id') })
+                  .delete()
+                  .do(() => {
+                    return step.get(st('id')).delete()
+                  })
+              })
+          })
+          // remove parameters that are no longer used
+          .do(() => {
+            let paramMap = _.map(params, (parameters, parentId) => ({ parentId, parameters }))
+            return r.expr(paramMap).forEach((p) => {
+              return parameter.filter({ parentId: p('parentId') })
+                .filter((pm) => p('parameters').contains(pm('id')).not())
+                .delete()
+            })
           })
           .do(() => workflow.get(wfId))
           .run(connection)
