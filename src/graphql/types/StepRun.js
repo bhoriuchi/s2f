@@ -29,6 +29,9 @@ export default {
     },
     status: {
       type: 'RunStatusEnum'
+    },
+    taskId: {
+      type: 'String'
     }
   },
   _backend: {
@@ -39,7 +42,8 @@ export default {
         type: 'StepRun',
         args: {
           step: { type: 'String', nullable: false },
-          workflowRunThread: { type: 'String', nullable: false }
+          workflowRunThread: { type: 'String', nullable: false },
+          taskId: { type: 'String' }
         },
         resolve: 'createStepRun'
       },
@@ -48,6 +52,7 @@ export default {
         args: {
           id: { type: 'String', nullable: false },
           status: { type: 'RunStatusEnum'},
+          taskId: { type: 'String' },
           ended: { type: 'FactoryDateTime' }
         },
         resolve: 'updateStepRun'
@@ -62,7 +67,8 @@ export default {
       startStepRun: {
         type: 'Boolean',
         args: {
-          id: { type: 'String', nullable: false }
+          id: { type: 'String', nullable: false },
+          taskId: { type: 'String' }
         },
         resolve: 'startStepRun'
       },

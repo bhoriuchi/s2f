@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import obj2arg from 'graphql-obj2arg'
 import setStepStatus from './setStepStatus'
 import endWorkflow from './endWorkflow'
 import nextStepRun from './nextStepRun'
@@ -13,7 +14,6 @@ let { values: { CONDITION, LOOP } } = StepTypeEnum
 export default function handleContext (payload, done) {
   return (ctx) => {
 
-    let { toObjectString } = this.factory.utils
     let { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId } = payload
     let { async, source, timeout, failsWorkflow, waitOnSuccess, success, fail, parameters } = step
     fail = fail || endStep
@@ -52,7 +52,7 @@ export default function handleContext (payload, done) {
     })
 
     return this.lib.S2FWorkflow(`mutation Mutation {
-      updateAttributeValues (values: ${toObjectString(outputs)})
+      updateAttributeValues (values: ${obj2arg(outputs)})
     }`)
       .then(() => {
         return setStepStatus.call(this, stepRunId, status)

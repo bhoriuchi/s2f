@@ -3,11 +3,19 @@ import obj2arg from 'graphql-obj2arg'
 import createWorkflowRun from './createWorkflowRun'
 import { gqlResult, convertType } from '../common'
 
+import chalk from 'chalk'
+
 export default function startWorkflow (backend) {
-  return function (runner, context = {}, done) {
-    let { args, input, parent } = context
+  return function (runner, task, done) {
+    let { context: { args, input, parent } } = task
+    let taskId = task.id
+
     input = input || {}
     if (!args) return done(new Error('No context was supplied'))
+
+    console.log(chalk.cyan('==========================='))
+    console.log(chalk.cyan(JSON.stringify(task, null, '  ')))
+    console.log(chalk.cyan('==========================='))
 
     return backend.lib.S2FWorkflow(`{
       readWorkflow (${obj2arg(args, { noOuterBraces: true })}) {
@@ -22,7 +30,10 @@ export default function startWorkflow (backend) {
           type,
           async,
           source,
-          subWorkflow { id },
+          subWorkflow {
+            _temporal { recordId },
+            id
+          },
           timeout,
           failsWorkflow,
           waitOnSuccess,
@@ -51,7 +62,7 @@ export default function startWorkflow (backend) {
         }
 
         // run the
-        return createWorkflowRun.call(backend, runner, { args, input, parent }, done, wf)
+        return createWorkflowRun.call(backend, runner, { taskId, args, input, parent }, done, wf)
       }))
       .catch((err) => {
         console.log(err)

@@ -373,8 +373,7 @@ var Step = {
     },
     timeout: {
       description: 'Time in ms to allow the step to run before timing out',
-      type: 'Int',
-      nullable: false
+      type: 'Int'
     },
     failsWorkflow: {
       description: 'If true and this step fails, the workflow will be considered failed',
@@ -3096,34 +3095,29 @@ var JOINED$1 = _RunStatusEnum$values$2.JOINED;
 function computeWorkflowStatus(payload, done) {
   var _this = this;
 
-  var runner = payload.runner;
   var workflowRun = payload.workflowRun;
   var thread = payload.thread;
-  var endStep = payload.endStep;
-  var localCtx = payload.localCtx;
-  var context = payload.context;
-  var args = payload.args;
   var step = payload.step;
-  var stepRunId = payload.stepRunId;
-  var async = step.async;
-  var source = step.source;
-  var timeout = step.timeout;
   var failsWorkflow = step.failsWorkflow;
-  var waitOnSuccess = step.waitOnSuccess;
   var success = step.success;
-  var fail = step.fail;
-  var parameters = step.parameters;
 
 
   this.log.trace({ workflowRun: workflowRun }, 'attempting to complete workflow run computation');
 
-  return this.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      threads {\n        stepRuns {\n          step { type, failsWorkflow }\n          status\n        }\n      }\n    }\n  }').then(function (result) {
+  return this.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      context {\n        parameter { name },\n        value\n      },\n      threads {\n        stepRuns {\n          step { type, failsWorkflow }\n          status\n        }\n      }\n    }\n  }').then(function (result) {
     return gqlResult(_this, result, function (err, data) {
       if (err) throw err;
-
+      var localCtx = {};
       var threads = _.get(data, 'readWorkflowRun[0].threads');
       if (!threads) throw new Error('No threads found');
 
+      // get the local context
+      _.forEach(_.get(data, 'readWorkflowRun[0].context'), function (ctx) {
+        var name = _.get(ctx, 'parameter.name');
+        if (name && _.has(ctx, 'value')) localCtx[name] = ctx.value;
+      });
+
+      // reduce the step runs to determine the fail status
       var stepRuns = _.reduce(threads, function (left, right) {
         return _.union(left, _.get(right, 'stepRuns', []));
       }, []);
@@ -3134,17 +3128,19 @@ function computeWorkflowStatus(payload, done) {
         return left && stepSuccess;
       }, true);
 
+      var status = success ? SUCCESS : FAIL;
+
       return _this.lib.S2FWorkflow('mutation Mutation {\n        updateWorkflowRunThread (id: "' + thread + '", status: ' + JOINED$1 + ')\n        { id }\n      }').then(function (result) {
         return gqlResult(_this, result, function (err, data) {
           if (err) throw err;
 
           _this.log.trace({ workflowRun: workflowRun }, 'joined final thread');
 
-          return _this.lib.S2FWorkflow('mutation Mutation {\n            endWorkflowRun (id: "' + workflowRun + '", status: ' + (success ? SUCCESS : FAIL) + ')\n          }').then(function (result) {
+          return _this.lib.S2FWorkflow('mutation Mutation {\n            endWorkflowRun (id: "' + workflowRun + '", status: ' + status + ')\n          }').then(function (result) {
             return gqlResult(_this, result, function (err, data) {
               if (err) throw err;
               _this.log.debug({ workflowRun: workflowRun, success: success }, 'workflow run completed');
-              return done();
+              return done(null, status, { context: localCtx });
             });
           });
         });
@@ -3336,7 +3332,6 @@ function handleContext(payload, done) {
   var _this = this;
 
   return function (ctx) {
-    var toObjectString = _this.factory.utils.toObjectString;
     var runner = payload.runner;
     var workflowRun = payload.workflowRun;
     var thread = payload.thread;
@@ -3390,7 +3385,7 @@ function handleContext(payload, done) {
       }
     });
 
-    return _this.lib.S2FWorkflow('mutation Mutation {\n      updateAttributeValues (values: ' + toObjectString(outputs) + ')\n    }').then(function () {
+    return _this.lib.S2FWorkflow('mutation Mutation {\n      updateAttributeValues (values: ' + obj2arg(outputs) + ')\n    }').then(function () {
       return setStepStatus.call(_this, stepRunId, status).then(function () {
         if (nextStep === endStep) return endWorkflow.call(_this, payload, done);else if (!async) return nextStepRun.call(_this, { thread: thread, workflowRun: workflowRun, nextStep: nextStep, async: async }, done);
         done();
@@ -3457,7 +3452,7 @@ function runSource(payload, done) {
       // non-async or last step
       if (!async || success === endStep) return run;
 
-      // since run has already been called, we just remove the resolve dependency from nextStep
+      // async - since run has already been called, we just remove the resolve dependency from nextStep
       return nextStepRun.call(_this2, { thread: thread, workflowRun: workflowRun, nextStep: success, async: async }, done);
     });
   }).catch(function (error) {
@@ -3525,9 +3520,11 @@ function runSubWorkflow(payload, done) {
     return gqlResult(_this, result, function (err, data) {
       if (err) throw err;
 
-      return startWorkflow.call(_this, runner, {
+      console.log(chalk.magenta(JSON.stringify(data, null, '  ')));
+
+      return startWorkflow(_this)(runner, {
         args: {
-          recordId: _.get(subWorkflow, 'id'),
+          recordId: _.get(subWorkflow, '_temporal.recordId'),
           date: args.date,
           version: args.version
         },
@@ -3543,25 +3540,24 @@ function runSubWorkflow(payload, done) {
 var _StepTypes$values = StepTypeEnum.values;
 var BASIC = _StepTypes$values.BASIC;
 var CONDITION = _StepTypes$values.CONDITION;
-var END$2 = _StepTypes$values.END;
 var FORK$1 = _StepTypes$values.FORK;
 var JOIN = _StepTypes$values.JOIN;
 var LOOP = _StepTypes$values.LOOP;
-var START = _StepTypes$values.START;
 var TASK$3 = _StepTypes$values.TASK;
 var WORKFLOW$3 = _StepTypes$values.WORKFLOW;
 
 
 function runStep(backend) {
-  return function (runner) {
-    var context = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
-    var done = arguments[2];
-    var workflowRun = context.workflowRun;
-    var thread = context.thread;
+  return function (runner, task, done) {
+    var _task$context = task.context;
+    var workflowRun = _task$context.workflowRun;
+    var thread = _task$context.thread;
+
+    var taskId = task.id;
 
     if (!workflowRun || !thread) return done(new Error('No workflow run or main thread created'));
 
-    return backend.lib.S2FWorkflow('{\n      readWorkflowRun (id: "' + workflowRun + '") {\n        workflow { endStep { id } },\n        args,\n        input,\n        context {\n          id,\n          parameter { id, name, type, scope, class },\n          value\n        },\n        threads (id: "' + thread + '") {\n          currentStepRun {\n            id,\n            step {\n              id,\n              type,\n              async,\n              source,\n              subWorkflow { id },\n              timeout,\n              failsWorkflow,\n              waitOnSuccess,\n              requireResumeKey,\n              success,\n              fail,\n              parameters { id, name, type, scope, class, mapsTo }\n            }\n          }\n        }\n      }\n    }').then(function (result) {
+    return backend.lib.S2FWorkflow('{\n      readWorkflowRun (id: "' + workflowRun + '") {\n        workflow { endStep { id } },\n        args,\n        input,\n        context {\n          id,\n          parameter { id, name, type, scope, class },\n          value\n        },\n        threads (id: "' + thread + '") {\n          currentStepRun {\n            id,\n            step {\n              id,\n              type,\n              async,\n              source,\n              subWorkflow {\n                _temporal { recordId },\n                id\n              },\n              timeout,\n              failsWorkflow,\n              waitOnSuccess,\n              requireResumeKey,\n              success,\n              fail,\n              parameters { id, name, type, scope, class, mapsTo }\n            }\n          }\n        }\n      }\n    }').then(function (result) {
       return gqlResult(backend, result, function (err, data) {
         if (err) throw err;
 
@@ -3584,12 +3580,21 @@ function runStep(backend) {
         var localCtx = mapInput(input, context, _.get(step, 'parameters', []));
 
         // everything is ready to run the task, set the task to running
-        return backend.lib.S2FWorkflow('mutation Mutation { startStepRun (id: "' + stepRunId + '") }').then(function (res) {
-          var payload = { runner: runner, workflowRun: workflowRun, thread: thread, endStep: endStep, localCtx: localCtx, context: context, args: args, step: step, stepRunId: stepRunId };
+        return backend.lib.S2FWorkflow('mutation Mutation { startStepRun (id: "' + stepRunId + '") }').then(function () {
+          var payload = {
+            runner: runner,
+            taskId: taskId,
+            workflowRun: workflowRun,
+            thread: thread,
+            endStep: endStep,
+            localCtx: localCtx,
+            context: context,
+            args: args,
+            step: step,
+            stepRunId: stepRunId
+          };
 
           switch (step.type) {
-            // case START:
-            // case END:
             case BASIC:
               return runSource.call(backend, payload, done);
             case TASK$3:
@@ -3622,6 +3627,7 @@ function runStep(backend) {
 function createWorkflowRun$1(runner, context, done, wf) {
   var _this = this;
 
+  var id = context.id;
   var args = context.args;
   var input = context.input;
   var parent = context.parent;
@@ -3654,7 +3660,7 @@ function createWorkflowRun$1(runner, context, done, wf) {
       if (err) throw err;
       var workflowRun = _.get(data, 'createWorkflowRun.id');
       var thread = _.get(data, 'createWorkflowRun.threads[0].id');
-      return runStep(_this)(runner, { workflowRun: workflowRun, thread: thread }, done);
+      return runStep(_this)(runner, { id: id, context: { workflowRun: workflowRun, thread: thread } }, done);
     });
   }).catch(function (err) {
     return done(err);
@@ -3662,17 +3668,21 @@ function createWorkflowRun$1(runner, context, done, wf) {
 }
 
 function startWorkflow(backend) {
-  return function (runner) {
-    var context = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
-    var done = arguments[2];
-    var args = context.args;
-    var input = context.input;
-    var parent = context.parent;
+  return function (runner, task, done) {
+    var id = task.id;
+    var _task$context = task.context;
+    var args = _task$context.args;
+    var input = _task$context.input;
+    var parent = _task$context.parent;
 
     input = input || {};
     if (!args) return done(new Error('No context was supplied'));
 
-    return backend.lib.S2FWorkflow('{\n      readWorkflow (' + obj2arg(args, { noOuterBraces: true }) + ') {\n        _temporal { recordId },\n        id,\n        name,\n        inputs { id, name, type, class, required, defaultValue },\n        parameters { id, name, class, type, required, defaultValue },\n        steps (first: true) {\n          id,\n          name,\n          type,\n          async,\n          source,\n          subWorkflow { id },\n          timeout,\n          failsWorkflow,\n          waitOnSuccess,\n          requireResumeKey,\n          success,\n          fail,\n          parameters { id, name, type, class, required, mapsTo, defaultValue }\n        }\n      }\n    }', {}, args).then(function (result) {
+    console.log(chalk.cyan('==========================='));
+    console.log(chalk.cyan(JSON.stringify(context, null, '  ')));
+    console.log(chalk.cyan('==========================='));
+
+    return backend.lib.S2FWorkflow('{\n      readWorkflow (' + obj2arg(args, { noOuterBraces: true }) + ') {\n        _temporal { recordId },\n        id,\n        name,\n        inputs { id, name, type, class, required, defaultValue },\n        parameters { id, name, class, type, required, defaultValue },\n        steps (first: true) {\n          id,\n          name,\n          type,\n          async,\n          source,\n          subWorkflow {\n            _temporal { recordId },\n            id\n          },\n          timeout,\n          failsWorkflow,\n          waitOnSuccess,\n          requireResumeKey,\n          success,\n          fail,\n          parameters { id, name, type, class, required, mapsTo, defaultValue }\n        }\n      }\n    }', {}, args).then(function (result) {
       return gqlResult(backend, result, function (err, data) {
         var wf = _.get(data, 'readWorkflow[0]');
         var step = _.get(wf, 'steps[0]');
@@ -3713,7 +3723,7 @@ function startWorkflow(backend) {
           }
         }
 
-        return createWorkflowRun$1.call(backend, runner, { args: args, input: input, parent: parent }, done, wf);
+        return createWorkflowRun$1.call(backend, runner, { id: id, args: args, input: input, parent: parent }, done, wf);
       });
     }).catch(function (err) {
       console.log(err);

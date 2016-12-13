@@ -17,6 +17,7 @@ export function createWorkflowRun (backend) {
           input: args.input,
           started: now,
           status: 'RUNNING',
+          taskId: args.taskId,
           parentStepRun: args.parent
         }, { returnChanges: true })('changes')
           .nth(0)('new_val')
@@ -43,7 +44,8 @@ export function createWorkflowRun (backend) {
                   id: stepRunId,
                   workflowRunThread: workflowRunThreadId,
                   step: args.step.id,
-                  status: 'CREATED'
+                  status: 'CREATED',
+                  taskId: args.taskId
                 })
               })
               .do(() => {

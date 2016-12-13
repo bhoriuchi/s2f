@@ -84,7 +84,8 @@ export function newStepRun (backend, args, id, returnChanges = true, checkThread
                       workflowRunThread: args.workflowRunThread,
                       step: args.step,
                       started: r.now(),
-                      status: CREATED
+                      status: CREATED,
+                      taskId: args.taskId
                     }, { returnChanges })
                   })
               )

@@ -6,12 +6,16 @@ import runSource from './runSource'
 import forkSteps from './forkSteps'
 import joinThreads from './joinThreads'
 import runSubWorkflow from './runSubWorkflow'
+import handleContext from './handleContext'
 
-let { values: { BASIC, CONDITION, END, FORK, JOIN, LOOP, START, TASK, WORKFLOW } } = StepTypes
+let { values: { BASIC, CONDITION, FORK, JOIN, LOOP, TASK, WORKFLOW } } = StepTypes
 
 export default function runStep (backend) {
-  return function (runner, context = {}, done) {
-    let { workflowRun, thread } = context
+  return function (runner, task, done) {
+    let { resume, context: { workflowRun, thread } } = task
+    let taskId = task.id
+    let resumeContext = _.get(task, 'data.context', {})
+
     if (!workflowRun || !thread) return done(new Error('No workflow run or main thread created'))
 
     return backend.lib.S2FWorkflow(`{
@@ -32,7 +36,10 @@ export default function runStep (backend) {
               type,
               async,
               source,
-              subWorkflow { id },
+              subWorkflow {
+                _temporal { recordId },
+                id
+              },
               timeout,
               failsWorkflow,
               waitOnSuccess,
@@ -58,14 +65,33 @@ export default function runStep (backend) {
         // map all of the parameters
         let localCtx = mapInput(input, context, _.get(step, 'parameters', []))
 
-        // everything is ready to run the task, set the task to running
-        return backend.lib.S2FWorkflow(`mutation Mutation { startStepRun (id: "${stepRunId}") }`)
-          .then((res) => {
-            let payload = { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId }
+        let payload = {
+          runner,
+          taskId,
+          workflowRun,
+          thread,
+          endStep,
+          localCtx,
+          context,
+          args,
+          step,
+          stepRunId
+        }
 
+        if (resume) {
+          console.log(chalk.cyan('=============> hit resume'))
+          return handleContext.call(backend, payload, done)(resumeContext)
+        }
+
+        // everything is ready to run the task, set the task to running
+        return backend.lib.S2FWorkflow(`mutation Mutation {
+          startStepRun (
+            id: "${stepRunId}",
+            taskId: "${taskId}"
+          )
+        }`)
+          .then(() => {
             switch (step.type) {
-              // case START:
-              // case END:
               case BASIC:
                 return runSource.call(backend, payload, done)
               case TASK:

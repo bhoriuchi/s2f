@@ -4,7 +4,7 @@ import { gqlResult } from '../common'
 import runStep from '../runStep/index'
 
 export default function createWorkflowRun (runner, context, done, wf) {
-  let { args, input, parent } = context
+  let { taskId, args, input, parent } = context
   let step = wf.steps[0]
 
   // convert enums
@@ -23,7 +23,8 @@ export default function createWorkflowRun (runner, context, done, wf) {
     args,
     input,
     parameters: wf.parameters,
-    step
+    step,
+    taskId
   }
 
   if (parent) params.parent = parent
@@ -38,7 +39,7 @@ export default function createWorkflowRun (runner, context, done, wf) {
       if (err) throw err
       let workflowRun = _.get(data, 'createWorkflowRun.id')
       let thread = _.get(data, 'createWorkflowRun.threads[0].id')
-      return runStep(this)(runner, { workflowRun, thread }, done)
+      return runStep(this)(runner, { id: taskId, context: { workflowRun, thread } }, done)
     }))
     .catch((err) => {
       return done(err)
