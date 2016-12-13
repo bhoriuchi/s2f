@@ -6,7 +6,7 @@ let { toObjectString } = factory.utils
 
 export default function startWorkflow (backend) {
   return function (runner, context = {}, done) {
-    let { args, input } = context
+    let { args, input, parent } = context
     input = input || {}
     if (!args) return done(new Error('No context was supplied'))
 
@@ -52,7 +52,7 @@ export default function startWorkflow (backend) {
         }
 
         // run the
-        return createWorkflowRun.call(backend, runner, { args, input }, done, wf)
+        return createWorkflowRun.call(backend, runner, { args, input, parent }, done, wf)
       }))
       .catch((err) => {
         console.log(err)

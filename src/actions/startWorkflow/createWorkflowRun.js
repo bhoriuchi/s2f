@@ -6,7 +6,7 @@ import runStep from '../runStep/index'
 let { toObjectString, Enum } = factory.utils
 
 export default function createWorkflowRun (runner, context, done, wf) {
-  let { args, input } = context
+  let { args, input, parent } = context
   let step = wf.steps[0]
 
   // convert enums
@@ -27,6 +27,8 @@ export default function createWorkflowRun (runner, context, done, wf) {
     parameters: wf.parameters,
     step
   }
+
+  if (parent) params.parent = parent
 
   return this.lib.S2FWorkflow(`mutation Mutation {
     createWorkflowRun (${toObjectString(params, { noOuterBraces: true })}) {

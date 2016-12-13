@@ -4,7 +4,7 @@ import { isPublished } from './common'
 import { destroyStep } from './step'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
 import ParameterClassEnum from '../../../graphql/types/ParameterClassEnum'
-let { values: { TASK, WORKFLOW } } = StepTypeEnum
+let { values: { TASK, WORKFLOW, END } } = StepTypeEnum
 let { values: { INPUT, ATTRIBUTE } } = ParameterClassEnum
 
 export function getFullWorkflow (backend, args) {
@@ -153,9 +153,19 @@ export function readWorkflowInputs (backend) {
     let step = backend.getTypeCollection('Step')
 
     return step.filter({workflowId: source.id})
-      .map((s) => parameter.filter({ parentId: s('id') }).coerceTo('array'))
-      .reduce((left, right) => left.union(right))
-      .run(connection)
+      .map((s) => parameter.filter({
+        parentId: s('id'),
+        class: INPUT
+      })
+        .filter((param) => {
+          return param.hasFields('mapsTo').branch(
+            param('mapsTo').eq(null).or(param('mapsTo').eq('')),
+            true
+          )
+        })
+        .coerceTo('array'))
+        .reduce((left, right) => left.union(right))
+        .run(connection)
   }
 }
 
@@ -168,7 +178,6 @@ export function createWorkflow (backend) {
     return r.do(r.uuid(), r.uuid(), r.uuid(), (wfId, startId, endId) => {
       args.id = wfId
       args.entityType = 'WORKFLOW'
-      args.endStep = endId
       return createTemporalStep([
         {
           id: startId,
@@ -290,6 +299,23 @@ export function readWorkflowParameters (backend) {
   }
 }
 
+export function readEndStep (backend) {
+  return function (source, args, context, info) {
+    let {r, connection} = backend
+    let step = backend.getTypeCollection('Step')
+
+    return step.filter({ workflowId: source.id, type: END })
+      .coerceTo('array')
+      .do((end) => {
+        return end.count().eq(0).branch(
+          null,
+          end.nth(0)
+        )
+      })
+      .run(connection)
+  }
+}
+
 export default {
   branchWorkflow,
   forkWorkflow,
@@ -300,5 +326,6 @@ export default {
   deleteWorkflow,
   readWorkflowInputs,
   readWorkflowVersions,
-  readWorkflowParameters
+  readWorkflowParameters,
+  readEndStep
 }

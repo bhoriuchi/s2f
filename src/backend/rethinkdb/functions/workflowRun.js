@@ -16,7 +16,8 @@ export function createWorkflowRun (backend) {
           args: args.args,
           input: args.input,
           started: now,
-          status: 'RUNNING'
+          status: 'RUNNING',
+          parentStepRun: args.parent
         }, { returnChanges: true })('changes')
           .nth(0)('new_val')
           .do((wfRun) => {

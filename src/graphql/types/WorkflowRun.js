@@ -49,7 +49,8 @@ export default {
           args: { type: 'FactoryJSON' },
           input: { type: 'FactoryJSON' },
           parameters: { type: ['ParameterInput'] },
-          step: { type: 'StepInput' }
+          step: { type: 'StepInput' },
+          parent: { type: 'String' }
         },
         resolve: 'createWorkflowRun'
       },

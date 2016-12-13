@@ -887,7 +887,8 @@ var Workflow = {
       resolve: 'readStep'
     },
     endStep: {
-      type: 'String'
+      type: 'Step',
+      resolve: 'readEndStep'
     }
   },
   _backend: {
@@ -1036,7 +1037,8 @@ var WorkflowRun = {
           args: { type: 'FactoryJSON' },
           input: { type: 'FactoryJSON' },
           parameters: { type: ['ParameterInput'] },
-          step: { type: 'StepInput' }
+          step: { type: 'StepInput' },
+          parent: { type: 'String' }
         },
         resolve: 'createWorkflowRun'
       },
@@ -2095,7 +2097,6 @@ function syncWorkflow(backend) {
       var forks = [];
       var steps = [];
       var params = {};
-      var endStep = args.endStep;
       var op = (_op = {}, defineProperty(_op, INSERT, { workflow: {}, parameter: {}, step: {} }), defineProperty(_op, UPDATE, { workflow: {}, parameter: {}, step: {} }), _op);
 
       // re-map workflow
@@ -2138,7 +2139,6 @@ function syncWorkflow(backend) {
 
         params[stepId] = [];
         steps.push(stepId);
-        if (step.type === END) endStep = stepId;
         var stepObj = {
           id: stepId,
           success: _.get(ids, '["' + step.success + '"].id', null),
@@ -2210,10 +2210,6 @@ function syncWorkflow(backend) {
           });
         });
       });
-
-      // update endstep
-      var wf = _.get(op[INSERT].workflow, wfId) || _.get(op[UPDATE].workflow, wfId);
-      wf.endStep = endStep;
 
       // process all mutations
       return r.expr(mutations).forEach(function (m) {
@@ -2507,6 +2503,7 @@ function deleteTask(backend) {
 var _StepTypeEnum$values$1 = StepTypeEnum.values;
 var TASK$2 = _StepTypeEnum$values$1.TASK;
 var WORKFLOW$2 = _StepTypeEnum$values$1.WORKFLOW;
+var END$1 = _StepTypeEnum$values$1.END;
 var _ParameterClassEnum$v = ParameterClassEnum.values;
 var INPUT$1 = _ParameterClassEnum$v.INPUT;
 var ATTRIBUTE$1 = _ParameterClassEnum$v.ATTRIBUTE;
@@ -2671,7 +2668,12 @@ function readWorkflowInputs(backend) {
     var step = backend.getTypeCollection('Step');
 
     return step.filter({ workflowId: source.id }).map(function (s) {
-      return parameter.filter({ parentId: s('id') }).coerceTo('array');
+      return parameter.filter({
+        parentId: s('id'),
+        class: INPUT$1
+      }).filter(function (param) {
+        return param.hasFields('mapsTo').branch(param('mapsTo').eq(null).or(param('mapsTo').eq('')), true);
+      }).coerceTo('array');
     }).reduce(function (left, right) {
       return left.union(right);
     }).run(connection);
@@ -2689,7 +2691,6 @@ function createWorkflow(backend) {
     return r.do(r.uuid(), r.uuid(), r.uuid(), function (wfId, startId, endId) {
       args.id = wfId;
       args.entityType = 'WORKFLOW';
-      args.endStep = endId;
       return createTemporalStep([{
         id: startId,
         entityType: 'STEP',
@@ -2813,6 +2814,19 @@ function readWorkflowParameters(backend) {
   };
 }
 
+function readEndStep(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var step = backend.getTypeCollection('Step');
+
+    return step.filter({ workflowId: source.id, type: END$1 }).coerceTo('array').do(function (end) {
+      return end.count().eq(0).branch(null, end.nth(0));
+    }).run(connection);
+  };
+}
+
 var _ParameterClassEnum$v$1 = ParameterClassEnum.values;
 var INPUT$2 = _ParameterClassEnum$v$1.INPUT;
 var OUTPUT = _ParameterClassEnum$v$1.OUTPUT;
@@ -2923,7 +2937,8 @@ function createWorkflowRun(backend) {
         args: args.args,
         input: args.input,
         started: now,
-        status: 'RUNNING'
+        status: 'RUNNING',
+        parentStepRun: args.parent
       }, { returnChanges: true })('changes').nth(0)('new_val').do(function (wfRun) {
         return workflowRunThread.insert({
           id: workflowRunThreadId,
@@ -3061,6 +3076,7 @@ var functions = {
   readWorkflowInputs: readWorkflowInputs,
   readWorkflowVersions: readWorkflowVersions,
   readWorkflowParameters: readWorkflowParameters,
+  readEndStep: readEndStep,
   createWorkflowRun: createWorkflowRun,
   updateWorkflowRun: updateWorkflowRun,
   deleteWorkflowRun: deleteWorkflowRun,
@@ -3489,10 +3505,45 @@ function forkSteps(payload, done) {
   });
 }
 
+var RUNNING$5 = RunStatusEnum.values.RUNNING;
+
+
+function runSubWorkflow(payload, done) {
+  var _this = this;
+
+  console.log(chalk.blue('RUNNIN SUBWORKFLOW'));
+  var runner = payload.runner;
+  var thread = payload.thread;
+  var localCtx = payload.localCtx;
+  var args = payload.args;
+  var step = payload.step;
+  var stepRunId = payload.stepRunId;
+  var subWorkflow = step.subWorkflow;
+
+
+  return this.lib.S2FWorkflow('mutation Mutation {\n    updateWorkflowRunThread ( id: "' + thread + '", status: ' + RUNNING$5 + ' )\n    { id }\n  }').then(function (result) {
+    return gqlResult(_this, result, function (err, data) {
+      if (err) throw err;
+
+      return startWorkflow.call(_this, runner, {
+        args: {
+          recordId: _.get(subWorkflow, 'id'),
+          date: args.date,
+          version: args.version
+        },
+        input: localCtx,
+        parent: stepRunId
+      }, done);
+    });
+  }).catch(function (error) {
+    done(error);
+  });
+}
+
 var _StepTypes$values = StepTypeEnum.values;
 var BASIC = _StepTypes$values.BASIC;
 var CONDITION = _StepTypes$values.CONDITION;
-var END$1 = _StepTypes$values.END;
+var END$2 = _StepTypes$values.END;
 var FORK$1 = _StepTypes$values.FORK;
 var JOIN = _StepTypes$values.JOIN;
 var LOOP = _StepTypes$values.LOOP;
@@ -3510,7 +3561,7 @@ function runStep(backend) {
 
     if (!workflowRun || !thread) return done(new Error('No workflow run or main thread created'));
 
-    return backend.lib.S2FWorkflow('{\n      readWorkflowRun (id: "' + workflowRun + '") {\n        workflow { endStep },\n        args,\n        input,\n        context {\n          id,\n          parameter { id, name, type, scope, class },\n          value\n        },\n        threads (id: "' + thread + '") {\n          currentStepRun {\n            id,\n            step {\n              id,\n              type,\n              async,\n              source,\n              subWorkflow { id },\n              timeout,\n              failsWorkflow,\n              waitOnSuccess,\n              requireResumeKey,\n              success,\n              fail,\n              parameters { id, name, type, scope, class, mapsTo }\n            }\n          }\n        }\n      }\n    }').then(function (result) {
+    return backend.lib.S2FWorkflow('{\n      readWorkflowRun (id: "' + workflowRun + '") {\n        workflow { endStep { id } },\n        args,\n        input,\n        context {\n          id,\n          parameter { id, name, type, scope, class },\n          value\n        },\n        threads (id: "' + thread + '") {\n          currentStepRun {\n            id,\n            step {\n              id,\n              type,\n              async,\n              source,\n              subWorkflow { id },\n              timeout,\n              failsWorkflow,\n              waitOnSuccess,\n              requireResumeKey,\n              success,\n              fail,\n              parameters { id, name, type, scope, class, mapsTo }\n            }\n          }\n        }\n      }\n    }').then(function (result) {
       return gqlResult(backend, result, function (err, data) {
         if (err) throw err;
 
@@ -3524,8 +3575,10 @@ function runStep(backend) {
 
         var step = _.get(threads, '[0].currentStepRun.step');
         var stepRunId = _.get(threads, '[0].currentStepRun.id');
+        endStep = _.get(endStep, 'id');
         if (!step) return done(new Error('No step found in thread'));
-        backend.log.trace({ step: step.id }, 'Successfully queried step');
+        if (!endStep) return done(new Error('No end step found'));
+        backend.log.trace({ step: step.id, type: step.type }, 'Successfully queried step');
 
         // map all of the parameters
         var localCtx = mapInput(input, context, _.get(step, 'parameters', []));
@@ -3535,8 +3588,8 @@ function runStep(backend) {
           var payload = { runner: runner, workflowRun: workflowRun, thread: thread, endStep: endStep, localCtx: localCtx, context: context, args: args, step: step, stepRunId: stepRunId };
 
           switch (step.type) {
-            case START:
-            case END$1:
+            // case START:
+            // case END:
             case BASIC:
               return runSource.call(backend, payload, done);
             case TASK$3:
@@ -3548,6 +3601,7 @@ function runStep(backend) {
             case JOIN:
               return joinThreads.call(backend, payload, done);
             case WORKFLOW$3:
+              return runSubWorkflow.call(backend, payload, done);
             case FORK$1:
               return forkSteps.call(backend, payload, done);
             default:
@@ -3575,6 +3629,7 @@ function createWorkflowRun$1(runner, context, done, wf) {
 
   var args = context.args;
   var input = context.input;
+  var parent = context.parent;
 
   var step = wf.steps[0];
 
@@ -3597,6 +3652,8 @@ function createWorkflowRun$1(runner, context, done, wf) {
     step: step
   };
 
+  if (parent) params.parent = parent;
+
   return this.lib.S2FWorkflow('mutation Mutation {\n    createWorkflowRun (' + toObjectString$1(params, { noOuterBraces: true }) + ') {\n      id,\n      threads { id }\n    }\n  }').then(function (result) {
     return gqlResult(_this, result, function (err, data) {
       if (err) throw err;
@@ -3618,6 +3675,7 @@ function startWorkflow(backend) {
     var done = arguments[2];
     var args = context.args;
     var input = context.input;
+    var parent = context.parent;
 
     input = input || {};
     if (!args) return done(new Error('No context was supplied'));
@@ -3663,7 +3721,7 @@ function startWorkflow(backend) {
           }
         }
 
-        return createWorkflowRun$1.call(backend, runner, { args: args, input: input }, done, wf);
+        return createWorkflowRun$1.call(backend, runner, { args: args, input: input, parent: parent }, done, wf);
       });
     }).catch(function (err) {
       console.log(err);
@@ -4509,7 +4567,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 

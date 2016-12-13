@@ -44,7 +44,8 @@ export default {
       resolve: 'readStep'
     },
     endStep: {
-      type: 'String'
+      type: 'Step',
+      resolve: 'readEndStep'
     }
   },
   _backend: {

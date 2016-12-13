@@ -87,7 +87,6 @@ export default function syncWorkflow (backend) {
         let forks = []
         let steps = []
         let params = {}
-        let endStep = args.endStep
         let op = {
           [INSERT]: { workflow: {}, parameter: {}, step: {} },
           [UPDATE]: { workflow: {}, parameter: {}, step: {} }
@@ -123,7 +122,6 @@ export default function syncWorkflow (backend) {
           let { stepId, stepOp } = getOp(ids, step.id, 'step')
           params[stepId] = []
           steps.push(stepId)
-          if (step.type === END) endStep = stepId
           let stepObj = {
             id: stepId,
             success: _.get(ids, `["${step.success}"].id`, null),
@@ -182,10 +180,6 @@ export default function syncWorkflow (backend) {
             })
           })
         })
-
-        // update endstep
-        let wf = _.get(op[INSERT].workflow, wfId) || _.get(op[UPDATE].workflow, wfId)
-        wf.endStep = endStep
 
         // process all mutations
         return r.expr(mutations).forEach((m) => {

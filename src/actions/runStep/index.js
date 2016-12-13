@@ -5,6 +5,7 @@ import StepTypes from '../../graphql/types/StepTypeEnum'
 import runSource from './runSource'
 import forkSteps from './forkSteps'
 import joinThreads from './joinThreads'
+import runSubWorkflow from './runSubWorkflow'
 
 let { values: { BASIC, CONDITION, END, FORK, JOIN, LOOP, START, TASK, WORKFLOW } } = StepTypes
 
@@ -15,7 +16,7 @@ export default function runStep (backend) {
 
     return backend.lib.S2FWorkflow(`{
       readWorkflowRun (id: "${workflowRun}") {
-        workflow { endStep },
+        workflow { endStep { id } },
         args,
         input,
         context {
@@ -49,8 +50,10 @@ export default function runStep (backend) {
         let { workflow: { endStep }, args, input, context, threads } = _.get(data, 'readWorkflowRun[0]', {})
         let step = _.get(threads, '[0].currentStepRun.step')
         let stepRunId = _.get(threads, '[0].currentStepRun.id')
+        endStep = _.get(endStep, 'id')
         if (!step) return done(new Error('No step found in thread'))
-        backend.log.trace({ step: step.id }, 'Successfully queried step')
+        if (!endStep) return done(new Error('No end step found'))
+        backend.log.trace({ step: step.id, type: step.type }, 'Successfully queried step')
 
         // map all of the parameters
         let localCtx = mapInput(input, context, _.get(step, 'parameters', []))
@@ -61,8 +64,8 @@ export default function runStep (backend) {
             let payload = { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId }
 
             switch (step.type) {
-              case START:
-              case END:
+              // case START:
+              // case END:
               case BASIC:
                 return runSource.call(backend, payload, done)
               case TASK:
@@ -74,6 +77,7 @@ export default function runStep (backend) {
               case JOIN:
                 return joinThreads.call(backend, payload, done)
               case WORKFLOW:
+                return runSubWorkflow.call(backend, payload, done)
               case FORK:
                 return forkSteps.call(backend, payload, done)
               default:
