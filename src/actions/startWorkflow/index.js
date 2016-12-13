@@ -1,8 +1,7 @@
 import _ from 'lodash'
-import factory from 'graphql-factory'
+import obj2arg from 'graphql-obj2arg'
 import createWorkflowRun from './createWorkflowRun'
 import { gqlResult, convertType } from '../common'
-let { toObjectString } = factory.utils
 
 export default function startWorkflow (backend) {
   return function (runner, context = {}, done) {
@@ -11,7 +10,7 @@ export default function startWorkflow (backend) {
     if (!args) return done(new Error('No context was supplied'))
 
     return backend.lib.S2FWorkflow(`{
-      readWorkflow (${toObjectString(args, { noOuterBraces: true })}) {
+      readWorkflow (${obj2arg(args, { noOuterBraces: true })}) {
         _temporal { recordId },
         id,
         name,

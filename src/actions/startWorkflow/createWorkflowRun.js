@@ -1,23 +1,21 @@
 import _ from 'lodash'
-import chalk from 'chalk'
-import factory from 'graphql-factory'
+import obj2arg from 'graphql-obj2arg'
 import { gqlResult } from '../common'
 import runStep from '../runStep/index'
-let { toObjectString, Enum } = factory.utils
 
 export default function createWorkflowRun (runner, context, done, wf) {
   let { args, input, parent } = context
   let step = wf.steps[0]
 
   // convert enums
-  step.type = Enum(step.type)
+  step.type = `Enum::${step.type}`
   _.forEach(step.parameters, (param) => {
-    param.class = Enum(param.class)
-    param.type = Enum(param.type)
+    param.class = `Enum::${param.class}`
+    param.type = `Enum::${param.type}`
   })
   _.forEach(wf.parameters, (param) => {
-    param.class = Enum(param.class)
-    param.type = Enum(param.type)
+    param.class = `Enum::${param.class}`
+    param.type = `Enum::${param.type}`
   })
 
   let params = {
@@ -31,7 +29,7 @@ export default function createWorkflowRun (runner, context, done, wf) {
   if (parent) params.parent = parent
 
   return this.lib.S2FWorkflow(`mutation Mutation {
-    createWorkflowRun (${toObjectString(params, { noOuterBraces: true })}) {
+    createWorkflowRun (${obj2arg(params, { noOuterBraces: true })}) {
       id,
       threads { id }
     }

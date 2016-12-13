@@ -10,7 +10,7 @@ var yellowjacket = require('yellowjacket');
 var FactoryTemporalPlugin = _interopDefault(require('graphql-factory-temporal'));
 var graphqlFactoryTemporal_backend = require('graphql-factory-temporal/backend');
 var graphql_error = require('graphql/error');
-var factory = _interopDefault(require('graphql-factory'));
+var obj2arg = _interopDefault(require('graphql-obj2arg'));
 var sbx = _interopDefault(require('sbx'));
 
 var S2FDescribed = {
@@ -3619,11 +3619,6 @@ function runStep(backend) {
   };
 }
 
-var _factory$utils = factory.utils;
-var toObjectString$1 = _factory$utils.toObjectString;
-var Enum = _factory$utils.Enum;
-
-
 function createWorkflowRun$1(runner, context, done, wf) {
   var _this = this;
 
@@ -3634,14 +3629,14 @@ function createWorkflowRun$1(runner, context, done, wf) {
   var step = wf.steps[0];
 
   // convert enums
-  step.type = Enum(step.type);
+  step.type = 'Enum::' + step.type;
   _.forEach(step.parameters, function (param) {
-    param.class = Enum(param.class);
-    param.type = Enum(param.type);
+    param.class = 'Enum::' + param.class;
+    param.type = 'Enum::' + param.type;
   });
   _.forEach(wf.parameters, function (param) {
-    param.class = Enum(param.class);
-    param.type = Enum(param.type);
+    param.class = 'Enum::' + param.class;
+    param.type = 'Enum::' + param.type;
   });
 
   var params = {
@@ -3654,7 +3649,7 @@ function createWorkflowRun$1(runner, context, done, wf) {
 
   if (parent) params.parent = parent;
 
-  return this.lib.S2FWorkflow('mutation Mutation {\n    createWorkflowRun (' + toObjectString$1(params, { noOuterBraces: true }) + ') {\n      id,\n      threads { id }\n    }\n  }').then(function (result) {
+  return this.lib.S2FWorkflow('mutation Mutation {\n    createWorkflowRun (' + obj2arg(params, { noOuterBraces: true }) + ') {\n      id,\n      threads { id }\n    }\n  }').then(function (result) {
     return gqlResult(_this, result, function (err, data) {
       if (err) throw err;
       var workflowRun = _.get(data, 'createWorkflowRun.id');
@@ -3665,9 +3660,6 @@ function createWorkflowRun$1(runner, context, done, wf) {
     return done(err);
   });
 }
-
-var toObjectString = factory.utils.toObjectString;
-
 
 function startWorkflow(backend) {
   return function (runner) {
@@ -3680,7 +3672,7 @@ function startWorkflow(backend) {
     input = input || {};
     if (!args) return done(new Error('No context was supplied'));
 
-    return backend.lib.S2FWorkflow('{\n      readWorkflow (' + toObjectString(args, { noOuterBraces: true }) + ') {\n        _temporal { recordId },\n        id,\n        name,\n        inputs { id, name, type, class, required, defaultValue },\n        parameters { id, name, class, type, required, defaultValue },\n        steps (first: true) {\n          id,\n          name,\n          type,\n          async,\n          source,\n          subWorkflow { id },\n          timeout,\n          failsWorkflow,\n          waitOnSuccess,\n          requireResumeKey,\n          success,\n          fail,\n          parameters { id, name, type, class, required, mapsTo, defaultValue }\n        }\n      }\n    }', {}, args).then(function (result) {
+    return backend.lib.S2FWorkflow('{\n      readWorkflow (' + obj2arg(args, { noOuterBraces: true }) + ') {\n        _temporal { recordId },\n        id,\n        name,\n        inputs { id, name, type, class, required, defaultValue },\n        parameters { id, name, class, type, required, defaultValue },\n        steps (first: true) {\n          id,\n          name,\n          type,\n          async,\n          source,\n          subWorkflow { id },\n          timeout,\n          failsWorkflow,\n          waitOnSuccess,\n          requireResumeKey,\n          success,\n          fail,\n          parameters { id, name, type, class, required, mapsTo, defaultValue }\n        }\n      }\n    }', {}, args).then(function (result) {
       return gqlResult(backend, result, function (err, data) {
         var wf = _.get(data, 'readWorkflow[0]');
         var step = _.get(wf, 'steps[0]');
