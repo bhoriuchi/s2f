@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import chalk from 'chalk'
-import { isPublished } from './common'
+import { isPublished, getWorkflowInputs } from './common'
 import { destroyStep } from './step'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
 import ParameterClassEnum from '../../../graphql/types/ParameterClassEnum'
@@ -151,24 +151,9 @@ export function readWorkflowInputs (backend) {
     let {r, connection} = backend
     let parameter = backend.getTypeCollection('Parameter')
     let step = backend.getTypeCollection('Step')
-
-    return step.filter({workflowId: source.id})
-      .map((s) => parameter.filter({
-        parentId: s('id'),
-        class: INPUT
-      })
-        .filter((param) => {
-          return param.hasFields('mapsTo').branch(
-            param('mapsTo').eq(null).or(param('mapsTo').eq('')),
-            true
-          )
-        })
-        .coerceTo('array'))
-        .reduce((left, right) => left.union(right))
-        .run(connection)
+    return getWorkflowInputs(step, parameter, source.id).run(connection)
   }
 }
-
 
 export function createWorkflow (backend) {
   return function (source, args, context, info) {

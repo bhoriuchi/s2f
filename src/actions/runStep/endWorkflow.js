@@ -1,3 +1,5 @@
+// TODO: refactor
+
 import _ from 'lodash'
 import { gqlResult, winTieBreak } from '../common'
 import computeWorkflowStatus from './computeWorkflowStatus'

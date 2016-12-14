@@ -178,7 +178,7 @@ export function startStepRun (backend) {
   }
 }
 
-export function endStepRun (backend) {
+export function setStepRunStatus (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
     let table = backend.getTypeCollection('StepRun')
@@ -293,7 +293,7 @@ export default {
   updateStepRun,
   deleteStepRun,
   startStepRun,
-  endStepRun,
+  setStepRunStatus,
   createForks,
   getJoinThreads
 }

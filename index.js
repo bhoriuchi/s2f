@@ -5,7 +5,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var _ = _interopDefault(require('lodash'));
-var chalk = _interopDefault(require('chalk'));
+var chalk = require('chalk');
 var yellowjacket = require('yellowjacket');
 var FactoryTemporalPlugin = _interopDefault(require('graphql-factory-temporal'));
 var graphqlFactoryTemporal_backend = require('graphql-factory-temporal/backend');
@@ -575,6 +575,9 @@ var StepRun = {
     },
     status: {
       type: 'RunStatusEnum'
+    },
+    taskId: {
+      type: 'String'
     }
   },
   _backend: {
@@ -585,7 +588,8 @@ var StepRun = {
         type: 'StepRun',
         args: {
           step: { type: 'String', nullable: false },
-          workflowRunThread: { type: 'String', nullable: false }
+          workflowRunThread: { type: 'String', nullable: false },
+          taskId: { type: 'String' }
         },
         resolve: 'createStepRun'
       },
@@ -594,6 +598,7 @@ var StepRun = {
         args: {
           id: { type: 'String', nullable: false },
           status: { type: 'RunStatusEnum' },
+          taskId: { type: 'String' },
           ended: { type: 'FactoryDateTime' }
         },
         resolve: 'updateStepRun'
@@ -608,17 +613,18 @@ var StepRun = {
       startStepRun: {
         type: 'Boolean',
         args: {
-          id: { type: 'String', nullable: false }
+          id: { type: 'String', nullable: false },
+          taskId: { type: 'String' }
         },
         resolve: 'startStepRun'
       },
-      endStepRun: {
+      setStepRunStatus: {
         type: 'Boolean',
         args: {
           id: { type: 'String', nullable: false },
           status: { type: 'RunStatusEnum', nullable: false }
         },
-        resolve: 'endStepRun'
+        resolve: 'setStepRunStatus'
       },
       createForks: {
         type: ['WorkflowRunThread'],
@@ -1022,6 +1028,9 @@ var WorkflowRun = {
     status: {
       type: 'RunStatusEnum'
     },
+    taskId: {
+      type: 'String'
+    },
     parentStepRun: {
       type: 'String'
     }
@@ -1037,6 +1046,7 @@ var WorkflowRun = {
           input: { type: 'FactoryJSON' },
           parameters: { type: ['ParameterInput'] },
           step: { type: 'StepInput' },
+          taskId: { type: 'String' },
           parent: { type: 'String' }
         },
         resolve: 'createWorkflowRun'
@@ -1461,11 +1471,35 @@ function updateAttributeValues(backend) {
   };
 }
 
+var INPUT = ParameterClassEnum.values.INPUT;
+
+
 function isPublished(backend, type, id) {
   var r = backend._r;
   var table = backend._db.table(backend._tables[type].table);
   return table.get(id).do(function (obj) {
     return r.branch(obj.eq(null), r.error(type + ' does not exist'), r.branch(obj('_temporal')('version').ne(null), true, false));
+  });
+}
+
+function first(seq) {
+  var err = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+
+  return seq.coerceTo('array').do(function (records) {
+    return records.count().eq(0).branch(err, records.nth(0));
+  });
+}
+
+function getWorkflowInputs(step, parameter, workflowId) {
+  return step.filter({ workflowId: workflowId }).map(function (s) {
+    return parameter.filter({
+      parentId: s('id'),
+      class: INPUT
+    }).filter(function (param) {
+      return param.hasFields('mapsTo').branch(param('mapsTo').eq(null).or(param('mapsTo').eq('')), true);
+    }).coerceTo('array');
+  }).reduce(function (left, right) {
+    return left.union(right);
   });
 }
 
@@ -1660,7 +1694,7 @@ function readStepParams(backend) {
   };
 }
 
-var INPUT = ParameterClassEnum.values.INPUT;
+var INPUT$1 = ParameterClassEnum.values.INPUT;
 var _RunStatusEnum$values = RunStatusEnum.values;
 var FORKED = _RunStatusEnum$values.FORKED;
 var CREATED = _RunStatusEnum$values.CREATED;
@@ -1698,7 +1732,7 @@ function newStepRun(backend, args, id) {
 
       // get the workflowRun for its input
       return workflowRun.get(wfRunId).do(function (wfRun) {
-        return wfRun.eq(null).branch(r.error('WorkflowRun not found'), parameter.filter({ parentId: args.step, class: INPUT }).coerceTo('array').map(function (_param) {
+        return wfRun.eq(null).branch(r.error('WorkflowRun not found'), parameter.filter({ parentId: args.step, class: INPUT$1 }).coerceTo('array').map(function (_param) {
           return {
             parameter: _param('id'),
             parentId: stepRunId,
@@ -1714,7 +1748,8 @@ function newStepRun(backend, args, id) {
             workflowRunThread: args.workflowRunThread,
             step: args.step,
             started: r.now(),
-            status: CREATED
+            status: CREATED,
+            taskId: args.taskId
           }, { returnChanges: returnChanges });
         }));
       });
@@ -1758,7 +1793,7 @@ function startStepRun(backend) {
   };
 }
 
-function endStepRun(backend) {
+function setStepRunStatus(backend) {
   return function (source, args, context, info) {
     var r = backend.r;
     var connection = backend.connection;
@@ -1847,6 +1882,12 @@ function getJoinThreads(backend) {
     }).run(connection);
   };
 }
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+};
 
 var asyncGenerator = function () {
   function AwaitValue(value) {
@@ -2504,7 +2545,7 @@ var TASK$2 = _StepTypeEnum$values$1.TASK;
 var WORKFLOW$2 = _StepTypeEnum$values$1.WORKFLOW;
 var END$1 = _StepTypeEnum$values$1.END;
 var _ParameterClassEnum$v = ParameterClassEnum.values;
-var INPUT$1 = _ParameterClassEnum$v.INPUT;
+var INPUT$2 = _ParameterClassEnum$v.INPUT;
 var ATTRIBUTE$1 = _ParameterClassEnum$v.ATTRIBUTE;
 
 
@@ -2665,17 +2706,7 @@ function readWorkflowInputs(backend) {
 
     var parameter = backend.getTypeCollection('Parameter');
     var step = backend.getTypeCollection('Step');
-
-    return step.filter({ workflowId: source.id }).map(function (s) {
-      return parameter.filter({
-        parentId: s('id'),
-        class: INPUT$1
-      }).filter(function (param) {
-        return param.hasFields('mapsTo').branch(param('mapsTo').eq(null).or(param('mapsTo').eq('')), true);
-      }).coerceTo('array');
-    }).reduce(function (left, right) {
-      return left.union(right);
-    }).run(connection);
+    return getWorkflowInputs(step, parameter, source.id).run(connection);
   };
 }
 
@@ -2827,7 +2858,7 @@ function readEndStep(backend) {
 }
 
 var _ParameterClassEnum$v$1 = ParameterClassEnum.values;
-var INPUT$2 = _ParameterClassEnum$v$1.INPUT;
+var INPUT$3 = _ParameterClassEnum$v$1.INPUT;
 var OUTPUT = _ParameterClassEnum$v$1.OUTPUT;
 
 
@@ -2893,7 +2924,7 @@ function mapInput(input, context, parameters) {
   _.forEach(parameters, function (param) {
     if (param.class === OUTPUT) {
       params[param.name] = null;
-    } else if (param.class === INPUT$2) {
+    } else if (param.class === INPUT$3) {
       if (param.mapsTo) {
         var _ref = _.find(context, function (ctx) {
           return _.get(ctx, 'parameter.id') === param.mapsTo;
@@ -2919,74 +2950,141 @@ function winTieBreak(thread, ending) {
   return ending.sort()[0] === thread;
 }
 
+var ATTRIBUTE$2 = ParameterClassEnum.values.ATTRIBUTE;
+var _StepTypeEnum$values$2 = StepTypeEnum.values;
+var START = _StepTypeEnum$values$2.START;
+var END$2 = _StepTypeEnum$values$2.END;
+
+
+function firstStep(r, step, workflowId) {
+  return first(step.filter({ workflowId: workflowId, type: START }), r.error('no start step found')).do(function (start) {
+    return step.get(start('success')).do(function (fstep) {
+      return r.branch(fstep.eq(null), r.error('no first step found, make sure all steps have connections'), fstep('type').eq(END$2), r.error('start is directly connected to end and cannot determine the first step task'), fstep);
+    });
+  });
+}
+
 function createWorkflowRun(backend) {
   return function (source, args, context, info) {
     var r = backend.r;
     var connection = backend.connection;
 
     var workflowRun = backend.getTypeCollection('WorkflowRun');
+    var parameter = backend.getTypeCollection('Parameter');
     var parameterRun = backend.getTypeCollection('ParameterRun');
+    var step = backend.getTypeCollection('Step');
     var stepRun = backend.getTypeCollection('StepRun');
     var workflowRunThread = backend.getTypeCollection('WorkflowRunThread');
+    var filterWorkflow = this.globals._temporal.filterTemporalWorkflow;
+    var input = _.isObject(args.input) ? args.input : {};
 
-    return r.do(r.now(), r.uuid(), r.uuid(), r.uuid(), function (now, workflowRunId, stepRunId, workflowRunThreadId) {
-      return workflowRun.insert({
-        id: workflowRunId,
-        workflow: args.workflow,
-        args: args.args,
-        input: args.input,
-        started: now,
-        status: 'RUNNING',
-        parentStepRun: args.parent
-      }, { returnChanges: true })('changes').nth(0)('new_val').do(function (wfRun) {
-        return workflowRunThread.insert({
-          id: workflowRunThreadId,
-          workflowRun: workflowRunId,
-          currentStepRun: stepRunId,
-          status: 'CREATED'
-        }).do(function () {
-          if (!args.parameters || !args.parameters.length) return null;
-          return parameterRun.insert(_.map(args.parameters, function (param) {
-            return {
-              parameter: param.id,
-              parentId: workflowRunId,
-              class: param.class,
-              value: _.get(param, 'defaultValue')
-            };
-          }));
-        }).do(function () {
-          return stepRun.insert({
-            id: stepRunId,
-            workflowRunThread: workflowRunThreadId,
-            step: args.step.id,
+    // first get the workflow, its inputs, and its first step
+    return first(filterWorkflow(args.args), r.error('wokflow not found')).merge(function (wf) {
+      return {
+        inputs: getWorkflowInputs(step, parameter, wf('id')).coerceTo('array'),
+        parameters: parameter.filter({ parentId: wf('id'), class: ATTRIBUTE$2 }).coerceTo('array'),
+        step: firstStep(r, step, wf('id')).merge(function (fstep) {
+          return {
+            subWorkflow: fstep.hasFields('subWorkflow').branch(first(filterWorkflow(r.expr(args).merge(function () {
+              return {
+                recordId: fstep('_temporal')('recordId')
+              };
+            }, fstep.hasFields('versionArgs').branch(fstep('versionArgs'), {}))), null), null),
+            parameters: parameter.filter({ parentId: fstep('id') }).coerceTo('array')
+          };
+        })
+      };
+    }).run(connection).then(function (wf) {
+      // check that all required inputs are provided and that the types are correct
+      // also convert them at this time using a for loop to allow thrown errors to be
+      // caught by promise catch
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = wf.inputs[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var i = _step.value;
+
+          if (i.required && !_.has(input, i.name)) throw new Error('missing required input ' + i.name);
+          if (_.has(input, i.name)) input[i.name] = convertType(i.type, i.name, input[i.name]);
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
+
+      return r.do(r.now(), r.uuid(), r.uuid(), r.uuid(), function (now, workflowRunId, stepRunId, workflowRunThreadId) {
+        return workflowRun.insert({
+          id: workflowRunId,
+          workflow: wf.id,
+          args: args.args,
+          input: input,
+          started: now,
+          status: 'RUNNING',
+          taskId: args.taskId,
+          parentStepRun: args.parent
+        }, { returnChanges: true })('changes').nth(0)('new_val').do(function (wfRun) {
+          return workflowRunThread.insert({
+            id: workflowRunThreadId,
+            workflowRun: workflowRunId,
+            currentStepRun: stepRunId,
             status: 'CREATED'
-          });
-        }).do(function () {
-          if (!args.step.parameters.length) return null;
-          var p = [];
-          // map the input and attributes to the local step params
-          _.forEach(args.step.parameters, function (param) {
-            var paramValue = null;
-            if (param.mapsTo) {
-              paramValue = _.get(_.find(args.parameters, { id: param.mapsTo }), 'defaultValue');
-            } else if (!param.mapsTo && _.has(args.input, param.name)) {
-              try {
-                paramValue = convertType(param.type, param.name, _.get(args.input, param.name));
-              } catch (err) {}
-            }
-            p.push({
-              parameter: param.id,
-              parentId: stepRunId,
-              class: param.class,
-              value: paramValue
+          }).do(function () {
+            if (!_.isArray(wf.parameters) || !wf.parameters.length) return null;
+            return parameterRun.insert(_.map(wf.parameters, function (param) {
+              return {
+                parameter: param.id,
+                parentId: workflowRunId,
+                class: param.class,
+                value: _.get(param, 'defaultValue')
+              };
+            }));
+          }).do(function () {
+            return stepRun.insert({
+              id: stepRunId,
+              workflowRunThread: workflowRunThreadId,
+              step: wf.step.id,
+              status: 'CREATED',
+              taskId: args.taskId
             });
+          }).do(function () {
+            if (!wf.step.parameters.length) return null;
+            var p = [];
+            // map the input and attributes to the local step params
+            _.forEach(wf.step.parameters, function (param) {
+              var paramValue = null;
+              if (param.mapsTo) {
+                paramValue = _.get(_.find(wf.parameters, { id: param.mapsTo }), 'defaultValue');
+              } else if (!param.mapsTo && _.has(input, param.name)) {
+                try {
+                  paramValue = convertType(param.type, param.name, _.get(input, param.name));
+                } catch (err) {}
+              }
+              p.push({
+                parameter: param.id,
+                parentId: stepRunId,
+                class: param.class,
+                value: paramValue
+              });
+            });
+            return parameterRun.insert(p);
+          }).do(function () {
+            return wfRun;
           });
-          return parameterRun.insert(p);
-        }).do(function () {
-          return wfRun;
         });
-      });
-    }).run(connection);
+      }).run(connection);
+    });
   };
 }
 
@@ -3055,7 +3153,7 @@ var functions = {
   readStepParams: readStepParams,
   createStepRun: createStepRun,
   startStepRun: startStepRun,
-  endStepRun: endStepRun,
+  setStepRunStatus: setStepRunStatus,
   createForks: createForks,
   getJoinThreads: getJoinThreads,
   syncWorkflow: syncWorkflow,
@@ -3082,10 +3180,93 @@ var functions = {
   endWorkflowRun: endWorkflowRun
 };
 
-var _StepTypeEnum$values$2 = StepTypeEnum.values;
-var BASIC$1 = _StepTypeEnum$values$2.BASIC;
-var TASK$4 = _StepTypeEnum$values$2.TASK;
-var WORKFLOW$4 = _StepTypeEnum$values$2.WORKFLOW;
+function newStepRun$1(backend, stepId, thread, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('mutation Mutation {\n    createStepRun (step: "' + stepId + '", workflowRunThread: "' + thread + '"),\n    { id }\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.createStepRun'));
+  }).catch(callback);
+}
+
+function getStep(backend, stepId, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('{\n    readStep (id: "' + stepId + '") {\n      id, name, type\n    }\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.readStep[0]'));
+  }).catch(callback);
+}
+
+function newForks(backend, stepId, workflowRun, thread, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('mutation Mutation {\n    createForks (step: "' + stepId + '", workflowRun: "' + workflowRun + '", workflowRunThread: "' + thread + '")\n    { id }\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.createForks'));
+  }).catch(callback);
+}
+
+function setStepRunStatus$1(backend, stepRunId, status, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('mutation Mutation {\n    setStepRunStatus (id: "' + stepRunId + '", status: ' + status + ')\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.setStepRunStatus'));
+  }).catch(callback);
+}
+
+function updateAttributeValues$1(backend, outputs, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('mutation Mutation {\n    updateAttributeValues (values: ' + obj2arg(outputs) + ')\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.updateAttributeValues'));
+  }).catch(callback);
+}
+
+function updateWorkflowRunThread(backend, args, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('mutation Mutation {\n    updateWorkflowRunThread (' + obj2arg(args, { noOuterBraces: true }) + ')\n    { id }\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.updateWorkflowRunThread'));
+  }).catch(callback);
+}
+
+function startStepRun$1(backend, stepRunId, taskId, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('mutation Mutation {\n    startStepRun (\n      id: "' + stepRunId + '",\n      taskId: "' + taskId + '"\n    )\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.startStepRun'));
+  }).catch(callback);
+}
+
+function newWorkflowRun(backend, args, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('mutation Mutation {\n    createWorkflowRun (' + obj2arg(args, { noOuterBraces: true }) + ') {\n      id,\n      threads { id }\n    }\n  }', {}, args).then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.createWorkflowRun'));
+  }).catch(callback);
+}
+
+function getWorkflowRun(backend, workflowRun, thread, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      workflow { endStep { id } },\n      args,\n      input,\n      context {\n        id,\n        parameter { id, name, type, scope, class },\n        value\n      },\n      threads (id: "' + thread + '") {\n        currentStepRun {\n          id,\n          step {\n            id,\n            type,\n            async,\n            source,\n            subWorkflow {\n              _temporal { recordId },\n              id\n            },\n            timeout,\n            failsWorkflow,\n            waitOnSuccess,\n            requireResumeKey,\n            success,\n            fail,\n            parameters { id, name, type, scope, class, mapsTo }\n          }\n        }\n      }\n    }\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.readWorkflowRun[0]'));
+  }).catch(callback);
+}
+
+// TODO: refactor
+
+var _StepTypeEnum$values$3 = StepTypeEnum.values;
+var BASIC$1 = _StepTypeEnum$values$3.BASIC;
+var TASK$4 = _StepTypeEnum$values$3.TASK;
+var WORKFLOW$4 = _StepTypeEnum$values$3.WORKFLOW;
 var _RunStatusEnum$values$2 = RunStatusEnum.values;
 var FAIL = _RunStatusEnum$values$2.FAIL;
 var SUCCESS = _RunStatusEnum$values$2.SUCCESS;
@@ -3095,6 +3276,7 @@ var JOINED$1 = _RunStatusEnum$values$2.JOINED;
 function computeWorkflowStatus(payload, done) {
   var _this = this;
 
+  var runner = payload.runner;
   var workflowRun = payload.workflowRun;
   var thread = payload.thread;
   var step = payload.step;
@@ -3104,15 +3286,22 @@ function computeWorkflowStatus(payload, done) {
 
   this.log.trace({ workflowRun: workflowRun }, 'attempting to complete workflow run computation');
 
-  return this.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      context {\n        parameter { name },\n        value\n      },\n      threads {\n        stepRuns {\n          step { type, failsWorkflow }\n          status\n        }\n      }\n    }\n  }').then(function (result) {
+  return this.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      context {\n        parameter { name },\n        value\n      },\n      threads {\n        stepRuns {\n          step { type, failsWorkflow }\n          status\n        }\n      },\n      parentStepRun,\n      taskId\n    }\n  }').then(function (result) {
     return gqlResult(_this, result, function (err, data) {
       if (err) throw err;
       var localCtx = {};
-      var threads = _.get(data, 'readWorkflowRun[0].threads');
+
+      var _$get = _.get(data, 'readWorkflowRun[0]', {});
+
+      var context = _$get.context;
+      var threads = _$get.threads;
+      var parentStepRun = _$get.parentStepRun;
+      var taskId = _$get.taskId;
+
       if (!threads) throw new Error('No threads found');
 
       // get the local context
-      _.forEach(_.get(data, 'readWorkflowRun[0].context'), function (ctx) {
+      _.forEach(context, function (ctx) {
         var name = _.get(ctx, 'parameter.name');
         if (name && _.has(ctx, 'value')) localCtx[name] = ctx.value;
       });
@@ -3140,6 +3329,8 @@ function computeWorkflowStatus(payload, done) {
             return gqlResult(_this, result, function (err, data) {
               if (err) throw err;
               _this.log.debug({ workflowRun: workflowRun, success: success }, 'workflow run completed');
+
+              if (parentStepRun) runner.resume(taskId, { status: status, context: localCtx });
               return done(null, status, { context: localCtx });
             });
           });
@@ -3201,65 +3392,64 @@ var JOIN$1 = StepTypeEnum.values.JOIN;
 function nextStepRun(payload, done) {
   var _this = this;
 
-  var thread = payload.thread;
-  var nextStep = payload.nextStep;
-  var async = payload.async;
-  var workflowRun = payload.workflowRun;
+  try {
+    var _ret = function () {
+      var thread = payload.thread;
+      var nextStep = payload.nextStep;
+      var async = payload.async;
+      var workflowRun = payload.workflowRun;
 
+      var event = _.get(_this, 'server._emitter');
+      if (!event && !async) return {
+          v: done(new Error('No event emitter'))
+        };
 
-  var event = _.get(this, 'server._emitter');
-  if (!event && !async) return done(new Error('No event emitter'));
+      return {
+        v: getStep(_this, nextStep, function (err, step) {
+          if (err) return done(err);
+          var type = _.get(step, 'type');
+          if (!type) return done(new Error('failed to get next step type'));
 
-  return this.lib.S2FWorkflow('{ readStep (id: "' + nextStep + '") { type } }').then(function (result) {
-    return gqlResult(_this, result, function (err, data) {
-      if (err) {
-        console.log(chalk.red(err));
-        throw err;
-      }
-      var type = _.get(data, 'readStep[0].type');
+          // if the type is join, call the join threads handler to avoid creating multiple
+          // join steps when only one should be created on a new thread
+          if (type === JOIN$1) return joinThreads.call(_this, payload, done);
 
-      if (!type) throw new Error('failed to get next step type');
+          return newStepRun$1(_this, nextStep, thread, function (err, stepRun) {
+            if (err) return done(err);
 
-      // if the type is join, call the join threads handler to avoid creating multiple
-      // join steps when only one should be created on a new thread
-      if (type === JOIN$1) return joinThreads.call(_this, payload, done);
-
-      // otherwise create the next step run
-      return _this.lib.S2FWorkflow('mutation Mutation {\n          createStepRun (step: "' + nextStep + '", workflowRunThread: "' + thread + '"),\n          { id }\n        }').then(function (result) {
-        return gqlResult(_this, result, function (err, data) {
-          if (err) throw err;
-          var stepRunId = _.get(data, 'createStepRun.id');
-          if (!stepRunId) throw new Error('Unable to create StepRun');
-
-          return _this.lib.S2FWorkflow('mutation Mutation {\n              updateWorkflowRunThread (id: "' + thread + '", currentStepRun: "' + stepRunId + '", status: ' + RUNNING$2 + ')\n              { id }\n            }').then(function (result) {
-            return gqlResult(_this, result, function (err, data) {
-              if (err) throw err;
+            var stepRunId = _.get(stepRun, 'id');
+            if (!stepRunId) throw new Error('Unable to create StepRun');
+            var args = { id: thread, status: 'Enum::' + RUNNING$2, currentStepRun: stepRunId };
+            return updateWorkflowRunThread(_this, args, function (err) {
+              if (err) return done(err);
 
               event.emit('schedule', {
                 payload: {
                   action: 'runStep',
-                  context: { thread: thread, workflowRun: workflowRun }
+                  context: {
+                    thread: thread,
+                    workflowRun: workflowRun
+                  }
                 }
               });
               return async ? true : done();
             });
           });
-        });
-      });
-    });
-  });
+        })
+      };
+    }();
+
+    if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+  } catch (error) {
+    this.log.error({
+      errors: error.message || error,
+      stack: error.stack
+    }, 'Failed to start next step');
+    return done(error);
+  }
 }
 
-function setStepStatus(stepRunId, status) {
-  var _this = this;
-
-  return this.lib.S2FWorkflow('mutation Mutation { endStepRun (id: "' + stepRunId + '", status: ' + status + ') }').then(function (result) {
-    return gqlResult(_this, result, function (err, data) {
-      if (err) throw err;
-      return data;
-    });
-  });
-}
+// TODO: refactor
 
 var _RunStatusEnum$values$4 = RunStatusEnum.values;
 var CREATED$2 = _RunStatusEnum$values$4.CREATED;
@@ -3322,75 +3512,90 @@ var SUCCESS$1 = _RunStatusEnum$values$3.SUCCESS;
 var FAIL$1 = _RunStatusEnum$values$3.FAIL;
 var _ParameterClassEnum$v$2 = ParameterClassEnum.values;
 var OUTPUT$1 = _ParameterClassEnum$v$2.OUTPUT;
-var ATTRIBUTE$2 = _ParameterClassEnum$v$2.ATTRIBUTE;
-var _StepTypeEnum$values$3 = StepTypeEnum.values;
-var CONDITION$1 = _StepTypeEnum$values$3.CONDITION;
-var LOOP$2 = _StepTypeEnum$values$3.LOOP;
+var ATTRIBUTE$3 = _ParameterClassEnum$v$2.ATTRIBUTE;
+var _StepTypeEnum$values$4 = StepTypeEnum.values;
+var CONDITION$1 = _StepTypeEnum$values$4.CONDITION;
+var LOOP$2 = _StepTypeEnum$values$4.LOOP;
 
 
 function handleContext(payload, done) {
   var _this = this;
 
   return function (ctx) {
-    var runner = payload.runner;
-    var workflowRun = payload.workflowRun;
-    var thread = payload.thread;
-    var endStep = payload.endStep;
-    var localCtx = payload.localCtx;
-    var context = payload.context;
-    var args = payload.args;
-    var step = payload.step;
-    var stepRunId = payload.stepRunId;
-    var async = step.async;
-    var source = step.source;
-    var timeout = step.timeout;
-    var failsWorkflow = step.failsWorkflow;
-    var waitOnSuccess = step.waitOnSuccess;
-    var success = step.success;
-    var fail = step.fail;
-    var parameters = step.parameters;
+    try {
+      var _ret = function () {
+        var outputs = [];
+        var runner = payload.runner;
+        var workflowRun = payload.workflowRun;
+        var thread = payload.thread;
+        var endStep = payload.endStep;
+        var localCtx = payload.localCtx;
+        var context = payload.context;
+        var args = payload.args;
+        var step = payload.step;
+        var stepRunId = payload.stepRunId;
+        var async = step.async;
+        var source = step.source;
+        var timeout = step.timeout;
+        var failsWorkflow = step.failsWorkflow;
+        var waitOnSuccess = step.waitOnSuccess;
+        var success = step.success;
+        var fail = step.fail;
+        var parameters = step.parameters;
 
-    fail = fail || endStep;
+        fail = fail || endStep;
 
-    var failed = ctx._exception || ctx._result === false;
-    var nextStep = failed ? fail : success;
-    var status = failed ? FAIL$1 : SUCCESS$1;
+        var failed = ctx._exception || ctx._result === false;
+        var nextStep = failed ? fail : success;
+        var status = failed ? FAIL$1 : SUCCESS$1;
 
-    switch (step.type) {
-      case CONDITION$1:
-        status = SUCCESS$1;
-        break;
-      case LOOP$2:
-        status = SUCCESS$1;
-        break;
-      default:
-        break;
-    }
-
-    // generate value changes to push
-    var outputs = [];
-    _.forEach(parameters, function (param) {
-      if (param.class === OUTPUT$1 && _.has(ctx, param.name) && _.has(param, 'mapsTo')) {
-        try {
-          var target = _.find(context, { parameter: { id: param.mapsTo, class: ATTRIBUTE$2 } });
-          if (!target) return;
-
-          outputs.push({
-            id: target.id,
-            value: convertType(param.type, param.name, _.get(ctx, param.name))
-          });
-        } catch (error) {
-          _this.log.warn({ error: error }, 'type conversion failed so value will not be set');
+        switch (step.type) {
+          case CONDITION$1:
+            status = SUCCESS$1;
+            break;
+          case LOOP$2:
+            status = SUCCESS$1;
+            break;
+          default:
+            break;
         }
-      }
-    });
 
-    return _this.lib.S2FWorkflow('mutation Mutation {\n      updateAttributeValues (values: ' + obj2arg(outputs) + ')\n    }').then(function () {
-      return setStepStatus.call(_this, stepRunId, status).then(function () {
-        if (nextStep === endStep) return endWorkflow.call(_this, payload, done);else if (!async) return nextStepRun.call(_this, { thread: thread, workflowRun: workflowRun, nextStep: nextStep, async: async }, done);
-        done();
-      });
-    });
+        // generate value changes to push
+        _.forEach(parameters, function (param) {
+          if (param.class === OUTPUT$1 && _.has(ctx, param.name) && _.has(param, 'mapsTo')) {
+            try {
+              var target = _.find(context, { parameter: { id: param.mapsTo, class: ATTRIBUTE$3 } });
+              if (!target) return;
+              outputs.push({
+                id: target.id,
+                value: convertType(param.type, param.name, _.get(ctx, param.name))
+              });
+            } catch (error) {
+              _this.log.warn({ error: error }, 'type conversion failed so value will not be set');
+            }
+          }
+        });
+
+        return {
+          v: updateAttributeValues$1(_this, outputs, function (err) {
+            if (err) return done(err);
+            return setStepRunStatus$1(_this, stepRunId, status, function (err) {
+              if (err) return done(err);
+              if (nextStep === endStep) return endWorkflow.call(_this, payload, done);else if (!async) return nextStepRun.call(_this, { thread: thread, workflowRun: workflowRun, nextStep: nextStep, async: async }, done);
+              done();
+            });
+          })
+        };
+      }();
+
+      if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+    } catch (error) {
+      _this.log.error({
+        errors: error.message || error,
+        stack: error.stack
+      }, 'Failed to handle context step');
+      done(error);
+    }
   };
 }
 
@@ -3400,18 +3605,25 @@ var LOOP$1 = StepTypeEnum.values.LOOP;
 // basic source run
 
 function basicRun(runOpts) {
+  var _this = this;
+
   var source = runOpts.source;
   var context = runOpts.context;
   var timeout = runOpts.timeout;
   var payload = runOpts.payload;
   var done = runOpts.done;
 
-  return sbx.vm(source, _.merge({ context: context, timeout: timeout }, _.get(this.options, 'vm', {}))).then(handleContext.call(this, payload, done));
+  var options = _.merge({ context: context, timeout: timeout }, _.get(this.options, 'vm', {}));
+
+  return sbx.vm(source, options, function (err, ctx) {
+    if (err) return done(err);
+    return handleContext.call(_this, payload, done)(ctx);
+  });
 }
 
 // loop source
 function loopRun(runOpts) {
-  var _this = this;
+  var _this2 = this;
 
   var loop = arguments.length <= 1 || arguments[1] === undefined ? 0 : arguments[1];
   var source = runOpts.source;
@@ -3420,44 +3632,59 @@ function loopRun(runOpts) {
   var payload = runOpts.payload;
   var done = runOpts.done;
 
+  var options = _.merge({ context: context, timeout: timeout }, _.get(this.options, 'vm', {}));
   context.loop = loop;
-  return sbx.vm(source, _.merge({ context: context, timeout: timeout }, _.get(this.options, 'vm', {}))).then(function (ctx) {
-    if (ctx._result === false || ctx._exception) return handleContext.call(_this, payload, done)(ctx);
-    return loopRun.call(_this, { source: source, context: ctx, timeout: timeout, payload: payload, done: done }, loop++);
+
+  return sbx.vm(source, options, function (err, ctx) {
+    if (err) return done(err);
+    if (ctx._result === false || ctx._exception) return handleContext.call(_this2, payload, done)(ctx);
+    return loopRun.call(_this2, { source: source, context: ctx, timeout: timeout, payload: payload, done: done }, loop++);
   });
 }
 
 function runSource(payload, done) {
-  var _this2 = this;
+  var _this3 = this;
 
-  var thread = payload.thread;
-  var endStep = payload.endStep;
-  var localCtx = payload.localCtx;
-  var step = payload.step;
-  var workflowRun = payload.workflowRun;
-  var async = step.async;
-  var source = step.source;
-  var timeout = step.timeout;
-  var success = step.success;
+  try {
+    var _ret = function () {
+      var thread = payload.thread;
+      var endStep = payload.endStep;
+      var localCtx = payload.localCtx;
+      var step = payload.step;
+      var workflowRun = payload.workflowRun;
+      var async = step.async;
+      var source = step.source;
+      var timeout = step.timeout;
+      var success = step.success;
 
-  if (!source) return done(new Error('No source'));
+      if (!source) return {
+          v: done(new Error('No source'))
+        };
 
-  return this.lib.S2FWorkflow('mutation Mutation {\n    updateWorkflowRunThread ( id: "' + thread + '", status: ' + RUNNING$1 + ' )\n    { id }\n  }').then(function (result) {
-    return gqlResult(_this2, result, function (err, data) {
-      if (err) throw err;
+      return {
+        v: updateWorkflowRunThread(_this3, { id: thread, status: 'Enum::' + RUNNING$1 }, function (err) {
+          if (err) return done(err);
 
-      var runOpts = { source: source, context: localCtx, timeout: timeout, payload: payload, done: done };
-      var run = step.type === LOOP$1 ? loopRun.call(_this2, runOpts) : basicRun.call(_this2, runOpts);
+          var runOpts = { source: source, context: localCtx, timeout: timeout, payload: payload, done: done };
+          var run = step.type === LOOP$1 ? loopRun.call(_this3, runOpts) : basicRun.call(_this3, runOpts);
 
-      // non-async or last step
-      if (!async || success === endStep) return run;
+          // non-async or last step
+          if (!async || success === endStep) return run;
 
-      // async - since run has already been called, we just remove the resolve dependency from nextStep
-      return nextStepRun.call(_this2, { thread: thread, workflowRun: workflowRun, nextStep: success, async: async }, done);
-    });
-  }).catch(function (error) {
+          // async - since run has already been called, we just remove the resolve dependency from nextStep
+          return nextStepRun.call(_this3, { thread: thread, workflowRun: workflowRun, nextStep: success, async: async }, done);
+        })
+      };
+    }();
+
+    if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+  } catch (error) {
+    this.log.error({
+      errors: error.message || error,
+      stack: error.stack
+    }, 'Failed to run source step');
     done(error);
-  });
+  }
 }
 
 var FORKED$1 = RunStatusEnum.values.FORKED;
@@ -3466,38 +3693,50 @@ var FORKED$1 = RunStatusEnum.values.FORKED;
 function forkSteps(payload, done) {
   var _this = this;
 
-  var workflowRun = payload.workflowRun;
-  var thread = payload.thread;
-  var stepRunId = payload.stepRunId;
-  var id = payload.step.id;
+  try {
+    var _ret = function () {
+      var workflowRun = payload.workflowRun;
+      var thread = payload.thread;
+      var stepRunId = payload.stepRunId;
+      var id = payload.step.id;
 
-  var event = _.get(this, 'server._emitter');
-  if (!event) return done(new Error('No event emitter'));
+      var event = _.get(_this, 'server._emitter');
+      if (!event) return {
+          v: done(new Error('no event emitter'))
+        };
 
-  return this.lib.S2FWorkflow('mutation Mutation {\n    createForks (step: "' + id + '", workflowRun: "' + workflowRun + '", workflowRunThread: "' + thread + '")\n    { id }\n  }').then(function (result) {
-    return gqlResult(_this, result, function (err, data) {
-      if (err) throw err;
+      return {
+        v: newForks(_this, id, workflowRun, thread, function (err, forks) {
+          if (err) return done(err);
 
-      return setStepStatus.call(_this, stepRunId, FORKED$1).then(function () {
-        _.forEach(_.get(data, 'createForks'), function (fork) {
-          var thread = fork.id;
-          event.emit('schedule', {
-            payload: {
-              action: 'runStep',
-              context: { thread: thread, workflowRun: workflowRun }
-            }
+          return setStepRunStatus$1(_this, stepRunId, FORKED$1, function (err) {
+            if (err) return done(err);
+
+            _.forEach(forks, function (fork) {
+              event.emit('schedule', {
+                payload: {
+                  action: 'runStep',
+                  context: {
+                    thread: fork.id,
+                    workflowRun: workflowRun
+                  }
+                }
+              });
+            });
+            return done();
           });
-        });
-        return done();
-      });
-    });
-  }).catch(function (error) {
-    _this.log.error({
+        })
+      };
+    }();
+
+    if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+  } catch (error) {
+    this.log.error({
       errors: error.message || error,
       stack: error.stack
-    }, 'Failed fork step');
+    }, 'Failed to fork step');
     done(error);
-  });
+  }
 }
 
 var RUNNING$5 = RunStatusEnum.values.RUNNING;
@@ -3506,35 +3745,48 @@ var RUNNING$5 = RunStatusEnum.values.RUNNING;
 function runSubWorkflow(payload, done) {
   var _this = this;
 
-  console.log(chalk.blue('RUNNIN SUBWORKFLOW'));
-  var runner = payload.runner;
-  var thread = payload.thread;
-  var localCtx = payload.localCtx;
-  var args = payload.args;
-  var step = payload.step;
-  var stepRunId = payload.stepRunId;
-  var subWorkflow = step.subWorkflow;
+  try {
+    var _ret = function () {
+      var runner = payload.runner;
+      var taskId = payload.taskId;
+      var thread = payload.thread;
+      var localCtx = payload.localCtx;
+      var args = payload.args;
+      var step = payload.step;
+      var stepRunId = payload.stepRunId;
+      var subWorkflow = step.subWorkflow;
 
 
-  return this.lib.S2FWorkflow('mutation Mutation {\n    updateWorkflowRunThread ( id: "' + thread + '", status: ' + RUNNING$5 + ' )\n    { id }\n  }').then(function (result) {
-    return gqlResult(_this, result, function (err, data) {
-      if (err) throw err;
+      return {
+        v: updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + RUNNING$5 }, function (err) {
+          if (err) return done(err);
 
-      console.log(chalk.magenta(JSON.stringify(data, null, '  ')));
+          return startWorkflow(_this)(runner, {
+            id: taskId,
+            context: {
+              args: {
+                recordId: _.get(subWorkflow, '_temporal.recordId'),
+                date: args.date,
+                version: args.version
+              },
+              input: localCtx,
+              parent: stepRunId
+            }
+          }, function (err) {
+            if (err) return done(err);
+          });
+        })
+      };
+    }();
 
-      return startWorkflow(_this)(runner, {
-        args: {
-          recordId: _.get(subWorkflow, '_temporal.recordId'),
-          date: args.date,
-          version: args.version
-        },
-        input: localCtx,
-        parent: stepRunId
-      }, done);
-    });
-  }).catch(function (error) {
-    done(error);
-  });
+    if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+  } catch (error) {
+    this.log.error({
+      errors: error.message || error,
+      stack: error.stack
+    }, 'Failed to run sub workflow');
+    return done(error);
+  }
 }
 
 var _StepTypes$values = StepTypeEnum.values;
@@ -3549,190 +3801,114 @@ var WORKFLOW$3 = _StepTypes$values.WORKFLOW;
 
 function runStep(backend) {
   return function (runner, task, done) {
-    var _task$context = task.context;
-    var workflowRun = _task$context.workflowRun;
-    var thread = _task$context.thread;
+    try {
+      var _ret = function () {
+        var resume = task.resume;
+        var _task$context = task.context;
+        var workflowRun = _task$context.workflowRun;
+        var thread = _task$context.thread;
 
-    var taskId = task.id;
+        var taskId = task.id;
+        var resumeContext = _.get(task, 'data.context', {});
 
-    if (!workflowRun || !thread) return done(new Error('No workflow run or main thread created'));
-
-    return backend.lib.S2FWorkflow('{\n      readWorkflowRun (id: "' + workflowRun + '") {\n        workflow { endStep { id } },\n        args,\n        input,\n        context {\n          id,\n          parameter { id, name, type, scope, class },\n          value\n        },\n        threads (id: "' + thread + '") {\n          currentStepRun {\n            id,\n            step {\n              id,\n              type,\n              async,\n              source,\n              subWorkflow {\n                _temporal { recordId },\n                id\n              },\n              timeout,\n              failsWorkflow,\n              waitOnSuccess,\n              requireResumeKey,\n              success,\n              fail,\n              parameters { id, name, type, scope, class, mapsTo }\n            }\n          }\n        }\n      }\n    }').then(function (result) {
-      return gqlResult(backend, result, function (err, data) {
-        if (err) throw err;
-
-        var _$get = _.get(data, 'readWorkflowRun[0]', {});
-
-        var endStep = _$get.workflow.endStep;
-        var args = _$get.args;
-        var input = _$get.input;
-        var context = _$get.context;
-        var threads = _$get.threads;
-
-        var step = _.get(threads, '[0].currentStepRun.step');
-        var stepRunId = _.get(threads, '[0].currentStepRun.id');
-        endStep = _.get(endStep, 'id');
-        if (!step) return done(new Error('No step found in thread'));
-        if (!endStep) return done(new Error('No end step found'));
-        backend.log.trace({ step: step.id, type: step.type }, 'Successfully queried step');
-
-        // map all of the parameters
-        var localCtx = mapInput(input, context, _.get(step, 'parameters', []));
-
-        // everything is ready to run the task, set the task to running
-        return backend.lib.S2FWorkflow('mutation Mutation { startStepRun (id: "' + stepRunId + '") }').then(function () {
-          var payload = {
-            runner: runner,
-            taskId: taskId,
-            workflowRun: workflowRun,
-            thread: thread,
-            endStep: endStep,
-            localCtx: localCtx,
-            context: context,
-            args: args,
-            step: step,
-            stepRunId: stepRunId
+        if (!workflowRun || !thread) return {
+            v: done(new Error('No workflow run or main thread created'))
           };
 
-          switch (step.type) {
-            case BASIC:
-              return runSource.call(backend, payload, done);
-            case TASK$3:
-              return runSource.call(backend, payload, done);
-            case LOOP:
-              return runSource.call(backend, payload, done);
-            case CONDITION:
-              return runSource.call(backend, payload, done);
-            case JOIN:
-              return joinThreads.call(backend, payload, done);
-            case WORKFLOW$3:
-              return runSubWorkflow.call(backend, payload, done);
-            case FORK$1:
-              return forkSteps.call(backend, payload, done);
-            default:
-              return done(new Error('Invalid step type or action cannot be performed on type'));
-          }
-        });
-      });
-    }).catch(function (error) {
+        return {
+          v: getWorkflowRun(backend, workflowRun, thread, function (err, wfRun) {
+            if (err) return done(err);
+
+            var workflow = wfRun.workflow;
+            var args = wfRun.args;
+            var input = wfRun.input;
+            var context = wfRun.context;
+            var threads = wfRun.threads;
+
+            var step = _.get(threads, '[0].currentStepRun.step');
+            var stepRunId = _.get(threads, '[0].currentStepRun.id');
+            var endStep = _.get(workflow, 'endStep.id');
+
+            if (!step) return done(new Error('No step found in thread'));
+            if (!endStep) return done(new Error('No end step found'));
+
+            backend.log.trace({ step: step.id, type: step.type }, 'successfully read step');
+
+            var localCtx = mapInput(input, context, _.get(step, 'parameters', []));
+            var payload = { runner: runner, taskId: taskId, workflowRun: workflowRun, thread: thread, endStep: endStep, localCtx: localCtx, context: context, args: args, step: step, stepRunId: stepRunId };
+
+            if (resume) return handleContext.call(backend, payload, done)(resumeContext);
+
+            return startStepRun$1(backend, stepRunId, taskId, function (err) {
+              if (err) return done(err);
+
+              switch (step.type) {
+                case BASIC:
+                  return runSource.call(backend, payload, done);
+                case TASK$3:
+                  return runSource.call(backend, payload, done);
+                case LOOP:
+                  return runSource.call(backend, payload, done);
+                case CONDITION:
+                  return runSource.call(backend, payload, done);
+                case JOIN:
+                  return joinThreads.call(backend, payload, done);
+                case WORKFLOW$3:
+                  return runSubWorkflow.call(backend, payload, done);
+                case FORK$1:
+                  return forkSteps.call(backend, payload, done);
+                default:
+                  return done(new Error('Invalid step type or action cannot be performed on type'));
+              }
+            });
+          })
+        };
+      }();
+
+      if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+    } catch (error) {
       backend.log.error({
         errors: error.message || error,
         stack: error.stack
       }, 'Failed to start step');
       return done(error);
-    });
+    }
   };
-}
-
-function createWorkflowRun$1(runner, context, done, wf) {
-  var _this = this;
-
-  var id = context.id;
-  var args = context.args;
-  var input = context.input;
-  var parent = context.parent;
-
-  var step = wf.steps[0];
-
-  // convert enums
-  step.type = 'Enum::' + step.type;
-  _.forEach(step.parameters, function (param) {
-    param.class = 'Enum::' + param.class;
-    param.type = 'Enum::' + param.type;
-  });
-  _.forEach(wf.parameters, function (param) {
-    param.class = 'Enum::' + param.class;
-    param.type = 'Enum::' + param.type;
-  });
-
-  var params = {
-    workflow: wf.id,
-    args: args,
-    input: input,
-    parameters: wf.parameters,
-    step: step
-  };
-
-  if (parent) params.parent = parent;
-
-  return this.lib.S2FWorkflow('mutation Mutation {\n    createWorkflowRun (' + obj2arg(params, { noOuterBraces: true }) + ') {\n      id,\n      threads { id }\n    }\n  }').then(function (result) {
-    return gqlResult(_this, result, function (err, data) {
-      if (err) throw err;
-      var workflowRun = _.get(data, 'createWorkflowRun.id');
-      var thread = _.get(data, 'createWorkflowRun.threads[0].id');
-      return runStep(_this)(runner, { id: id, context: { workflowRun: workflowRun, thread: thread } }, done);
-    });
-  }).catch(function (err) {
-    return done(err);
-  });
 }
 
 function startWorkflow(backend) {
   return function (runner, task, done) {
-    var id = task.id;
-    var _task$context = task.context;
-    var args = _task$context.args;
-    var input = _task$context.input;
-    var parent = _task$context.parent;
+    try {
+      var _ret = function () {
+        var _task$context = task.context;
+        var args = _task$context.args;
+        var input = _task$context.input;
+        var parent = _task$context.parent;
 
-    input = input || {};
-    if (!args) return done(new Error('No context was supplied'));
+        var taskId = task.id;
 
-    console.log(chalk.cyan('==========================='));
-    console.log(chalk.cyan(JSON.stringify(context, null, '  ')));
-    console.log(chalk.cyan('==========================='));
+        if (!args) return {
+            v: done(new Error('No arguments were supplied'))
+          };
 
-    return backend.lib.S2FWorkflow('{\n      readWorkflow (' + obj2arg(args, { noOuterBraces: true }) + ') {\n        _temporal { recordId },\n        id,\n        name,\n        inputs { id, name, type, class, required, defaultValue },\n        parameters { id, name, class, type, required, defaultValue },\n        steps (first: true) {\n          id,\n          name,\n          type,\n          async,\n          source,\n          subWorkflow {\n            _temporal { recordId },\n            id\n          },\n          timeout,\n          failsWorkflow,\n          waitOnSuccess,\n          requireResumeKey,\n          success,\n          fail,\n          parameters { id, name, type, class, required, mapsTo, defaultValue }\n        }\n      }\n    }', {}, args).then(function (result) {
-      return gqlResult(backend, result, function (err, data) {
-        var wf = _.get(data, 'readWorkflow[0]');
-        var step = _.get(wf, 'steps[0]');
-        if (err) throw err;
-        if (!wf) throw new Error('No workflow found');
-        if (!step || step.type === 'END') throw new Error('The workflow contains no valid steps');
+        return {
+          v: newWorkflowRun(backend, { args: args, input: input, taskId: taskId, parent: parent }, function (err, run) {
+            if (err) return done(err);
+            var workflowRun = _.get(run, 'id');
+            var thread = _.get(run, 'threads[0].id');
+            return runStep(backend)(runner, { id: taskId, context: { workflowRun: workflowRun, thread: thread } }, done);
+          })
+        };
+      }();
 
-        backend.log.trace({ server: backend._server, workflow: wf.id }, 'Successfully queried workflow');
-
-        // check that all required inputs are provided and that the types are correct
-        // also convert them at this time
-        // using a for loop to allow thrown errors to be caught by promise catch
-        var _iteratorNormalCompletion = true;
-        var _didIteratorError = false;
-        var _iteratorError = undefined;
-
-        try {
-          for (var _iterator = wf.inputs[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-            var i = _step.value;
-
-            if (i.required && !_.has(input, i.name)) throw new Error('missing required input ' + i.name);
-            if (_.has(input, i.name)) input[i.name] = convertType(i.type, i.name, input[i.name]);
-          }
-
-          // run the
-        } catch (err) {
-          _didIteratorError = true;
-          _iteratorError = err;
-        } finally {
-          try {
-            if (!_iteratorNormalCompletion && _iterator.return) {
-              _iterator.return();
-            }
-          } finally {
-            if (_didIteratorError) {
-              throw _iteratorError;
-            }
-          }
-        }
-
-        return createWorkflowRun$1.call(backend, runner, { id: id, args: args, input: input, parent: parent }, done, wf);
-      });
-    }).catch(function (err) {
-      console.log(err);
+      if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+    } catch (err) {
       backend.log.error({
         errors: err.message || err,
         stack: err.stack
       }, 'Failed to start workflow');
       return done(err);
-    });
+    }
   };
 }
 
@@ -4569,7 +4745,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 

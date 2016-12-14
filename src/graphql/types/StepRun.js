@@ -72,13 +72,13 @@ export default {
         },
         resolve: 'startStepRun'
       },
-      endStepRun: {
+      setStepRunStatus: {
         type: 'Boolean',
         args: {
           id: { type: 'String', nullable: false },
           status: { type: 'RunStatusEnum', nullable: false }
         },
-        resolve: 'endStepRun'
+        resolve: 'setStepRunStatus'
       },
       createForks: {
         type: ['WorkflowRunThread'],

@@ -1,24 +1,17 @@
 import _ from 'lodash'
-import { gqlResult, mapInput } from '../common'
+import { updateWorkflowRunThread } from '../query'
 import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 import startWorkflow from '../startWorkflow/index'
-import chalk from 'chalk'
 
 let { values: { RUNNING } } = RunStatusEnum
 
 export default function runSubWorkflow (payload, done) {
-  console.log(chalk.blue('RUNNIN SUBWORKFLOW'))
-  let { runner, taskId, thread, localCtx, args, step, stepRunId } = payload
-  let { subWorkflow } = step
+  try {
+    let { runner, taskId, thread, localCtx, args, step, stepRunId } = payload
+    let { subWorkflow } = step
 
-  return this.lib.S2FWorkflow(`mutation Mutation {
-    updateWorkflowRunThread ( id: "${thread}", status: ${RUNNING} )
-    { id }
-  }`)
-    .then((result) => gqlResult(this, result, (err, data) => {
-      if (err) throw err
-
-      console.log(chalk.magenta(JSON.stringify(data, null, '  ')))
+    return updateWorkflowRunThread(this, {id: thread, status: `Enum::${RUNNING}` }, (err) => {
+      if (err) return done(err)
 
       return startWorkflow(this)(runner, {
         id: taskId,
@@ -31,12 +24,15 @@ export default function runSubWorkflow (payload, done) {
           input: localCtx,
           parent: stepRunId
         }
-      }, (err, status, data) => {
+      }, (err) => {
         if (err) return done(err)
       })
-
-    }))
-    .catch((error) => {
-      done(error)
     })
+  } catch (error) {
+    this.log.error({
+      errors: error.message || error,
+      stack: error.stack
+    }, 'Failed to run sub workflow')
+    return done(error)
+  }
 }

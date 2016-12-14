@@ -1,79 +1,149 @@
+import chalk from 'chalk'
 import _ from 'lodash'
 import { convertType } from '../../../actions/common'
+import { first, getWorkflowInputs } from './common'
+import ParameterClassEnum from '../../../graphql/types/ParameterClassEnum'
+import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
+
+let { values: { ATTRIBUTE } } = ParameterClassEnum
+let { values: { START, END } } = StepTypeEnum
+
+function firstStep (r, step, workflowId) {
+  return first(
+    step.filter({ workflowId: workflowId, type: START }),
+    r.error('no start step found')
+  )
+    .do((start) => {
+      return step.get(start('success')).do((fstep) => {
+        return r.branch(
+          fstep.eq(null),
+          r.error('no first step found, make sure all steps have connections'),
+          fstep('type').eq(END),
+          r.error('start is directly connected to end and cannot determine the first step task'),
+          fstep
+        )
+      })
+    })
+}
 
 export function createWorkflowRun (backend) {
   return function (source, args, context, info) {
-    let { r, connection } = backend
+    let {r, connection} = backend
     let workflowRun = backend.getTypeCollection('WorkflowRun')
+    let parameter = backend.getTypeCollection('Parameter')
     let parameterRun = backend.getTypeCollection('ParameterRun')
+    let step = backend.getTypeCollection('Step')
     let stepRun = backend.getTypeCollection('StepRun')
     let workflowRunThread = backend.getTypeCollection('WorkflowRunThread')
+    let filterWorkflow = this.globals._temporal.filterTemporalWorkflow
+    let input = _.isObject(args.input) ? args.input : {}
 
-    return r.do(r.now(), r.uuid(), r.uuid(), r.uuid(), (now, workflowRunId, stepRunId, workflowRunThreadId) => {
-        return workflowRun.insert({
-          id: workflowRunId,
-          workflow: args.workflow,
-          args: args.args,
-          input: args.input,
-          started: now,
-          status: 'RUNNING',
-          taskId: args.taskId,
-          parentStepRun: args.parent
-        }, { returnChanges: true })('changes')
-          .nth(0)('new_val')
-          .do((wfRun) => {
-            return workflowRunThread.insert({
-              id: workflowRunThreadId,
-              workflowRun: workflowRunId,
-              currentStepRun: stepRunId,
-              status: 'CREATED'
+    // first get the workflow, its inputs, and its first step
+    return first(filterWorkflow(args.args), r.error('wokflow not found'))
+      .merge((wf) => {
+        return {
+          inputs: getWorkflowInputs(step, parameter, wf('id')).coerceTo('array'),
+          parameters: parameter.filter({ parentId: wf('id'), class: ATTRIBUTE }).coerceTo('array'),
+          step: firstStep(r, step, wf('id'))
+            .merge((fstep) => {
+              return {
+                subWorkflow: fstep.hasFields('subWorkflow').branch(
+                  first(
+                    filterWorkflow(
+                      r.expr(args).merge(() => {
+                        return {
+                          recordId: fstep('_temporal')('recordId')
+                        }
+                      }, fstep.hasFields('versionArgs').branch(
+                        fstep('versionArgs'),
+                        {}
+                      ))
+                    ),
+                    null
+                  ),
+                  null
+                ),
+                parameters: parameter.filter({ parentId: fstep('id') }).coerceTo('array')
+              }
             })
-              .do(() => {
-                if (!args.parameters || !args.parameters.length) return null
-                return parameterRun.insert(_.map(args.parameters, (param) => {
-                  return {
-                    parameter: param.id,
-                    parentId: workflowRunId,
-                    class: param.class,
-                    value: _.get(param, 'defaultValue')
-                  }
-                }))
-              })
-              .do(() => {
-                return stepRun.insert({
-                  id: stepRunId,
-                  workflowRunThread: workflowRunThreadId,
-                  step: args.step.id,
-                  status: 'CREATED',
-                  taskId: args.taskId
-                })
-              })
-              .do(() => {
-                if (!args.step.parameters.length) return null
-                let p = []
-                // map the input and attributes to the local step params
-                _.forEach(args.step.parameters, (param) => {
-                  let paramValue = null
-                  if (param.mapsTo) {
-                    paramValue = _.get(_.find(args.parameters, { id: param.mapsTo }), 'defaultValue')
-                  } else if (!param.mapsTo && _.has(args.input, param.name)) {
-                    try {
-                      paramValue = convertType(param.type, param.name, _.get(args.input, param.name))
-                    } catch (err) {}
-                  }
-                  p.push({
-                    parameter: param.id,
-                    parentId: stepRunId,
-                    class: param.class,
-                    value: paramValue
-                  })
-                })
-                return parameterRun.insert(p)
-              })
-              .do(() => wfRun)
-          })
+        }
       })
       .run(connection)
+      .then((wf) => {
+        // check that all required inputs are provided and that the types are correct
+        // also convert them at this time using a for loop to allow thrown errors to be
+        // caught by promise catch
+        for (const i of wf.inputs) {
+          if (i.required && !_.has(input, i.name)) throw new Error(`missing required input ${i.name}`)
+          if (_.has(input, i.name)) input[i.name] = convertType(i.type, i.name, input[i.name])
+        }
+
+        return r.do(r.now(), r.uuid(), r.uuid(), r.uuid(), (now, workflowRunId, stepRunId, workflowRunThreadId) => {
+          return workflowRun.insert({
+            id: workflowRunId,
+            workflow: wf.id,
+            args: args.args,
+            input: input,
+            started: now,
+            status: 'RUNNING',
+            taskId: args.taskId,
+            parentStepRun: args.parent
+          }, { returnChanges: true })('changes')
+            .nth(0)('new_val')
+            .do((wfRun) => {
+              return workflowRunThread.insert({
+                id: workflowRunThreadId,
+                workflowRun: workflowRunId,
+                currentStepRun: stepRunId,
+                status: 'CREATED'
+              })
+                .do(() => {
+                  if (!_.isArray(wf.parameters) || !wf.parameters.length) return null
+                  return parameterRun.insert(_.map(wf.parameters, (param) => {
+                    return {
+                      parameter: param.id,
+                      parentId: workflowRunId,
+                      class: param.class,
+                      value: _.get(param, 'defaultValue')
+                    }
+                  }))
+                })
+                .do(() => {
+                  return stepRun.insert({
+                    id: stepRunId,
+                    workflowRunThread: workflowRunThreadId,
+                    step: wf.step.id,
+                    status: 'CREATED',
+                    taskId: args.taskId
+                  })
+                })
+                .do(() => {
+                  if (!wf.step.parameters.length) return null
+                  let p = []
+                  // map the input and attributes to the local step params
+                  _.forEach(wf.step.parameters, (param) => {
+                    let paramValue = null
+                    if (param.mapsTo) {
+                      paramValue = _.get(_.find(wf.parameters, { id: param.mapsTo }), 'defaultValue')
+                    } else if (!param.mapsTo && _.has(input, param.name)) {
+                      try {
+                        paramValue = convertType(param.type, param.name, _.get(input, param.name))
+                      } catch (err) {}
+                    }
+                    p.push({
+                      parameter: param.id,
+                      parentId: stepRunId,
+                      class: param.class,
+                      value: paramValue
+                    })
+                  })
+                  return parameterRun.insert(p)
+                })
+                .do(() => wfRun)
+            })
+        })
+          .run(connection)
+      })
   }
 }
 
