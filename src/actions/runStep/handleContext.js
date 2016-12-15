@@ -63,7 +63,7 @@ export default function handleContext (payload, done) {
       this.log.error({
         errors: error.message || error,
         stack: error.stack
-      }, 'Failed to handle context step')
+      }, 'Failed to handle context')
       done(error)
     }
   }

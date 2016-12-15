@@ -2,6 +2,60 @@ import _ from 'lodash'
 import obj2arg from 'graphql-obj2arg'
 import { expandGQLErrors } from './common'
 
+export function endWorkflowRun (backend, workflowRun, status, callback) {
+  let GraphQLError = backend.graphql.GraphQLError
+
+  return backend.lib.S2FWorkflow(`mutation Mutation {
+    endWorkflowRun (id: "${workflowRun}", status: ${status})
+  }`)
+    .then((result) => {
+      if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)))
+      return callback(null, _.get(result, 'data.endWorkflowRun'))
+    })
+    .catch(callback)
+}
+
+export function getRunSummary (backend, workflowRun, callback) {
+  let GraphQLError = backend.graphql.GraphQLError
+
+  return backend.lib.S2FWorkflow(`{
+    readWorkflowRun (id: "${workflowRun}") {
+      context {
+        parameter { name },
+        value
+      },
+      threads {
+        stepRuns {
+          step { type, failsWorkflow }
+          status
+        }
+      },
+      parentStepRun,
+      taskId
+    }
+  }`)
+    .then((result) => {
+      if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)))
+      return callback(null, _.get(result, 'data.readWorkflowRun[0]'))
+    })
+    .catch(callback)
+}
+
+export function getRunThreads (backend, workflowRun, callback) {
+  let GraphQLError = backend.graphql.GraphQLError
+
+  return backend.lib.S2FWorkflow(`{
+    readWorkflowRun (id: "${workflowRun}") {
+      threads { id, status }
+    }
+  }`)
+    .then((result) => {
+      if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)))
+      return callback(null, _.get(result, 'data.readWorkflowRun[0].threads'))
+    })
+    .catch(callback)
+}
+
 export function newStepRun (backend, stepId, thread, callback) {
   let GraphQLError = backend.graphql.GraphQLError
 
@@ -163,6 +217,9 @@ export function getWorkflowRun (backend, workflowRun, thread, callback) {
 
 
 export default {
+  endWorkflowRun,
+  getRunSummary,
+  getRunThreads,
   newStepRun,
   getStep,
   newForks,

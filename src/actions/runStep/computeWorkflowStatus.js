@@ -1,41 +1,21 @@
-// TODO: refactor
-
 import _ from 'lodash'
-import chalk from 'chalk'
-import { gqlResult } from '../common'
+import { getRunSummary, updateWorkflowRunThread, endWorkflowRun } from '../query'
 import StepTypeEnum from '../../graphql/types/StepTypeEnum'
 import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 let { values: { BASIC, TASK, WORKFLOW } } = StepTypeEnum
 let { values: { FAIL, SUCCESS, JOINED } } = RunStatusEnum
 
 export default function computeWorkflowStatus (payload, done) {
+  try {
+    let { runner, workflowRun, thread } = payload
+    let localCtx = {}
+    this.log.trace({ workflowRun }, 'attempting to complete workflow run computation')
 
-  let { runner, workflowRun, thread, step } = payload
-  let { failsWorkflow, success } = step
+    return getRunSummary(this, workflowRun, (err, wfRun) => {
+      if (err) return done(err)
 
-  this.log.trace({ workflowRun }, 'attempting to complete workflow run computation')
-
-  return this.lib.S2FWorkflow(`{
-    readWorkflowRun (id: "${workflowRun}") {
-      context {
-        parameter { name },
-        value
-      },
-      threads {
-        stepRuns {
-          step { type, failsWorkflow }
-          status
-        }
-      },
-      parentStepRun,
-      taskId
-    }
-  }`)
-    .then((result) => gqlResult(this, result, (err, data) => {
-      if (err) throw err
-      let localCtx = {}
-      let { context, threads, parentStepRun, taskId } = _.get(data, 'readWorkflowRun[0]', {})
-      if (!threads) throw new Error('No threads found')
+      let { context, threads, parentStepRun, taskId } = wfRun
+      if (!threads) return done(new Error('no threads found'))
 
       // get the local context
       _.forEach(context, (ctx) => {
@@ -46,6 +26,7 @@ export default function computeWorkflowStatus (payload, done) {
       // reduce the step runs to determine the fail status
       let stepRuns = _.reduce(threads, (left, right) => _.union(left, _.get(right, 'stepRuns', [])), [])
 
+      // reduce success by type
       let success = _.reduce(stepRuns, (left, stepRun) => {
         let failable = _.includes([ BASIC, TASK, WORKFLOW ], stepRun.type)
         let stepSuccess = !(stepRun.failsWorkflow && failable && stepRun.status !== FAIL)
@@ -54,29 +35,24 @@ export default function computeWorkflowStatus (payload, done) {
 
       let status = success ? SUCCESS : FAIL
 
-      return this.lib.S2FWorkflow(`mutation Mutation {
-        updateWorkflowRunThread (id: "${thread}", status: ${JOINED})
-        { id }
-      }`)
-        .then((result) => gqlResult(this, result, (err, data) => {
-          if (err) throw err
+      return updateWorkflowRunThread(this, { id: thread, status: `Enum::${JOINED}` }, (err) => {
+        if (err) return done(err)
 
-          this.log.trace({ workflowRun }, 'joined final thread')
+        this.log.trace({ workflowRun }, 'joined final thread')
+        return endWorkflowRun(this, workflowRun, status, (err) => {
+          if (err) return done(err)
 
-          return this.lib.S2FWorkflow(`mutation Mutation {
-            endWorkflowRun (id: "${workflowRun}", status: ${status})
-          }`)
-            .then((result) => gqlResult(this, result, (err, data) => {
-              if (err) throw err
-              this.log.debug({ workflowRun, success }, 'workflow run completed')
-
-              if (parentStepRun) runner.resume(taskId, { status, context: localCtx })
-              return done(null, status, { context: localCtx })
-            }))
-        }))
-    }))
-    .catch((error) => {
-      this.log.error({ error }, 'failed to compute workflow')
-      done(error)
+          this.log.debug({ workflowRun, success }, 'workflow run completed')
+          if (parentStepRun) runner.resume(taskId, { status, context: localCtx })
+          return done(null, status, { context: localCtx })
+        })
+      })
     })
+  } catch (error) {
+    this.log.error({
+      errors: error.message || error,
+      stack: error.stack
+    }, 'Failed to compute workflow status')
+    done(error)
+  }
 }

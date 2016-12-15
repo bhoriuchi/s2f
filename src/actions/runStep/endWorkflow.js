@@ -1,7 +1,6 @@
-// TODO: refactor
-
 import _ from 'lodash'
-import { gqlResult, winTieBreak } from '../common'
+import { winTieBreak } from '../common'
+import { updateWorkflowRunThread, getRunThreads } from '../query'
 import computeWorkflowStatus from './computeWorkflowStatus'
 import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 
@@ -9,46 +8,39 @@ let { values: { CREATED, FORKING, JOINING, ENDING, RUNNING, JOINED } } = RunStat
 let RUNNING_STATES = [ CREATED, FORKING, JOINING, RUNNING ]
 
 export default function endWorkflow (payload, done) {
-  let { workflowRun, thread } = payload
+  try {
+    let { workflowRun, thread } = payload
+    let [ ending, running ] = [ [], [] ]
 
-  return this.lib.S2FWorkflow(`mutation Mutation {
-    updateWorkflowRunThread (id: "${thread}", status: ${ENDING})
-    { id }
-  }`)
-    .then((result) => gqlResult(this, result, (err, data) => {
-      if (err) throw err
+    return updateWorkflowRunThread(this, { id: thread, status: `Enum::${ENDING}` }, (err) => {
+      if (err) return done(err)
 
-      return this.lib.S2FWorkflow(`{ readWorkflowRun (id: "${workflowRun}") { threads { id, status } } }`)
-        .then((result) => gqlResult(this, result, (err, data) => {
-          if (err) throw err
+      return getRunThreads(this, workflowRun, (err, threads) => {
+        if (err) return done(err)
 
-          let [ ending, running ] = [ [], [] ]
-          _.forEach(_.get(data, 'readWorkflowRun[0].threads'), (t) => {
-            if (_.includes(RUNNING_STATES, t.status)) running.push(t.id)
-            else if (t.status === ENDING) ending.push(t.id)
+        _.forEach(threads, (t) => {
+          if (_.includes(RUNNING_STATES, t.status)) running.push(t.id)
+          else if (t.status === ENDING) ending.push(t.id)
+        })
+
+        // determine if the current call should complete the workflow
+        // if there are no running threads and this thread is the only ending thread
+        // then it is ok, otherwise if there are multiple ending then a tiebreaker should
+        // take place. the tie breaker will be the sorted order of ids.
+        if (running.length || !winTieBreak(thread, ending)) {
+          return updateWorkflowRunThread(this, { id: thread, status: `Enum::${JOINED}` }, (err) => {
+            if (err) return done(err)
+            return done()
           })
-
-          // determine if the current call should complete the workflow
-          // if there are no running threads and this thread is the only ending thread
-          // then it is ok, otherwise if there are multiple ending then a tiebreaker should
-          // take place. the tie breaker will be the sorted order of ids.
-          if (running.length || !winTieBreak(thread, ending)) {
-            return this.lib.S2FWorkflow(`mutation Mutation {
-              updateWorkflowRunThread (id: "${thread}", status: ${JOINED})
-              { id }
-            }`)
-              .then((result) => gqlResult(this, result, (err, data) => {
-                if (err) throw err
-                return done()
-              }))
-          }
-
-          // compute end of workflow
-          return computeWorkflowStatus.call(this, payload, done)
-        }))
-    }))
-    .catch((error) => {
-      this.log.error({ error, thread, workflowRun }, 'failed to end workflow or thread')
-      done(error)
+        }
+        return computeWorkflowStatus.call(this, payload, done)
+      })
     })
+  } catch (error) {
+    this.log.error({
+      errors: error.message || error,
+      stack: error.stack
+    }, 'Failed to end workflow')
+    done(error)
+  }
 }

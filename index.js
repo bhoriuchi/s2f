@@ -2879,12 +2879,6 @@ function expandGQLErrors(errors) {
   }
 }
 
-function gqlResult(backend, result, cb) {
-  var GraphQLError = backend.graphql.GraphQLError;
-  if (result.errors) return cb(new GraphQLError(expandGQLErrors(result.errors)));
-  return cb(null, result.data);
-}
-
 function convertType(type, name, value) {
   if (!type || !name) throw new Error('could not determine type of variable name to convert');
   switch (type) {
@@ -3180,6 +3174,33 @@ var functions = {
   endWorkflowRun: endWorkflowRun
 };
 
+function endWorkflowRun$1(backend, workflowRun, status, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('mutation Mutation {\n    endWorkflowRun (id: "' + workflowRun + '", status: ' + status + ')\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.endWorkflowRun'));
+  }).catch(callback);
+}
+
+function getRunSummary(backend, workflowRun, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      context {\n        parameter { name },\n        value\n      },\n      threads {\n        stepRuns {\n          step { type, failsWorkflow }\n          status\n        }\n      },\n      parentStepRun,\n      taskId\n    }\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.readWorkflowRun[0]'));
+  }).catch(callback);
+}
+
+function getRunThreads(backend, workflowRun, callback) {
+  var GraphQLError = backend.graphql.GraphQLError;
+
+  return backend.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      threads { id, status }\n    }\n  }').then(function (result) {
+    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    return callback(null, _.get(result, 'data.readWorkflowRun[0].threads'));
+  }).catch(callback);
+}
+
 function newStepRun$1(backend, stepId, thread, callback) {
   var GraphQLError = backend.graphql.GraphQLError;
 
@@ -3261,8 +3282,6 @@ function getWorkflowRun(backend, workflowRun, thread, callback) {
   }).catch(callback);
 }
 
-// TODO: refactor
-
 var _StepTypeEnum$values$3 = StepTypeEnum.values;
 var BASIC$1 = _StepTypeEnum$values$3.BASIC;
 var TASK$4 = _StepTypeEnum$values$3.TASK;
@@ -3276,71 +3295,70 @@ var JOINED$1 = _RunStatusEnum$values$2.JOINED;
 function computeWorkflowStatus(payload, done) {
   var _this = this;
 
-  var runner = payload.runner;
-  var workflowRun = payload.workflowRun;
-  var thread = payload.thread;
-  var step = payload.step;
-  var failsWorkflow = step.failsWorkflow;
-  var success = step.success;
+  try {
+    var _ret = function () {
+      var runner = payload.runner;
+      var workflowRun = payload.workflowRun;
+      var thread = payload.thread;
 
-
-  this.log.trace({ workflowRun: workflowRun }, 'attempting to complete workflow run computation');
-
-  return this.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      context {\n        parameter { name },\n        value\n      },\n      threads {\n        stepRuns {\n          step { type, failsWorkflow }\n          status\n        }\n      },\n      parentStepRun,\n      taskId\n    }\n  }').then(function (result) {
-    return gqlResult(_this, result, function (err, data) {
-      if (err) throw err;
       var localCtx = {};
+      _this.log.trace({ workflowRun: workflowRun }, 'attempting to complete workflow run computation');
 
-      var _$get = _.get(data, 'readWorkflowRun[0]', {});
+      return {
+        v: getRunSummary(_this, workflowRun, function (err, wfRun) {
+          if (err) return done(err);
 
-      var context = _$get.context;
-      var threads = _$get.threads;
-      var parentStepRun = _$get.parentStepRun;
-      var taskId = _$get.taskId;
+          var context = wfRun.context;
+          var threads = wfRun.threads;
+          var parentStepRun = wfRun.parentStepRun;
+          var taskId = wfRun.taskId;
 
-      if (!threads) throw new Error('No threads found');
+          if (!threads) return done(new Error('no threads found'));
 
-      // get the local context
-      _.forEach(context, function (ctx) {
-        var name = _.get(ctx, 'parameter.name');
-        if (name && _.has(ctx, 'value')) localCtx[name] = ctx.value;
-      });
+          // get the local context
+          _.forEach(context, function (ctx) {
+            var name = _.get(ctx, 'parameter.name');
+            if (name && _.has(ctx, 'value')) localCtx[name] = ctx.value;
+          });
 
-      // reduce the step runs to determine the fail status
-      var stepRuns = _.reduce(threads, function (left, right) {
-        return _.union(left, _.get(right, 'stepRuns', []));
-      }, []);
+          // reduce the step runs to determine the fail status
+          var stepRuns = _.reduce(threads, function (left, right) {
+            return _.union(left, _.get(right, 'stepRuns', []));
+          }, []);
 
-      var success = _.reduce(stepRuns, function (left, stepRun) {
-        var failable = _.includes([BASIC$1, TASK$4, WORKFLOW$4], stepRun.type);
-        var stepSuccess = !(stepRun.failsWorkflow && failable && stepRun.status !== FAIL);
-        return left && stepSuccess;
-      }, true);
+          // reduce success by type
+          var success = _.reduce(stepRuns, function (left, stepRun) {
+            var failable = _.includes([BASIC$1, TASK$4, WORKFLOW$4], stepRun.type);
+            var stepSuccess = !(stepRun.failsWorkflow && failable && stepRun.status !== FAIL);
+            return left && stepSuccess;
+          }, true);
 
-      var status = success ? SUCCESS : FAIL;
+          var status = success ? SUCCESS : FAIL;
 
-      return _this.lib.S2FWorkflow('mutation Mutation {\n        updateWorkflowRunThread (id: "' + thread + '", status: ' + JOINED$1 + ')\n        { id }\n      }').then(function (result) {
-        return gqlResult(_this, result, function (err, data) {
-          if (err) throw err;
+          return updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + JOINED$1 }, function (err) {
+            if (err) return done(err);
 
-          _this.log.trace({ workflowRun: workflowRun }, 'joined final thread');
+            _this.log.trace({ workflowRun: workflowRun }, 'joined final thread');
+            return endWorkflowRun$1(_this, workflowRun, status, function (err) {
+              if (err) return done(err);
 
-          return _this.lib.S2FWorkflow('mutation Mutation {\n            endWorkflowRun (id: "' + workflowRun + '", status: ' + status + ')\n          }').then(function (result) {
-            return gqlResult(_this, result, function (err, data) {
-              if (err) throw err;
               _this.log.debug({ workflowRun: workflowRun, success: success }, 'workflow run completed');
-
               if (parentStepRun) runner.resume(taskId, { status: status, context: localCtx });
               return done(null, status, { context: localCtx });
             });
           });
-        });
-      });
-    });
-  }).catch(function (error) {
-    _this.log.error({ error: error }, 'failed to compute workflow');
+        })
+      };
+    }();
+
+    if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+  } catch (error) {
+    this.log.error({
+      errors: error.message || error,
+      stack: error.stack
+    }, 'Failed to compute workflow status');
     done(error);
-  });
+  }
 }
 
 var _RunStatusEnum$values$1 = RunStatusEnum.values;
@@ -3449,8 +3467,6 @@ function nextStepRun(payload, done) {
   }
 }
 
-// TODO: refactor
-
 var _RunStatusEnum$values$4 = RunStatusEnum.values;
 var CREATED$2 = _RunStatusEnum$values$4.CREATED;
 var FORKING$1 = _RunStatusEnum$values$4.FORKING;
@@ -3464,47 +3480,49 @@ var RUNNING_STATES$1 = [CREATED$2, FORKING$1, JOINING$1, RUNNING$4];
 function endWorkflow(payload, done) {
   var _this = this;
 
-  var workflowRun = payload.workflowRun;
-  var thread = payload.thread;
+  try {
+    var _ret = function () {
+      var workflowRun = payload.workflowRun;
+      var thread = payload.thread;
+      var ending = [];
+      var running = [];
 
 
-  return this.lib.S2FWorkflow('mutation Mutation {\n    updateWorkflowRunThread (id: "' + thread + '", status: ' + ENDING$1 + ')\n    { id }\n  }').then(function (result) {
-    return gqlResult(_this, result, function (err, data) {
-      if (err) throw err;
+      return {
+        v: updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + ENDING$1 }, function (err) {
+          if (err) return done(err);
 
-      return _this.lib.S2FWorkflow('{ readWorkflowRun (id: "' + workflowRun + '") { threads { id, status } } }').then(function (result) {
-        return gqlResult(_this, result, function (err, data) {
-          if (err) throw err;
+          return getRunThreads(_this, workflowRun, function (err, threads) {
+            if (err) return done(err);
 
-          var ending = [];
-          var running = [];
+            _.forEach(threads, function (t) {
+              if (_.includes(RUNNING_STATES$1, t.status)) running.push(t.id);else if (t.status === ENDING$1) ending.push(t.id);
+            });
 
-          _.forEach(_.get(data, 'readWorkflowRun[0].threads'), function (t) {
-            if (_.includes(RUNNING_STATES$1, t.status)) running.push(t.id);else if (t.status === ENDING$1) ending.push(t.id);
-          });
-
-          // determine if the current call should complete the workflow
-          // if there are no running threads and this thread is the only ending thread
-          // then it is ok, otherwise if there are multiple ending then a tiebreaker should
-          // take place. the tie breaker will be the sorted order of ids.
-          if (running.length || !winTieBreak(thread, ending)) {
-            return _this.lib.S2FWorkflow('mutation Mutation {\n              updateWorkflowRunThread (id: "' + thread + '", status: ' + JOINED$2 + ')\n              { id }\n            }').then(function (result) {
-              return gqlResult(_this, result, function (err, data) {
-                if (err) throw err;
+            // determine if the current call should complete the workflow
+            // if there are no running threads and this thread is the only ending thread
+            // then it is ok, otherwise if there are multiple ending then a tiebreaker should
+            // take place. the tie breaker will be the sorted order of ids.
+            if (running.length || !winTieBreak(thread, ending)) {
+              return updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + JOINED$2 }, function (err) {
+                if (err) return done(err);
                 return done();
               });
-            });
-          }
+            }
+            return computeWorkflowStatus.call(_this, payload, done);
+          });
+        })
+      };
+    }();
 
-          // compute end of workflow
-          return computeWorkflowStatus.call(_this, payload, done);
-        });
-      });
-    });
-  }).catch(function (error) {
-    _this.log.error({ error: error, thread: thread, workflowRun: workflowRun }, 'failed to end workflow or thread');
+    if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+  } catch (error) {
+    this.log.error({
+      errors: error.message || error,
+      stack: error.stack
+    }, 'Failed to end workflow');
     done(error);
-  });
+  }
 }
 
 var _RunStatusEnum$values$3 = RunStatusEnum.values;
@@ -3593,7 +3611,7 @@ function handleContext(payload, done) {
       _this.log.error({
         errors: error.message || error,
         stack: error.stack
-      }, 'Failed to handle context step');
+      }, 'Failed to handle context');
       done(error);
     }
   };
