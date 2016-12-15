@@ -27,7 +27,7 @@
     "graphql-factory-types": "^0.1.1",
     "graphql-obj2arg": "^0.1.0",
     "lodash": "^4.16.2",
-    "sbx": "^2.0.3",
+    "sbx": "^2.1.0",
     "yellowjacket": "git+https://github.com/bhoriuchi/yellowjacket.git#development"
   },
   "devDependencies": {
