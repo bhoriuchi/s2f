@@ -13,6 +13,10 @@ export default {
         WorkflowRunThread: { stepRuns: 'id' }
       }
     },
+    thread: {
+      type: 'WorkflowRunThread',
+      resolve: 'readWorkflowRunThread'
+    },
     context: {
       type: ['ParameterRun']
     },

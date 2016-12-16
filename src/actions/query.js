@@ -2,6 +2,23 @@ import _ from 'lodash'
 import obj2arg from 'graphql-obj2arg'
 import { expandGQLErrors } from './common'
 
+export function getStepRun (backend, stepRunId, callback) {
+  let GraphQLError = backend.graphql.GraphQLError
+
+  return backend.lib.S2FWorkflow(`{
+    readStepRun (id: "${stepRunId}") {
+      status,
+      thread { id, workflowRun { id } },
+      step { async, success }
+    }
+  }`)
+    .then((result) => {
+      if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)))
+      return callback(null, _.get(result, 'data.readStepRun[0]'))
+    })
+    .catch(callback)
+}
+
 export function endWorkflowRun (backend, workflowRun, status, callback) {
   let GraphQLError = backend.graphql.GraphQLError
 
@@ -217,6 +234,7 @@ export function getWorkflowRun (backend, workflowRun, thread, callback) {
 
 
 export default {
+  getStepRun,
   endWorkflowRun,
   getRunSummary,
   getRunThreads,

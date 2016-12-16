@@ -28,6 +28,7 @@ import {
   readEndStep
 } from './workflow'
 import { createWorkflowRun, updateWorkflowRun, deleteWorkflowRun, endWorkflowRun } from './workflowRun'
+import { readWorkflowRunThread } from './workflowRunThread'
 
 export default {
   createFolder,
@@ -77,5 +78,6 @@ export default {
   createWorkflowRun,
   updateWorkflowRun,
   deleteWorkflowRun,
-  endWorkflowRun
+  endWorkflowRun,
+  readWorkflowRunThread
 }

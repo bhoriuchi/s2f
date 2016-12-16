@@ -33,7 +33,22 @@ export default function runStep (backend) {
         backend.log.trace({ step: step.id, type: step.type }, 'successfully read step')
 
         let localCtx = mapInput(input, context, _.get(step, 'parameters', []))
-        let payload = { runner, taskId, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId }
+        localCtx._resumeKey = stepRunId
+        localCtx._taskId = taskId
+
+        let payload = {
+          runner,
+          task,
+          taskId,
+          workflowRun,
+          thread,
+          endStep,
+          localCtx,
+          context,
+          args,
+          step,
+          stepRunId
+        }
 
         if (resume) return handleContext.call(backend, payload, done)(resumeContext)
 

@@ -7,7 +7,7 @@ import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 import ParameterClassEnum from '../../graphql/types/ParameterClassEnum'
 import StepTypeEnum from '../../graphql/types/StepTypeEnum'
 
-let { values: { SUCCESS, FAIL } } = RunStatusEnum
+let { values: { SUCCESS, FAIL, WAITING } } = RunStatusEnum
 let { values: { OUTPUT, ATTRIBUTE } } = ParameterClassEnum
 let { values: { CONDITION, LOOP } } = StepTypeEnum
 
@@ -52,11 +52,19 @@ export default function handleContext (payload, done) {
 
       return updateAttributeValues(this, outputs, (err) => {
         if (err) return done(err)
+
+        if (step.waitOnSuccess && status === SUCCESS) {
+          return setStepRunStatus(this, stepRunId, WAITING, (err) => {
+            if (err) return done(err)
+          })
+        }
+
         return setStepRunStatus(this, stepRunId, status, (err) => {
           if (err) return done(err)
+
           if (nextStep === endStep) return endWorkflow.call(this, payload, done)
           else if (!async) return nextStepRun.call(this, { thread, workflowRun, nextStep, async }, done)
-          done()
+          return done()
         })
       })
     } catch (error) {
