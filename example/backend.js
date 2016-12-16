@@ -1,4 +1,4 @@
-import babel from 'babel-core'
+import * as babel from 'babel-core'
 import { rethinkdb as RethinkDBBackend } from '../src/backend/index'
 import rethinkdbdash from 'rethinkdbdash'
 import * as graphql from 'graphql'
@@ -9,6 +9,7 @@ let backend = RethinkDBBackend('_yj', graphql, rethinkdbdash(), {
     store: 'development',
     vm: {
       lockdown: false,
+      parseImports: true,
       transform (code) {
         try {
           return babel.transform(code, {

@@ -1214,31 +1214,33 @@ function expandGQLErrors(errors) {
   }
 }
 
+function safeParse(value) {
+  try {
+    return JSON.parse(value);
+  } catch (err) {
+    return value;
+  }
+}
+
 function convertType(type, name, value) {
   if (!type || !name) throw new Error('could not determine type of variable name to convert');
+
   switch (type) {
     case 'ARRAY':
-      if (_.isString(value)) {
-        try {
-          value = JSON.parse(value);
-        } catch (err) {}
-      }
+      value = _.isString(value) ? safeParse(value) : value;
       if (_.isArray(value)) return value;
     case 'BOOLEAN':
-      var strBoolean = ['true', 'TRUE', 'false', 'FALSE', 0, 1, '0', '1'];
-      if (_.isBoolean(value) || _.includes(strBoolean, value)) return Boolean(value);
+      value = _.isString(value) ? safeParse(value) : value;
+      if (_.isBoolean(value)) return Boolean(value);
     case 'DATE':
       try {
         return new Date(value);
       } catch (err) {}
     case 'NUMBER':
+      value = _.isString(value) ? safeParse(value) : value;
       if (_.isNumber(value)) return Number(value);
     case 'OBJECT':
-      if (_.isString(value)) {
-        try {
-          value = JSON.parse(value);
-        } catch (err) {}
-      }
+      value = _.isString(value) ? safeParse(value) : value;
       if (_.isObject(value)) return value;
     case 'STRING':
       if (_.isString(value)) return String(value);
@@ -1251,9 +1253,7 @@ function mapInput(input, context, parameters) {
   var params = {};
 
   _.forEach(parameters, function (param) {
-    if (param.class === OUTPUT) {
-      params[param.name] = null;
-    } else if (param.class === INPUT) {
+    if (param.class === INPUT) {
       if (param.mapsTo) {
         var _ref = _.find(context, function (ctx) {
           return _.get(ctx, 'parameter.id') === param.mapsTo;
@@ -2093,9 +2093,9 @@ function updateAttributeValues$1(backend) {
         return param.eq(null).branch(r.error('ParameterRun not found'), parameter.get(param('parameter')).do(function (p) {
           return p.eq(null).or(p('class').ne(ATTRIBUTE)).branch(r.error('Invalid Parameter type'), parameterRun.get(value('id')).update({ value: value('value') }));
         }));
-      }).do(function () {
-        return true;
       });
+    }).do(function () {
+      return true;
     }).run(connection);
   };
 }
@@ -2664,9 +2664,11 @@ function syncWorkflow(backend) {
           var paramOp = _getOp4.paramOp;
 
           params[stepId].push(paramId);
+
           _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
             id: paramId,
             parentId: stepId,
+            mapsTo: _.get(ids, '["' + param.mapsTo + '"].id', null),
             scope: ParameterScopeEnum.STEP,
             entityType: PARAMETER
           }));
@@ -4041,6 +4043,7 @@ function startWorkflow(backend) {
         return {
           v: newWorkflowRun(backend, { args: args, input: input, taskId: taskId, parent: parent }, function (err, run) {
             if (err) return done(err);
+
             var workflowRun = _.get(run, 'id');
             var thread = _.get(run, 'threads[0].id');
             return runStep(backend)(runner, { id: taskId, context: { workflowRun: workflowRun, thread: thread } }, done);

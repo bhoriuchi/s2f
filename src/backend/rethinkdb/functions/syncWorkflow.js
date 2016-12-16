@@ -138,9 +138,11 @@ export default function syncWorkflow (backend) {
           _.forEach(step.parameters, (param) => {
             let { paramId, paramOp } = getOp(ids, param.id, 'param')
             params[stepId].push(paramId)
+
             _.set(op, `["${paramOp}"].parameter["${paramId}"]`, _.merge({}, param, {
               id: paramId,
               parentId: stepId,
+              mapsTo: _.get(ids, `["${param.mapsTo}"].id`, null),
               scope: ParameterScopeEnum.STEP,
               entityType: PARAMETER
             }))

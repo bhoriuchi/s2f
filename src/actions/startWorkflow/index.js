@@ -12,6 +12,7 @@ export default function startWorkflow (backend) {
 
       return newWorkflowRun(backend, { args, input, taskId, parent }, (err, run) => {
         if (err) return done(err)
+
         let workflowRun = _.get(run, 'id')
         let thread = _.get(run, 'threads[0].id')
         return runStep(backend)(runner, { id: taskId, context: { workflowRun, thread } }, done)
