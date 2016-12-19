@@ -22,7 +22,7 @@
   "author": "Branden Horiuchi <bhoriuchi@gmail.com>",
   "dependencies": {
     "bluebird": "^3.4.6",
-    "graphql-factory": "^0.4.7",
+    "graphql-factory": "^1.0.0",
     "graphql-factory-temporal": "git+https://github.com/bhoriuchi/graphql-factory-temporal.git#master",
     "graphql-factory-types": "^0.1.1",
     "graphql-obj2arg": "^0.1.0",
