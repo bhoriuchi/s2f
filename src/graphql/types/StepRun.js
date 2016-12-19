@@ -58,15 +58,13 @@ export default {
           status: { type: 'RunStatusEnum'},
           taskId: { type: 'String' },
           ended: { type: 'FactoryDateTime' }
-        },
-        resolve: 'updateStepRun'
+        }
       },
       delete: {
         type: 'Boolean',
         args: {
           id: { type: 'String', nullable: false }
-        },
-        resolve: 'deleteStepRun'
+        }
       },
       startStepRun: {
         type: 'Boolean',

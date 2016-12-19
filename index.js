@@ -604,15 +604,13 @@ var StepRun = {
           status: { type: 'RunStatusEnum' },
           taskId: { type: 'String' },
           ended: { type: 'FactoryDateTime' }
-        },
-        resolve: 'updateStepRun'
+        }
       },
       delete: {
         type: 'Boolean',
         args: {
           id: { type: 'String', nullable: false }
-        },
-        resolve: 'deleteStepRun'
+        }
       },
       startStepRun: {
         type: 'Boolean',
@@ -2404,19 +2402,6 @@ function createStepRun(backend) {
   };
 }
 
-function updateStepRun(backend) {
-  return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
-
-    var table = backend.getTypeCollection('StepRun');
-
-    return table.get(args.id).eq(null).branch(r.error('StepRun not found'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
-      return table.get(args.id);
-    })).run(connection);
-  };
-}
-
 function startStepRun$1(backend) {
   return function (source, args, context, info) {
     var r = backend.r;
@@ -3558,7 +3543,6 @@ var functions = {
   readSource: readSource,
   readStepParams: readStepParams,
   createStepRun: createStepRun,
-  updateStepRun: updateStepRun,
   startStepRun: startStepRun$1,
   setStepRunStatus: setStepRunStatus$1,
   createForks: createForks,
