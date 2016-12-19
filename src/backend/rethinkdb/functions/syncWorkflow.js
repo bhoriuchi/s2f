@@ -1,13 +1,14 @@
 import _ from 'lodash'
-const UPDATE = 'update'
-const INSERT = 'insert'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
 import EntityTypeEnum from '../../../graphql/types/EntityTypeEnum'
 import ParameterScopeEnum from '../../../graphql/types/ParameterScopeEnum'
-import chalk from 'chalk'
+import FolderChildTypeEnum from '../../../graphql/types/FolderChildTypeEnum'
+const UPDATE = 'update'
+const INSERT = 'insert'
 
 let { values: { END } } = StepTypeEnum
 let { values: { PARAMETER, WORKFLOW, STEP } } = EntityTypeEnum
+let FolderType = FolderChildTypeEnum.values
 
 export function isNewId (id) {
   return id.match(/^new:/) !== null
@@ -56,15 +57,24 @@ export default function syncWorkflow (backend) {
     let step = backend.getTypeCollection('Step')
     let folder = backend.getTypeCollection('Folder')
     let membership = backend.getTypeCollection('FolderMembership')
+    let owner = args.owner || null
 
     let makeTemporal = (obj, recordId) => {
       return _.merge(obj, {
         _temporal: {
-          changeLog: [],
           recordId,
+          name: 'initial',
           validFrom: null,
           validTo: null,
-          version: null
+          version: null,
+          owner,
+          changeLog: [
+            {
+              type: 'CREATE',
+              user: owner,
+              message: 'created workflow'
+            }
+          ]
         }
       })
     }
@@ -76,7 +86,7 @@ export default function syncWorkflow (backend) {
         let mutations = []
         let forks = []
         let steps = []
-        let endStep = args.endStep
+        let params = {}
         let op = {
           [INSERT]: { workflow: {}, parameter: {}, step: {} },
           [UPDATE]: { workflow: {}, parameter: {}, step: {} }
@@ -85,15 +95,20 @@ export default function syncWorkflow (backend) {
         // re-map workflow
         let { wfId, wfOp } = getOp(ids, args.id, 'wf')
         let wfObj = { id: wfId, entityType: WORKFLOW }
+        params[wfId] = []
         if (wfOp === INSERT) {
           isNewWorkflow = true
           makeTemporal(wfObj, ids.recordId)
         }
-        _.set(op, `["${wfOp}"].workflow["${wfId}"]`, _.merge({}, _.omit(args, ['parameters', 'steps']), wfObj))
+        _.set(op, `["${wfOp}"].workflow["${wfId}"]`, _.merge(
+          {},
+          _.omit(args, ['parameters', 'steps', '_temporal.owner', '_temporal.name']), wfObj)
+        )
 
         // re-map attributes
         _.forEach(args.parameters, (param) => {
           let { paramId, paramOp } = getOp(ids, param.id, 'param')
+          params[wfId].push(paramId)
           _.set(op, `["${paramOp}"].parameter["${paramId}"]`, _.merge({}, param, {
             id: paramId,
             parentId: wfId,
@@ -105,8 +120,8 @@ export default function syncWorkflow (backend) {
         // re-map steps
         _.forEach(args.steps, (step) => {
           let { stepId, stepOp } = getOp(ids, step.id, 'step')
+          params[stepId] = []
           steps.push(stepId)
-          if (step.type === END) endStep = stepId
           let stepObj = {
             id: stepId,
             success: _.get(ids, `["${step.success}"].id`, null),
@@ -122,9 +137,12 @@ export default function syncWorkflow (backend) {
           // re-map step params
           _.forEach(step.parameters, (param) => {
             let { paramId, paramOp } = getOp(ids, param.id, 'param')
+            params[stepId].push(paramId)
+
             _.set(op, `["${paramOp}"].parameter["${paramId}"]`, _.merge({}, param, {
               id: paramId,
               parentId: stepId,
+              mapsTo: _.get(ids, `["${param.mapsTo}"].id`, null),
               scope: ParameterScopeEnum.STEP,
               entityType: PARAMETER
             }))
@@ -165,10 +183,6 @@ export default function syncWorkflow (backend) {
           })
         })
 
-        // update endstep
-        let wf = _.get(op[INSERT].workflow, wfId) || _.get(op[UPDATE].workflow, wfId)
-        wf.endStep = endStep
-
         // process all mutations
         return r.expr(mutations).forEach((m) => {
           return m('op').eq(INSERT).branch(
@@ -192,14 +206,22 @@ export default function syncWorkflow (backend) {
           .do(() => {
             return folder.get(args.folder || '').ne(null).branch(
               r.expr(isNewWorkflow).branch(
-                membership.insert({ folder: args.folder, childId: ids.recordId, childType: 'WORKFLOW' }),
+                membership.insert({
+                  folder: args.folder,
+                  childId: ids.recordId,
+                  childType: FolderType.WORKFLOW
+                }),
                 membership.get(ids.recordId).update({ folder: args.folder })
               ),
-              folder.filter({ type: 'WORKFLOW', parent: 'ROOT' })
+              folder.filter({ type: FolderType.WORKFLOW, parent: FolderType.ROOT })
                 .nth(0)
                 .do((rootFolder) => {
                   return r.expr(isNewWorkflow).branch(
-                    membership.insert({ folder: rootFolder('id'), childId: ids.recordId, childType: 'WORKFLOW' }),
+                    membership.insert({
+                      folder: rootFolder('id'),
+                      childId: ids.recordId,
+                      childType: FolderType.WORKFLOW
+                    }),
                     membership.get(ids.recordId).update({ folder: rootFolder('id') })
                   )
                 })
@@ -209,7 +231,22 @@ export default function syncWorkflow (backend) {
           .do(() => {
             return step.filter({ workflowId: wfId })
               .filter((st) => r.expr(steps).contains(st('id')).not())
-              .delete()
+              .forEach((st) => {
+                return parameter.filter({ parentId: st('id') })
+                  .delete()
+                  .do(() => {
+                    return step.get(st('id')).delete()
+                  })
+              })
+          })
+          // remove parameters that are no longer used
+          .do(() => {
+            let paramMap = _.map(params, (parameters, parentId) => ({ parentId, parameters }))
+            return r.expr(paramMap).forEach((p) => {
+              return parameter.filter({ parentId: p('parentId') })
+                .filter((pm) => p('parameters').contains(pm('id')).not())
+                .delete()
+            })
           })
           .do(() => workflow.get(wfId))
           .run(connection)

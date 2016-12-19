@@ -54,8 +54,7 @@ export default {
     },
     timeout: {
       description: 'Time in ms to allow the step to run before timing out',
-      type: 'Int',
-      nullable: false
+      type: 'Int'
     },
     failsWorkflow: {
       description: 'If true and this step fails, the workflow will be considered failed',

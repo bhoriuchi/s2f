@@ -16,7 +16,8 @@ export default {
       type: 'WorkflowRun',
       belongsTo: {
         WorkflowRun: { threads: 'id' }
-      }
+      },
+      has: 'id'
     },
     currentStepRun: {
       type: 'StepRun',

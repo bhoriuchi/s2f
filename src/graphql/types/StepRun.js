@@ -13,6 +13,10 @@ export default {
         WorkflowRunThread: { stepRuns: 'id' }
       }
     },
+    thread: {
+      type: 'WorkflowRunThread',
+      resolve: 'readWorkflowRunThread'
+    },
     context: {
       type: ['ParameterRun']
     },
@@ -29,6 +33,9 @@ export default {
     },
     status: {
       type: 'RunStatusEnum'
+    },
+    taskId: {
+      type: 'String'
     }
   },
   _backend: {
@@ -39,7 +46,8 @@ export default {
         type: 'StepRun',
         args: {
           step: { type: 'String', nullable: false },
-          workflowRunThread: { type: 'String', nullable: false }
+          workflowRunThread: { type: 'String', nullable: false },
+          taskId: { type: 'String' }
         },
         resolve: 'createStepRun'
       },
@@ -48,31 +56,31 @@ export default {
         args: {
           id: { type: 'String', nullable: false },
           status: { type: 'RunStatusEnum'},
+          taskId: { type: 'String' },
           ended: { type: 'FactoryDateTime' }
-        },
-        resolve: 'updateStepRun'
+        }
       },
       delete: {
         type: 'Boolean',
         args: {
           id: { type: 'String', nullable: false }
-        },
-        resolve: 'deleteStepRun'
+        }
       },
       startStepRun: {
         type: 'Boolean',
         args: {
-          id: { type: 'String', nullable: false }
+          id: { type: 'String', nullable: false },
+          taskId: { type: 'String' }
         },
         resolve: 'startStepRun'
       },
-      endStepRun: {
+      setStepRunStatus: {
         type: 'Boolean',
         args: {
           id: { type: 'String', nullable: false },
           status: { type: 'RunStatusEnum', nullable: false }
         },
-        resolve: 'endStepRun'
+        resolve: 'setStepRunStatus'
       },
       createForks: {
         type: ['WorkflowRunThread'],

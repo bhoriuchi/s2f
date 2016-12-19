@@ -1,10 +1,10 @@
 import _ from 'lodash'
 import chalk from 'chalk'
-import { isPublished } from './common'
+import { isPublished, getWorkflowInputs } from './common'
 import { destroyStep } from './step'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
 import ParameterClassEnum from '../../../graphql/types/ParameterClassEnum'
-let { values: { TASK, WORKFLOW } } = StepTypeEnum
+let { values: { TASK, WORKFLOW, END } } = StepTypeEnum
 let { values: { INPUT, ATTRIBUTE } } = ParameterClassEnum
 
 export function getFullWorkflow (backend, args) {
@@ -99,8 +99,9 @@ export function cloneWorkflow (type, backend, args) {
         .then((uuids) => {
           _.forEach(uuids, (m) => idmap[m.orig] = m.cur)
 
-          let { newWorkflow, newSteps, newParams } = remapObjects(wf, idmap)
+          let { newWorkflow, newSteps, newParams } = remapObjects(wf, idmap, args)
           newWorkflow._temporal.name = args.name || newWorkflow.id
+          newWorkflow._temporal.owner = args.owner || null
           newWorkflow._temporal.changeLog.push(_.merge(args.changeLog || { user: 'SYSTEM', message: type }, {
             date: r.now(),
             type: type === 'branch' ? 'BRANCH' : 'FORK'
@@ -150,14 +151,9 @@ export function readWorkflowInputs (backend) {
     let {r, connection} = backend
     let parameter = backend.getTypeCollection('Parameter')
     let step = backend.getTypeCollection('Step')
-
-    return step.filter({workflowId: source.id})
-      .map((s) => parameter.filter({ parentId: s('id') }).coerceTo('array'))
-      .reduce((left, right) => left.union(right))
-      .run(connection)
+    return getWorkflowInputs(step, parameter, source.id).run(connection)
   }
 }
-
 
 export function createWorkflow (backend) {
   return function (source, args, context, info) {
@@ -167,7 +163,6 @@ export function createWorkflow (backend) {
     return r.do(r.uuid(), r.uuid(), r.uuid(), (wfId, startId, endId) => {
       args.id = wfId
       args.entityType = 'WORKFLOW'
-      args.endStep = endId
       return createTemporalStep([
         {
           id: startId,
@@ -289,6 +284,23 @@ export function readWorkflowParameters (backend) {
   }
 }
 
+export function readEndStep (backend) {
+  return function (source, args, context, info) {
+    let {r, connection} = backend
+    let step = backend.getTypeCollection('Step')
+
+    return step.filter({ workflowId: source.id, type: END })
+      .coerceTo('array')
+      .do((end) => {
+        return end.count().eq(0).branch(
+          null,
+          end.nth(0)
+        )
+      })
+      .run(connection)
+  }
+}
+
 export default {
   branchWorkflow,
   forkWorkflow,
@@ -299,5 +311,6 @@ export default {
   deleteWorkflow,
   readWorkflowInputs,
   readWorkflowVersions,
-  readWorkflowParameters
+  readWorkflowParameters,
+  readEndStep
 }

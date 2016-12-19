@@ -25,31 +25,33 @@ export function gqlResult (backend, result, cb) {
   return cb(null, result.data)
 }
 
+export function safeParse (value) {
+  try {
+    return JSON.parse(value)
+  } catch (err) {
+    return value
+  }
+}
+
 export function convertType (type, name, value) {
   if (!type || !name) throw new Error('could not determine type of variable name to convert')
+
   switch (type) {
     case 'ARRAY':
-      if (_.isString(value)) {
-        try {
-          value = JSON.parse(value)
-        } catch (err) {}
-      }
+      value = _.isString(value) ? safeParse(value) : value
       if (_.isArray(value)) return value
     case 'BOOLEAN':
-      let strBoolean = ['true', 'TRUE', 'false', 'FALSE', 0, 1, '0', '1']
-      if (_.isBoolean(value) || _.includes(strBoolean, value)) return Boolean(value)
+      value = _.isString(value) ? safeParse(value) : value
+      if (_.isBoolean(value)) return Boolean(value)
     case 'DATE':
       try {
         return new Date(value)
       } catch (err) {}
     case 'NUMBER':
+      value = _.isString(value) ? safeParse(value) : value
       if (_.isNumber(value)) return Number(value)
     case 'OBJECT':
-      if (_.isString(value)) {
-        try {
-          value = JSON.parse(value)
-        } catch (err) {}
-      }
+      value = _.isString(value) ? safeParse(value) : value
       if (_.isObject(value)) return value
     case 'STRING':
       if (_.isString(value)) return String(value)
@@ -67,9 +69,7 @@ export function mapInput (input, context, parameters) {
   let params = {}
 
   _.forEach(parameters, (param) => {
-    if (param.class === OUTPUT) {
-      params[param.name] = null
-    } else if (param.class === INPUT) {
+    if (param.class === INPUT) {
       if (param.mapsTo) {
         let { parameter, value } = _.find(context, (ctx) => _.get(ctx, 'parameter.id') === param.mapsTo) || {}
         if (parameter) params[param.name] = value

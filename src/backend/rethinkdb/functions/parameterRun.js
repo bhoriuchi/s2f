@@ -78,8 +78,8 @@ export function updateAttributeValues (backend) {
               })
           )
         })
-        .do(() => true)
     })
+      .do(() => true)
       .run(connection)
   }
 }

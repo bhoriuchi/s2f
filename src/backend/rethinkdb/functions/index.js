@@ -10,9 +10,10 @@ import {
 import { createParameter, updateParameter, deleteParameter } from './parameter'
 import { createParameterRun, updateParameterRun, deleteParameterRun, updateAttributeValues } from './parameterRun'
 import { createStep, readStep, updateStep, deleteStep, readStepThreads, readSource, readStepParams } from './step'
-import { createStepRun, startStepRun, endStepRun, createForks, getJoinThreads } from './stepRun'
+import { createStepRun, startStepRun, setStepRunStatus, createForks, getJoinThreads } from './stepRun'
 import syncWorkflow from './syncWorkflow'
-import { createTask, readTask, updateTask, deleteTask } from './task'
+import syncTask from './syncTask'
+import { createTask, readTask, readTaskVersions, updateTask, deleteTask } from './task'
 import {
   branchWorkflow,
   forkWorkflow,
@@ -23,9 +24,11 @@ import {
   deleteWorkflow,
   readWorkflowInputs,
   readWorkflowVersions,
-  readWorkflowParameters
+  readWorkflowParameters,
+  readEndStep
 } from './workflow'
 import { createWorkflowRun, updateWorkflowRun, deleteWorkflowRun, endWorkflowRun } from './workflowRun'
+import { readWorkflowRunThread } from './workflowRunThread'
 
 export default {
   createFolder,
@@ -51,12 +54,14 @@ export default {
   readStepParams,
   createStepRun,
   startStepRun,
-  endStepRun,
+  setStepRunStatus,
   createForks,
   getJoinThreads,
   syncWorkflow,
+  syncTask,
   createTask,
   readTask,
+  readTaskVersions,
   updateTask,
   deleteTask,
   branchWorkflow,
@@ -69,8 +74,10 @@ export default {
   readWorkflowInputs,
   readWorkflowVersions,
   readWorkflowParameters,
+  readEndStep,
   createWorkflowRun,
   updateWorkflowRun,
   deleteWorkflowRun,
-  endWorkflowRun
+  endWorkflowRun,
+  readWorkflowRunThread
 }

@@ -44,6 +44,17 @@ export function readTask (backend) {
   }
 }
 
+export function readTaskVersions (backend) {
+  return function (source, args, context = {}, info) {
+    let {r, connection} = backend
+    let table = backend.getTypeCollection('Task')
+    let filter = table.filter({ _temporal: { recordId: args.recordId } })
+    if (args.offset) filter = filter.skip(args.offset)
+    if (args.limit) filter = filter.limit(args.limit)
+    return filter.run(connection)
+  }
+}
+
 export function updateTask (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
@@ -93,6 +104,7 @@ export function deleteTask (backend) {
 export default {
   createTask,
   readTask,
+  readTaskVersions,
   updateTask,
   deleteTask
 }

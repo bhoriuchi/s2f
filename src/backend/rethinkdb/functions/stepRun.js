@@ -84,7 +84,8 @@ export function newStepRun (backend, args, id, returnChanges = true, checkThread
                       workflowRunThread: args.workflowRunThread,
                       step: args.step,
                       started: r.now(),
-                      status: CREATED
+                      status: CREATED,
+                      taskId: args.taskId
                     }, { returnChanges })
                   })
               )
@@ -177,7 +178,7 @@ export function startStepRun (backend) {
   }
 }
 
-export function endStepRun (backend) {
+export function setStepRunStatus (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
     let table = backend.getTypeCollection('StepRun')
@@ -292,7 +293,7 @@ export default {
   updateStepRun,
   deleteStepRun,
   startStepRun,
-  endStepRun,
+  setStepRunStatus,
   createForks,
   getJoinThreads
 }

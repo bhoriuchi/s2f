@@ -35,6 +35,9 @@ export default {
     status: {
       type: 'RunStatusEnum'
     },
+    taskId: {
+      type: 'String'
+    },
     parentStepRun: {
       type: 'String'
     }
@@ -49,7 +52,9 @@ export default {
           args: { type: 'FactoryJSON' },
           input: { type: 'FactoryJSON' },
           parameters: { type: ['ParameterInput'] },
-          step: { type: 'StepInput' }
+          step: { type: 'StepInput' },
+          taskId: { type: 'String' },
+          parent: { type: 'String' }
         },
         resolve: 'createWorkflowRun'
       },

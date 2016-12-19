@@ -10,10 +10,10 @@ backend.cmd({
     action: 'startWorkflow',
     context: {
       args: {
-        id: 'dd64cdb7-d089-48e0-8994-33dbc9ed6c4a'
+        id: '7e41171e-12e0-489c-9e55-395700f2b235'
       },
       input: {
-        name: 'Dam Son'
+        str: 'PRINTME'
       }
     }
   }
