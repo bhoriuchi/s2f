@@ -1174,7 +1174,7 @@ var types = {
 // import queries from './queries/index'
 
 function mergeConfig() {
-  var config = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+  var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
 
   // merge passed config with required config
@@ -1192,7 +1192,6 @@ function temporalTables(allTypes) {
 
 var _ParameterClassEnum$v = ParameterClassEnum.values;
 var INPUT = _ParameterClassEnum$v.INPUT;
-var OUTPUT = _ParameterClassEnum$v.OUTPUT;
 
 
 function expandGQLErrors(errors) {
@@ -1211,6 +1210,8 @@ function expandGQLErrors(errors) {
     return errors;
   }
 }
+
+
 
 function safeParse(value) {
   try {
@@ -1247,6 +1248,8 @@ function convertType(type, name, value) {
   }
 }
 
+
+
 function mapInput(input, context, parameters) {
   var params = {};
 
@@ -1255,10 +1258,9 @@ function mapInput(input, context, parameters) {
       if (param.mapsTo) {
         var _ref = _.find(context, function (ctx) {
           return _.get(ctx, 'parameter.id') === param.mapsTo;
-        }) || {};
-
-        var parameter = _ref.parameter;
-        var value = _ref.value;
+        }) || {},
+            parameter = _ref.parameter,
+            value = _ref.value;
 
         if (parameter) params[param.name] = value;
       } else {
@@ -1278,118 +1280,118 @@ function winTieBreak(thread, ending) {
 }
 
 function getStepRun(backend, stepRunId, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('{\n    readStepRun (id: "' + stepRunId + '") {\n      status,\n      thread { id, workflowRun { id } },\n      step { async, success }\n    }\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.readStepRun[0]'));
   }).catch(callback);
 }
 
 function endWorkflowRun(backend, workflowRun, status, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('mutation Mutation {\n    endWorkflowRun (id: "' + workflowRun + '", status: ' + status + ')\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.endWorkflowRun'));
   }).catch(callback);
 }
 
 function getRunSummary(backend, workflowRun, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      context {\n        parameter { name },\n        value\n      },\n      threads {\n        stepRuns {\n          step { type, failsWorkflow }\n          status\n        }\n      },\n      parentStepRun,\n      taskId\n    }\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.readWorkflowRun[0]'));
   }).catch(callback);
 }
 
 function getRunThreads(backend, workflowRun, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      threads { id, status }\n    }\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.readWorkflowRun[0].threads'));
   }).catch(callback);
 }
 
 function newStepRun(backend, stepId, thread, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('mutation Mutation {\n    createStepRun (step: "' + stepId + '", workflowRunThread: "' + thread + '"),\n    { id }\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.createStepRun'));
   }).catch(callback);
 }
 
 function getStep(backend, stepId, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('{\n    readStep (id: "' + stepId + '") {\n      id, name, type\n    }\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.readStep[0]'));
   }).catch(callback);
 }
 
 function newForks(backend, stepId, workflowRun, thread, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('mutation Mutation {\n    createForks (step: "' + stepId + '", workflowRun: "' + workflowRun + '", workflowRunThread: "' + thread + '")\n    { id }\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.createForks'));
   }).catch(callback);
 }
 
 function setStepRunStatus(backend, stepRunId, status, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('mutation Mutation {\n    setStepRunStatus (id: "' + stepRunId + '", status: ' + status + ')\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.setStepRunStatus'));
   }).catch(callback);
 }
 
 function updateAttributeValues(backend, outputs, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('mutation Mutation {\n    updateAttributeValues (values: ' + obj2arg(outputs) + ')\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.updateAttributeValues'));
   }).catch(callback);
 }
 
 function updateWorkflowRunThread(backend, args, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('mutation Mutation {\n    updateWorkflowRunThread (' + obj2arg(args, { noOuterBraces: true }) + ')\n    { id }\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.updateWorkflowRunThread'));
   }).catch(callback);
 }
 
 function startStepRun(backend, stepRunId, taskId, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('mutation Mutation {\n    startStepRun (\n      id: "' + stepRunId + '",\n      taskId: "' + taskId + '"\n    )\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.startStepRun'));
   }).catch(callback);
 }
 
 function newWorkflowRun(backend, args, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('mutation Mutation {\n    createWorkflowRun (' + obj2arg(args, { noOuterBraces: true }) + ') {\n      id,\n      threads { id }\n    }\n  }', {}, args).then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.createWorkflowRun'));
   }).catch(callback);
 }
 
 function getWorkflowRun(backend, workflowRun, thread, callback) {
-  var GraphQLError = backend.graphql.GraphQLError;
+  var GraphQLError$$1 = backend.graphql.GraphQLError;
 
   return backend.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      workflow { endStep { id } },\n      args,\n      input,\n      context {\n        id,\n        parameter { id, name, type, scope, class },\n        value\n      },\n      threads (id: "' + thread + '") {\n        currentStepRun {\n          id,\n          step {\n            id,\n            type,\n            async,\n            source,\n            subWorkflow {\n              _temporal { recordId },\n              id\n            },\n            timeout,\n            failsWorkflow,\n            waitOnSuccess,\n            requireResumeKey,\n            success,\n            fail,\n            parameters { id, name, type, scope, class, mapsTo }\n          }\n        }\n      }\n    }\n  }').then(function (result) {
-    if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
+    if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.readWorkflowRun[0]'));
   }).catch(callback);
 }
@@ -1400,124 +1402,27 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
-var asyncGenerator = function () {
-  function AwaitValue(value) {
-    this.value = value;
-  }
 
-  function AsyncGenerator(gen) {
-    var front, back;
 
-    function send(key, arg) {
-      return new Promise(function (resolve, reject) {
-        var request = {
-          key: key,
-          arg: arg,
-          resolve: resolve,
-          reject: reject,
-          next: null
-        };
 
-        if (back) {
-          back = back.next = request;
-        } else {
-          front = back = request;
-          resume(key, arg);
-        }
-      });
-    }
 
-    function resume(key, arg) {
-      try {
-        var result = gen[key](arg);
-        var value = result.value;
 
-        if (value instanceof AwaitValue) {
-          Promise.resolve(value.value).then(function (arg) {
-            resume("next", arg);
-          }, function (arg) {
-            resume("throw", arg);
-          });
-        } else {
-          settle(result.done ? "return" : "normal", result.value);
-        }
-      } catch (err) {
-        settle("throw", err);
-      }
-    }
 
-    function settle(type, value) {
-      switch (type) {
-        case "return":
-          front.resolve({
-            value: value,
-            done: true
-          });
-          break;
 
-        case "throw":
-          front.reject(value);
-          break;
 
-        default:
-          front.resolve({
-            value: value,
-            done: false
-          });
-          break;
-      }
 
-      front = front.next;
-
-      if (front) {
-        resume(front.key, front.arg);
-      } else {
-        back = null;
-      }
-    }
-
-    this._invoke = send;
-
-    if (typeof gen.return !== "function") {
-      this.return = undefined;
-    }
-  }
-
-  if (typeof Symbol === "function" && Symbol.asyncIterator) {
-    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
-      return this;
-    };
-  }
-
-  AsyncGenerator.prototype.next = function (arg) {
-    return this._invoke("next", arg);
-  };
-
-  AsyncGenerator.prototype.throw = function (arg) {
-    return this._invoke("throw", arg);
-  };
-
-  AsyncGenerator.prototype.return = function (arg) {
-    return this._invoke("return", arg);
-  };
-
-  return {
-    wrap: function (fn) {
-      return function () {
-        return new AsyncGenerator(fn.apply(this, arguments));
-      };
-    },
-    await: function (value) {
-      return new AwaitValue(value);
-    }
-  };
-}();
 
 var classCallCheck = function (instance, Constructor) {
   if (!(instance instanceof Constructor)) {
     throw new TypeError("Cannot call a class as a function");
   }
 };
+
+
+
+
+
+
 
 var defineProperty = function (obj, key, value) {
   if (key in obj) {
@@ -1532,6 +1437,31 @@ var defineProperty = function (obj, key, value) {
   }
 
   return obj;
+};
+
+var get = function get(object, property, receiver) {
+  if (object === null) object = Function.prototype;
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent === null) {
+      return undefined;
+    } else {
+      return get(parent, property, receiver);
+    }
+  } else if ("value" in desc) {
+    return desc.value;
+  } else {
+    var getter = desc.get;
+
+    if (getter === undefined) {
+      return undefined;
+    }
+
+    return getter.call(receiver);
+  }
 };
 
 var inherits = function (subClass, superClass) {
@@ -1550,12 +1480,46 @@ var inherits = function (subClass, superClass) {
   if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
 };
 
+
+
+
+
+
+
+
+
+
+
 var possibleConstructorReturn = function (self, call) {
   if (!self) {
     throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
   }
 
   return call && (typeof call === "object" || typeof call === "function") ? call : self;
+};
+
+
+
+var set = function set(object, property, value, receiver) {
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent !== null) {
+      set(parent, property, value, receiver);
+    }
+  } else if ("value" in desc && desc.writable) {
+    desc.value = value;
+  } else {
+    var setter = desc.set;
+
+    if (setter !== undefined) {
+      setter.call(receiver, value);
+    }
+  }
+
+  return value;
 };
 
 var _StepTypeEnum$values = StepTypeEnum.values;
@@ -1573,9 +1537,9 @@ function computeWorkflowStatus(payload, done) {
 
   try {
     var _ret = function () {
-      var runner = payload.runner;
-      var workflowRun = payload.workflowRun;
-      var thread = payload.thread;
+      var runner = payload.runner,
+          workflowRun = payload.workflowRun,
+          thread = payload.thread;
 
       var localCtx = {};
       _this.log.trace({ workflowRun: workflowRun }, 'attempting to complete workflow run computation');
@@ -1584,10 +1548,10 @@ function computeWorkflowStatus(payload, done) {
         v: getRunSummary(_this, workflowRun, function (err, wfRun) {
           if (err) return done(err);
 
-          var context = wfRun.context;
-          var threads = wfRun.threads;
-          var parentStepRun = wfRun.parentStepRun;
-          var taskId = wfRun.taskId;
+          var context = wfRun.context,
+              threads = wfRun.threads,
+              parentStepRun = wfRun.parentStepRun,
+              taskId = wfRun.taskId;
 
           if (!threads) return done(new Error('no threads found'));
 
@@ -1637,16 +1601,6 @@ function computeWorkflowStatus(payload, done) {
   }
 }
 
-var _RunStatusEnum$values$1 = RunStatusEnum.values;
-var CREATED = _RunStatusEnum$values$1.CREATED;
-var FORKING = _RunStatusEnum$values$1.FORKING;
-var JOINING = _RunStatusEnum$values$1.JOINING;
-var ENDING = _RunStatusEnum$values$1.ENDING;
-var RUNNING$1 = _RunStatusEnum$values$1.RUNNING;
-var JOINED = _RunStatusEnum$values$1.JOINED;
-
-var RUNNING_STATES = [CREATED, FORKING, JOINING, RUNNING$1];
-
 /*
  * Notes
  *
@@ -1663,8 +1617,8 @@ var RUNNING_STATES = [CREATED, FORKING, JOINING, RUNNING$1];
 // instead fails should go to the last step in their thread
 
 function joinThreads(payload, done) {
-  var workflowRun = payload.workflowRun;
-  var thread = payload.thread;
+  var workflowRun = payload.workflowRun,
+      thread = payload.thread;
 
 
   done();
@@ -1688,10 +1642,10 @@ function nextStepRun(payload, done) {
 
   try {
     var _ret = function () {
-      var thread = payload.thread;
-      var nextStep = payload.nextStep;
-      var async = payload.async;
-      var workflowRun = payload.workflowRun;
+      var thread = payload.thread,
+          nextStep = payload.nextStep,
+          async = payload.async,
+          workflowRun = payload.workflowRun;
 
       var event = _.get(_this, 'server._emitter');
       if (!event && !async) return {
@@ -1780,9 +1734,9 @@ function resumeStep(backend, stepRunId, done) {
 
 var resume = {
   handler: function handler(_ref) {
-    var payload = _ref.payload;
-    var socket = _ref.socket;
-    var requestId = _ref.requestId;
+    var payload = _ref.payload,
+        socket = _ref.socket,
+        requestId = _ref.requestId;
 
     var log = this.backend.log;
     var eventName = 'workflow.resume.' + requestId;
@@ -1808,14 +1762,14 @@ var resume = {
 
 var workflow = {
   handler: function handler(_ref) {
-    var payload = _ref.payload;
-    var socket = _ref.socket;
-    var requestId = _ref.requestId;
-    var query = payload.query;
-    var rootValue = payload.rootValue;
-    var contextValue = payload.contextValue;
-    var variableValues = payload.variableValues;
-    var operationName = payload.operationName;
+    var payload = _ref.payload,
+        socket = _ref.socket,
+        requestId = _ref.requestId;
+    var query = payload.query,
+        rootValue = payload.rootValue,
+        contextValue = payload.contextValue,
+        variableValues = payload.variableValues,
+        operationName = payload.operationName;
 
     return this.backend.lib.S2FWorkflow(query, rootValue, contextValue, variableValues, operationName).then(function (result) {
       if (socket) socket.emit("result." + requestId, result);
@@ -1854,8 +1808,8 @@ var events = {
 
 function createFolder(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var folder = backend.getTypeCollection('Folder');
   };
@@ -1863,8 +1817,8 @@ function createFolder(backend) {
 
 function readFolder(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var folder = backend.getTypeCollection('Folder');
   };
@@ -1872,8 +1826,8 @@ function readFolder(backend) {
 
 function updateFolder(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var folder = backend.getTypeCollection('Folder');
   };
@@ -1881,8 +1835,8 @@ function updateFolder(backend) {
 
 function deleteFolder(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var folder = backend.getTypeCollection('Folder');
   };
@@ -1890,8 +1844,8 @@ function deleteFolder(backend) {
 
 function readWorkflowFolder(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var folder = backend.getTypeCollection('Folder');
     var membership = backend.getTypeCollection('FolderMembership');
@@ -1903,8 +1857,8 @@ function readWorkflowFolder(backend) {
 
 function readRootFolder(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var folder = backend.getTypeCollection('Folder');
     var member = backend.getTypeCollection('FolderMembership');
@@ -1939,8 +1893,8 @@ function readRootFolder(backend) {
 
 function readSubFolder(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var folder = backend.getTypeCollection('Folder');
     var member = backend.getTypeCollection('FolderMembership');
@@ -1973,8 +1927,8 @@ function readSubFolder(backend) {
 
 function createParameter(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Parameter');
 
@@ -1991,9 +1945,11 @@ function createParameter(backend) {
   };
 }
 
+
+
 function isParentPublished(backend, id) {
-  var r = backend.r;
-  var connection = backend.connection;
+  var r = backend.r,
+      connection = backend.connection;
 
   var parameter = backend.getTypeCollection('Parameter');
   var workflow = backend.getTypeCollection('Workflow');
@@ -2009,8 +1965,8 @@ function isParentPublished(backend, id) {
 
 function updateParameter(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var parameter = backend.getTypeCollection('Parameter');
 
@@ -2026,8 +1982,8 @@ function updateParameter(backend) {
 
 function deleteParameter(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var parameter = backend.getTypeCollection('Parameter');
 
@@ -2042,8 +1998,8 @@ var ATTRIBUTE = ParameterClassEnum.values.ATTRIBUTE;
 
 function createParameterRun(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var parameter = backend.getTypeCollection('Parameter');
     var table = backend.getTypeCollection('ParameterRun');
@@ -2052,10 +2008,12 @@ function createParameterRun(backend) {
   };
 }
 
+
+
 function updateParameterRun(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('ParameterRun');
 
@@ -2067,8 +2025,8 @@ function updateParameterRun(backend) {
 
 function deleteParameterRun(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('ParameterRun');
 
@@ -2080,8 +2038,8 @@ function deleteParameterRun(backend) {
 
 function updateAttributeValues$1(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var parameterRun = backend.getTypeCollection('ParameterRun');
     var parameter = backend.getTypeCollection('Parameter');
@@ -2110,12 +2068,14 @@ function isPublished(backend, type, id) {
 }
 
 function first(seq) {
-  var err = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+  var err = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
   return seq.coerceTo('array').do(function (records) {
     return records.count().eq(0).branch(err, records.nth(0));
   });
 }
+
+
 
 function getWorkflowInputs(step, parameter, workflowId) {
   return step.filter({ workflowId: workflowId }).map(function (s) {
@@ -2136,8 +2096,8 @@ var TASK$1 = _StepTypeEnum$values$1.TASK;
 
 
 function destroyStep(backend, ids) {
-  var r = backend.r;
-  var connection = backend.connection;
+  var r = backend.r,
+      connection = backend.connection;
 
   var step = backend.getTypeCollection('Step');
   var parameter = backend.getTypeCollection('Parameter');
@@ -2156,15 +2116,15 @@ function destroyStep(backend, ids) {
 
 function createStep(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var parameter = backend.getTypeCollection('Parameter');
     var workflow = backend.getTypeCollection('Workflow');
 
-    var _globals$_temporal = this.globals._temporal;
-    var createTemporalStep = _globals$_temporal.createTemporalStep;
-    var filterTemporalTask = _globals$_temporal.filterTemporalTask;
+    var _globals$_temporal = this.globals._temporal,
+        createTemporalStep = _globals$_temporal.createTemporalStep,
+        filterTemporalTask = _globals$_temporal.filterTemporalTask;
 
 
     if (_.includes(['START', 'END'], args.type)) {
@@ -2198,12 +2158,12 @@ function createStep(backend) {
 
 function readStepThreads(backend) {
   return function () {
-    var source = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+    var source = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var args = arguments[1];
-    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Step');
 
@@ -2218,12 +2178,12 @@ function readStepThreads(backend) {
 
 function readStep(backend) {
   return function () {
-    var source = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+    var source = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var args = arguments[1];
-    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Step');
 
@@ -2250,8 +2210,8 @@ function readStep(backend) {
 
 function updateStep(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Step');
 
@@ -2263,8 +2223,8 @@ function updateStep(backend) {
 
 function deleteStep(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
 
     return isPublished(backend, 'Step', args.id).branch(r.error('This step is published and cannot be deleted'), destroyStep(backend, args.id)).run(connection);
@@ -2273,12 +2233,12 @@ function deleteStep(backend) {
 
 function readSource(backend) {
   return function () {
-    var source = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+    var source = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var args = arguments[1];
-    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
     var filterTemporalTask = this.globals._temporal.filterTemporalTask;
 
     var taskId = _.get(source, 'task') || _.get(source, 'task.id') || null;
@@ -2296,15 +2256,15 @@ function readSource(backend) {
 
 function readStepParams(backend) {
   return function () {
-    var source = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+    var source = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var args = arguments[1];
-    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
-    var r = backend.r;
-    var connection = backend.connection;
-    var _globals$_temporal2 = this.globals._temporal;
-    var filterTemporalWorkflow = _globals$_temporal2.filterTemporalWorkflow;
-    var filterTemporalTask = _globals$_temporal2.filterTemporalTask;
+    var r = backend.r,
+        connection = backend.connection;
+    var _globals$_temporal2 = this.globals._temporal,
+        filterTemporalWorkflow = _globals$_temporal2.filterTemporalWorkflow,
+        filterTemporalTask = _globals$_temporal2.filterTemporalTask;
 
     var parameter = backend.getTypeCollection('Parameter');
     context = _.omit(context, ['recordId', 'id']);
@@ -2330,8 +2290,8 @@ var FORK = StepTypeEnum.values.FORK;
 
 
 function newStepRun$1(backend, args, id) {
-  var returnChanges = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
-  var checkThread = arguments.length <= 4 || arguments[4] === undefined ? true : arguments[4];
+  var returnChanges = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+  var checkThread = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
   var r = backend.r;
 
   var thread = backend.getTypeCollection('WorkflowRunThread');
@@ -2395,17 +2355,23 @@ input (JSON)
  */
 function createStepRun(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     return newStepRun$1(backend, args, r.uuid())('changes').nth(0)('new_val').run(connection);
   };
 }
 
+
+
+
+
+
+
 function startStepRun$1(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('StepRun');
 
@@ -2422,8 +2388,8 @@ function startStepRun$1(backend) {
 
 function setStepRunStatus$1(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('StepRun');
 
@@ -2437,8 +2403,8 @@ function setStepRunStatus$1(backend) {
 
 function createForks(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var workflowRun = backend.getTypeCollection('WorkflowRun');
     var thread = backend.getTypeCollection('WorkflowRunThread');
@@ -2486,8 +2452,8 @@ function createForks(backend) {
 
 function getJoinThreads(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var thread = backend.getTypeCollection('WorkflowRunThread');
     var step = backend.getTypeCollection('Step');
@@ -2513,7 +2479,6 @@ function getJoinThreads(backend) {
 var UPDATE = 'update';
 var INSERT = 'insert';
 
-var END = StepTypeEnum.values.END;
 var _EntityTypeEnum$value = EntityTypeEnum.values;
 var PARAMETER = _EntityTypeEnum$value.PARAMETER;
 var WORKFLOW$2 = _EntityTypeEnum$value.WORKFLOW;
@@ -2526,7 +2491,7 @@ function isNewId(id) {
 }
 
 function mapIds(args, r, workflow) {
-  var id = arguments.length <= 3 || arguments[3] === undefined ? '' : arguments[3];
+  var id = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '';
 
   var ids = {
     recordId: workflow.get(id).eq(null).branch(r.uuid(), workflow.get(id)('_temporal')('recordId'))
@@ -2554,18 +2519,17 @@ function mapIds(args, r, workflow) {
 function getOp(ids, uuid, prefix) {
   var _ref;
 
-  var _$get = _.get(ids, uuid, {});
-
-  var op = _$get.op;
-  var id = _$get.id;
+  var _$get = _.get(ids, uuid, {}),
+      op = _$get.op,
+      id = _$get.id;
 
   return _ref = {}, defineProperty(_ref, prefix + 'Id', id), defineProperty(_ref, prefix + 'Op', op), _ref;
 }
 
 function syncWorkflow(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var parameter = backend.getTypeCollection('Parameter');
     var workflow = backend.getTypeCollection('Workflow');
@@ -2604,10 +2568,9 @@ function syncWorkflow(backend) {
 
       // re-map workflow
 
-      var _getOp = getOp(ids, args.id, 'wf');
-
-      var wfId = _getOp.wfId;
-      var wfOp = _getOp.wfOp;
+      var _getOp = getOp(ids, args.id, 'wf'),
+          wfId = _getOp.wfId,
+          wfOp = _getOp.wfOp;
 
       var wfObj = { id: wfId, entityType: WORKFLOW$2 };
       params[wfId] = [];
@@ -2619,10 +2582,9 @@ function syncWorkflow(backend) {
 
       // re-map attributes
       _.forEach(args.parameters, function (param) {
-        var _getOp2 = getOp(ids, param.id, 'param');
-
-        var paramId = _getOp2.paramId;
-        var paramOp = _getOp2.paramOp;
+        var _getOp2 = getOp(ids, param.id, 'param'),
+            paramId = _getOp2.paramId,
+            paramOp = _getOp2.paramOp;
 
         params[wfId].push(paramId);
         _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
@@ -2635,10 +2597,9 @@ function syncWorkflow(backend) {
 
       // re-map steps
       _.forEach(args.steps, function (step) {
-        var _getOp3 = getOp(ids, step.id, 'step');
-
-        var stepId = _getOp3.stepId;
-        var stepOp = _getOp3.stepOp;
+        var _getOp3 = getOp(ids, step.id, 'step'),
+            stepId = _getOp3.stepId,
+            stepOp = _getOp3.stepOp;
 
         params[stepId] = [];
         steps.push(stepId);
@@ -2656,10 +2617,9 @@ function syncWorkflow(backend) {
 
         // re-map step params
         _.forEach(step.parameters, function (param) {
-          var _getOp4 = getOp(ids, param.id, 'param');
-
-          var paramId = _getOp4.paramId;
-          var paramOp = _getOp4.paramOp;
+          var _getOp4 = getOp(ids, param.id, 'param'),
+              paramId = _getOp4.paramId,
+              paramOp = _getOp4.paramOp;
 
           params[stepId].push(paramId);
 
@@ -2675,15 +2635,13 @@ function syncWorkflow(backend) {
 
       // apply forks
       _.forEach(args.steps, function (step) {
-        var _getOp5 = getOp(ids, step.id, 'step');
-
-        var stepId = _getOp5.stepId;
+        var _getOp5 = getOp(ids, step.id, 'step'),
+            stepId = _getOp5.stepId;
 
         if (step.threads.length) forks.push(stepId);
         _.forEach(step.threads, function (thread) {
-          var _getOp6 = getOp(ids, thread.id, 'thread');
-
-          var threadId = _getOp6.threadId;
+          var _getOp6 = getOp(ids, thread.id, 'thread'),
+              threadId = _getOp6.threadId;
 
           if (threadId) {
             var s = _.get(op[INSERT].step, threadId) || _.get(op[UPDATE].step, threadId);
@@ -2694,9 +2652,8 @@ function syncWorkflow(backend) {
 
       // remove deleted forks
       _.forEach(args.steps, function (step) {
-        var _getOp7 = getOp(ids, step.id, 'step');
-
-        var stepId = _getOp7.stepId;
+        var _getOp7 = getOp(ids, step.id, 'step'),
+            stepId = _getOp7.stepId;
 
         var s = _.get(op[INSERT].step, stepId) || _.get(op[UPDATE].step, stepId);
         s.fork = _.includes(forks, s.fork) ? s.fork : null;
@@ -2775,7 +2732,7 @@ function isNewId$1(id) {
 }
 
 function mapIds$1(args, r, task) {
-  var id = arguments.length <= 3 || arguments[3] === undefined ? '' : arguments[3];
+  var id = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '';
 
   var ids = {
     recordId: task.get(id).eq(null).branch(r.uuid(), task.get(id)('_temporal')('recordId'))
@@ -2795,18 +2752,17 @@ function mapIds$1(args, r, task) {
 function getOp$1(ids, uuid, prefix) {
   var _ref;
 
-  var _$get = _.get(ids, uuid, {});
-
-  var op = _$get.op;
-  var id = _$get.id;
+  var _$get = _.get(ids, uuid, {}),
+      op = _$get.op,
+      id = _$get.id;
 
   return _ref = {}, defineProperty(_ref, prefix + 'Id', id), defineProperty(_ref, prefix + 'Op', op), _ref;
 }
 
 function syncTask(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var task = backend.getTypeCollection('Task');
     var parameter = backend.getTypeCollection('Parameter');
@@ -2842,10 +2798,9 @@ function syncTask(backend) {
 
       // re-map workflow
 
-      var _getOp = getOp$1(ids, args.id, 'task');
-
-      var taskId = _getOp.taskId;
-      var taskOp = _getOp.taskOp;
+      var _getOp = getOp$1(ids, args.id, 'task'),
+          taskId = _getOp.taskId,
+          taskOp = _getOp.taskOp;
 
       var taskObj = { id: taskId, entityType: TASK$2 };
 
@@ -2857,10 +2812,9 @@ function syncTask(backend) {
 
       // re-map parameters
       _.forEach(args.parameters, function (param) {
-        var _getOp2 = getOp$1(ids, param.id, 'param');
-
-        var paramId = _getOp2.paramId;
-        var paramOp = _getOp2.paramOp;
+        var _getOp2 = getOp$1(ids, param.id, 'param'),
+            paramId = _getOp2.paramId,
+            paramOp = _getOp2.paramOp;
 
         params.push(paramId);
         _.set(op, '["' + paramOp + '"].parameter["' + paramId + '"]', _.merge({}, param, {
@@ -2917,8 +2871,8 @@ function syncTask(backend) {
 
 function createTask(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Task');
 
@@ -2933,16 +2887,16 @@ function createTask(backend) {
 
 function readTask(backend) {
   return function (source, args) {
-    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var sourceTask = _.get(source, 'task') || _.get(source, 'task.id');
 
-    var _globals$_temporal = this.globals._temporal;
-    var filterTemporalTask = _globals$_temporal.filterTemporalTask;
-    var mostCurrentTemporalTask = _globals$_temporal.mostCurrentTemporalTask;
+    var _globals$_temporal = this.globals._temporal,
+        filterTemporalTask = _globals$_temporal.filterTemporalTask,
+        mostCurrentTemporalTask = _globals$_temporal.mostCurrentTemporalTask;
 
     context.date = args.date || context.date;
     var filter = r.expr(null);
@@ -2960,10 +2914,10 @@ function readTask(backend) {
 
 function readTaskVersions(backend) {
   return function (source, args) {
-    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Task');
     var filter = table.filter({ _temporal: { recordId: args.recordId } });
@@ -2975,8 +2929,8 @@ function readTaskVersions(backend) {
 
 function updateTask(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Task');
 
@@ -2988,8 +2942,8 @@ function updateTask(backend) {
 
 function deleteTask(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var task = backend.getTypeCollection('Task');
     var parameter = backend.getTypeCollection('Parameter');
@@ -3006,17 +2960,14 @@ function deleteTask(backend) {
 }
 
 var _StepTypeEnum$values$2 = StepTypeEnum.values;
-var TASK$3 = _StepTypeEnum$values$2.TASK;
-var WORKFLOW$3 = _StepTypeEnum$values$2.WORKFLOW;
 var END$1 = _StepTypeEnum$values$2.END;
 var _ParameterClassEnum$v$1 = ParameterClassEnum.values;
-var INPUT$3 = _ParameterClassEnum$v$1.INPUT;
 var ATTRIBUTE$1 = _ParameterClassEnum$v$1.ATTRIBUTE;
 
 
 function getFullWorkflow(backend, args) {
-  var r = backend.r;
-  var connection = backend.connection;
+  var r = backend.r,
+      connection = backend.connection;
 
   var workflow = backend.getTypeCollection('Workflow');
   var parameter = backend.getTypeCollection('Parameter');
@@ -3090,8 +3041,8 @@ function remapObjects(wf, idmap) {
 }
 
 function cloneWorkflow(type, backend, args) {
-  var r = backend.r;
-  var connection = backend.connection;
+  var r = backend.r,
+      connection = backend.connection;
 
   var workflow = backend.getTypeCollection('Workflow');
   var parameter = backend.getTypeCollection('Parameter');
@@ -3106,11 +3057,10 @@ function cloneWorkflow(type, backend, args) {
         return idmap[m.orig] = m.cur;
       });
 
-      var _remapObjects = remapObjects(wf, idmap, args);
-
-      var newWorkflow = _remapObjects.newWorkflow;
-      var newSteps = _remapObjects.newSteps;
-      var newParams = _remapObjects.newParams;
+      var _remapObjects = remapObjects(wf, idmap, args),
+          newWorkflow = _remapObjects.newWorkflow,
+          newSteps = _remapObjects.newSteps,
+          newParams = _remapObjects.newParams;
 
       newWorkflow._temporal.name = args.name || newWorkflow.id;
       newWorkflow._temporal.owner = args.owner || null;
@@ -3140,8 +3090,8 @@ function forkWorkflow(backend) {
 
 function publishWorkflow(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var step = backend.getTypeCollection('Step');
     var tableName = backend.getTypeComputed('Workflow').collection;
@@ -3149,11 +3099,11 @@ function publishWorkflow(backend) {
     var extendPublish = this.globals._temporal.extendPublish;
 
     return extendPublish(tableName, args).then(function (wf) {
-      var _wf$_temporal = wf._temporal;
-      var version = _wf$_temporal.version;
-      var validFrom = _wf$_temporal.validFrom;
-      var validTo = _wf$_temporal.validTo;
-      var id = wf.id;
+      var _wf$_temporal = wf._temporal,
+          version = _wf$_temporal.version,
+          validFrom = _wf$_temporal.validFrom,
+          validTo = _wf$_temporal.validTo,
+          id = wf.id;
 
       return step.filter({ workflowId: id }).update({ _temporal: { version: version, validFrom: validFrom, validTo: validTo } }).run(connection).then(function () {
         return wf;
@@ -3164,10 +3114,10 @@ function publishWorkflow(backend) {
 
 function readWorkflowInputs(backend) {
   return function (source, args) {
-    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var parameter = backend.getTypeCollection('Parameter');
     var step = backend.getTypeCollection('Step');
@@ -3177,11 +3127,11 @@ function readWorkflowInputs(backend) {
 
 function createWorkflow(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
-    var _globals$_temporal = this.globals._temporal;
-    var createTemporalWorkflow = _globals$_temporal.createTemporalWorkflow;
-    var createTemporalStep = _globals$_temporal.createTemporalStep;
+    var r = backend.r,
+        connection = backend.connection;
+    var _globals$_temporal = this.globals._temporal,
+        createTemporalWorkflow = _globals$_temporal.createTemporalWorkflow,
+        createTemporalStep = _globals$_temporal.createTemporalStep;
 
     return r.do(r.uuid(), r.uuid(), r.uuid(), function (wfId, startId, endId) {
       args.id = wfId;
@@ -3221,15 +3171,15 @@ function createWorkflow(backend) {
 
 function readWorkflow(backend) {
   return function (source, args) {
-    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Workflow');
-    var _globals$_temporal2 = this.globals._temporal;
-    var filterTemporalWorkflow = _globals$_temporal2.filterTemporalWorkflow;
-    var mostCurrentTemporalWorkflow = _globals$_temporal2.mostCurrentTemporalWorkflow;
+    var _globals$_temporal2 = this.globals._temporal,
+        filterTemporalWorkflow = _globals$_temporal2.filterTemporalWorkflow,
+        mostCurrentTemporalWorkflow = _globals$_temporal2.mostCurrentTemporalWorkflow;
 
     context.date = args.date || context.date;
     var filter = r.expr(null);
@@ -3249,10 +3199,10 @@ function readWorkflow(backend) {
 
 function readWorkflowVersions(backend) {
   return function (source, args) {
-    var context = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Workflow');
     var filter = table.filter({ _temporal: { recordId: args.recordId } });
@@ -3264,8 +3214,8 @@ function readWorkflowVersions(backend) {
 
 function updateWorkflow(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('Workflow');
 
@@ -3277,8 +3227,8 @@ function updateWorkflow(backend) {
 
 function deleteWorkflow(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var workflow = backend.getTypeCollection('Workflow');
     var parameter = backend.getTypeCollection('Parameter');
@@ -3300,8 +3250,8 @@ function deleteWorkflow(backend) {
 
 function readWorkflowParameters(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var parameter = backend.getTypeCollection('Parameter');
 
@@ -3311,8 +3261,8 @@ function readWorkflowParameters(backend) {
 
 function readEndStep(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var step = backend.getTypeCollection('Step');
 
@@ -3338,8 +3288,8 @@ function firstStep(r, step, workflowId) {
 
 function createWorkflowRun(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var workflowRun = backend.getTypeCollection('WorkflowRun');
     var parameter = backend.getTypeCollection('Parameter');
@@ -3396,13 +3346,13 @@ function createWorkflowRun(backend) {
         }
       }
 
-      return r.do(r.now(), r.uuid(), r.uuid(), r.uuid(), function (now, workflowRunId, stepRunId, workflowRunThreadId) {
+      return r.do(r.now(), r.uuid(), r.uuid(), r.uuid(), function (now$$1, workflowRunId, stepRunId, workflowRunThreadId) {
         return workflowRun.insert({
           id: workflowRunId,
           workflow: wf.id,
           args: args.args,
           input: input,
-          started: now,
+          started: now$$1,
           status: 'RUNNING',
           taskId: args.taskId,
           parentStepRun: args.parent
@@ -3460,10 +3410,12 @@ function createWorkflowRun(backend) {
   };
 }
 
+
+
 function updateWorkflowRun(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('WorkflowRun');
 
@@ -3475,8 +3427,8 @@ function updateWorkflowRun(backend) {
 
 function deleteWorkflowRun(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('WorkflowRun');
 
@@ -3488,8 +3440,8 @@ function deleteWorkflowRun(backend) {
 
 function endWorkflowRun$1(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('WorkflowRun');
 
@@ -3503,8 +3455,8 @@ function endWorkflowRun$1(backend) {
 
 function readWorkflowRunThread(backend) {
   return function (source, args, context, info) {
-    var r = backend.r;
-    var connection = backend.connection;
+    var r = backend.r,
+        connection = backend.connection;
 
     var table = backend.getTypeCollection('WorkflowRunThread');
 
@@ -3587,10 +3539,10 @@ function endWorkflow(payload, done) {
 
   try {
     var _ret = function () {
-      var workflowRun = payload.workflowRun;
-      var thread = payload.thread;
-      var ending = [];
-      var running = [];
+      var workflowRun = payload.workflowRun,
+          thread = payload.thread;
+      var ending = [],
+          running = [];
 
 
       return {
@@ -3649,23 +3601,23 @@ function handleContext(payload, done) {
     try {
       var _ret = function () {
         var outputs = [];
-        var runner = payload.runner;
-        var workflowRun = payload.workflowRun;
-        var thread = payload.thread;
-        var endStep = payload.endStep;
-        var localCtx = payload.localCtx;
-        var context = payload.context;
-        var args = payload.args;
-        var step = payload.step;
-        var stepRunId = payload.stepRunId;
-        var async = step.async;
-        var source = step.source;
-        var timeout = step.timeout;
-        var failsWorkflow = step.failsWorkflow;
-        var waitOnSuccess = step.waitOnSuccess;
-        var success = step.success;
-        var fail = step.fail;
-        var parameters = step.parameters;
+        var runner = payload.runner,
+            workflowRun = payload.workflowRun,
+            thread = payload.thread,
+            endStep = payload.endStep,
+            localCtx = payload.localCtx,
+            context = payload.context,
+            args = payload.args,
+            step = payload.step,
+            stepRunId = payload.stepRunId;
+        var async = step.async,
+            source = step.source,
+            timeout = step.timeout,
+            failsWorkflow = step.failsWorkflow,
+            waitOnSuccess = step.waitOnSuccess,
+            success = step.success,
+            fail = step.fail,
+            parameters = step.parameters;
 
         fail = fail || endStep;
 
@@ -3739,11 +3691,11 @@ var LOOP$1 = StepTypeEnum.values.LOOP;
 function basicRun(runOpts) {
   var _this = this;
 
-  var source = runOpts.source;
-  var context = runOpts.context;
-  var timeout = runOpts.timeout;
-  var payload = runOpts.payload;
-  var done = runOpts.done;
+  var source = runOpts.source,
+      context = runOpts.context,
+      timeout = runOpts.timeout,
+      payload = runOpts.payload,
+      done = runOpts.done;
 
   var options = _.merge({ context: context, timeout: timeout }, _.get(this.options, 'vm', {}));
 
@@ -3757,12 +3709,12 @@ function basicRun(runOpts) {
 function loopRun(runOpts) {
   var _this2 = this;
 
-  var loop = arguments.length <= 1 || arguments[1] === undefined ? 0 : arguments[1];
-  var source = runOpts.source;
-  var context = runOpts.context;
-  var timeout = runOpts.timeout;
-  var payload = runOpts.payload;
-  var done = runOpts.done;
+  var loop = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+  var source = runOpts.source,
+      context = runOpts.context,
+      timeout = runOpts.timeout,
+      payload = runOpts.payload,
+      done = runOpts.done;
 
   var options = _.merge({ context: context, timeout: timeout }, _.get(this.options, 'vm', {}));
   context.loop = loop;
@@ -3779,15 +3731,15 @@ function runSource(payload, done) {
 
   try {
     var _ret = function () {
-      var thread = payload.thread;
-      var endStep = payload.endStep;
-      var localCtx = payload.localCtx;
-      var step = payload.step;
-      var workflowRun = payload.workflowRun;
-      var async = step.async;
-      var source = step.source;
-      var timeout = step.timeout;
-      var success = step.success;
+      var thread = payload.thread,
+          endStep = payload.endStep,
+          localCtx = payload.localCtx,
+          step = payload.step,
+          workflowRun = payload.workflowRun;
+      var async = step.async,
+          source = step.source,
+          timeout = step.timeout,
+          success = step.success;
 
       if (!source) return {
           v: done(new Error('No source'))
@@ -3827,10 +3779,10 @@ function forkSteps(payload, done) {
 
   try {
     var _ret = function () {
-      var workflowRun = payload.workflowRun;
-      var thread = payload.thread;
-      var stepRunId = payload.stepRunId;
-      var id = payload.step.id;
+      var workflowRun = payload.workflowRun,
+          thread = payload.thread,
+          stepRunId = payload.stepRunId,
+          id = payload.step.id;
 
       var event = _.get(_this, 'server._emitter');
       if (!event) return {
@@ -3879,13 +3831,13 @@ function runSubWorkflow(payload, done) {
 
   try {
     var _ret = function () {
-      var runner = payload.runner;
-      var taskId = payload.taskId;
-      var thread = payload.thread;
-      var localCtx = payload.localCtx;
-      var args = payload.args;
-      var step = payload.step;
-      var stepRunId = payload.stepRunId;
+      var runner = payload.runner,
+          taskId = payload.taskId,
+          thread = payload.thread,
+          localCtx = payload.localCtx,
+          args = payload.args,
+          step = payload.step,
+          stepRunId = payload.stepRunId;
       var subWorkflow = step.subWorkflow;
 
 
@@ -3935,10 +3887,10 @@ function runStep(backend) {
   return function (runner, task, done) {
     try {
       var _ret = function () {
-        var resume = task.resume;
-        var _task$context = task.context;
-        var workflowRun = _task$context.workflowRun;
-        var thread = _task$context.thread;
+        var resume = task.resume,
+            _task$context = task.context,
+            workflowRun = _task$context.workflowRun,
+            thread = _task$context.thread;
 
         var taskId = task.id;
         var resumeContext = _.get(task, 'data.context', {});
@@ -3951,11 +3903,11 @@ function runStep(backend) {
           v: getWorkflowRun(backend, workflowRun, thread, function (err, wfRun) {
             if (err) return done(err);
 
-            var workflow = wfRun.workflow;
-            var args = wfRun.args;
-            var input = wfRun.input;
-            var context = wfRun.context;
-            var threads = wfRun.threads;
+            var workflow = wfRun.workflow,
+                args = wfRun.args,
+                input = wfRun.input,
+                context = wfRun.context,
+                threads = wfRun.threads;
 
             var step = _.get(threads, '[0].currentStepRun.step');
             var stepRunId = _.get(threads, '[0].currentStepRun.id');
@@ -4027,10 +3979,10 @@ function startWorkflow(backend) {
   return function (runner, task, done) {
     try {
       var _ret = function () {
-        var _task$context = task.context;
-        var args = _task$context.args;
-        var input = _task$context.input;
-        var parent = _task$context.parent;
+        var _task$context = task.context,
+            args = _task$context.args,
+            input = _task$context.input,
+            parent = _task$context.parent;
 
         var taskId = task.id;
 
@@ -4060,12 +4012,12 @@ function startWorkflow(backend) {
   };
 }
 
-function actions (backend) {
+var actions = function (backend) {
   return {
     startWorkflow: startWorkflow(backend),
     runStep: runStep(backend)
   };
-}
+};
 
 var Task$2 = [{
   _temporal: {
@@ -4875,7 +4827,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
   inherits(S2fRethinkDBBackend, _YellowjacketRethinkD);
 
   function S2fRethinkDBBackend(namespace, graphql, r) {
-    var config = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
+    var config = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
     var connection = arguments[4];
     classCallCheck(this, S2fRethinkDBBackend);
 
@@ -4915,9 +4867,9 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
 }(yellowjacket.YellowjacketRethinkDBBackend);
 
 // helper function to instantiate a new backend
-function rethinkdb$1 (namespace, graphql, r, config, connection) {
+var rethinkdb$1 = function (namespace, graphql, r, config, connection) {
   return new S2fRethinkDBBackend(namespace, graphql, r, config, connection);
-}
+};
 
 var index = {
   rethinkdb: rethinkdb$1,
