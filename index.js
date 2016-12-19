@@ -2404,6 +2404,19 @@ function createStepRun(backend) {
   };
 }
 
+function updateStepRun(backend) {
+  return function (source, args, context, info) {
+    var r = backend.r;
+    var connection = backend.connection;
+
+    var table = backend.getTypeCollection('StepRun');
+
+    return table.get(args.id).eq(null).branch(r.error('StepRun not found'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
+      return table.get(args.id);
+    })).run(connection);
+  };
+}
+
 function startStepRun$1(backend) {
   return function (source, args, context, info) {
     var r = backend.r;
@@ -3545,6 +3558,7 @@ var functions = {
   readSource: readSource,
   readStepParams: readStepParams,
   createStepRun: createStepRun,
+  updateStepRun: updateStepRun,
   startStepRun: startStepRun$1,
   setStepRunStatus: setStepRunStatus$1,
   createForks: createForks,
@@ -4895,7 +4909,7 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
     // merge plugins
     config.plugin = _.union([temporalPlugin], _.isArray(config.plugin) ? config.plugin : []);
 
-    var _this = possibleConstructorReturn(this, Object.getPrototypeOf(S2fRethinkDBBackend).call(this, namespace, graphql, r, config, connection));
+    var _this = possibleConstructorReturn(this, (S2fRethinkDBBackend.__proto__ || Object.getPrototypeOf(S2fRethinkDBBackend)).call(this, namespace, graphql, r, config, connection));
 
     _this.type = 'S2fRethinkDBBackend';
 
