@@ -28,7 +28,7 @@
     "graphql-obj2arg": "^0.1.0",
     "lodash": "^4.16.2",
     "sbx": "^2.1.0",
-    "yellowjacket": "git+https://github.com/bhoriuchi/yellowjacket.git#development"
+    "yellowjacket": "^0.2.0"
   },
   "devDependencies": {
     "express": "^4.14.0",
