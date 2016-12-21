@@ -167,11 +167,15 @@ export function startStepRun (backend) {
     return table.get(args.id).do((stepRun) => {
       return stepRun.eq(null).branch(
         r.error('StepRun not found'),
+        table.get(args.id).update(_.omit(args, 'id'))
+          .do(() => true)
+        /*
         stepRun('status').ne(CREATED).branch(
           r.error('StepRun is not in a state that can be started'),
           table.get(args.id).update(_.omit(args, 'id'))
             .do(() => true)
         )
+        */
       )
     })
       .run(connection)

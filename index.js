@@ -1439,30 +1439,7 @@ var defineProperty = function (obj, key, value) {
   return obj;
 };
 
-var get = function get(object, property, receiver) {
-  if (object === null) object = Function.prototype;
-  var desc = Object.getOwnPropertyDescriptor(object, property);
 
-  if (desc === undefined) {
-    var parent = Object.getPrototypeOf(object);
-
-    if (parent === null) {
-      return undefined;
-    } else {
-      return get(parent, property, receiver);
-    }
-  } else if ("value" in desc) {
-    return desc.value;
-  } else {
-    var getter = desc.get;
-
-    if (getter === undefined) {
-      return undefined;
-    }
-
-    return getter.call(receiver);
-  }
-};
 
 var inherits = function (subClass, superClass) {
   if (typeof superClass !== "function" && superClass !== null) {
@@ -1496,30 +1473,6 @@ var possibleConstructorReturn = function (self, call) {
   }
 
   return call && (typeof call === "object" || typeof call === "function") ? call : self;
-};
-
-
-
-var set = function set(object, property, value, receiver) {
-  var desc = Object.getOwnPropertyDescriptor(object, property);
-
-  if (desc === undefined) {
-    var parent = Object.getPrototypeOf(object);
-
-    if (parent !== null) {
-      set(parent, property, value, receiver);
-    }
-  } else if ("value" in desc && desc.writable) {
-    desc.value = value;
-  } else {
-    var setter = desc.set;
-
-    if (setter !== undefined) {
-      setter.call(receiver, value);
-    }
-  }
-
-  return value;
 };
 
 var _StepTypeEnum$values = StepTypeEnum.values;
@@ -2379,9 +2332,17 @@ function startStepRun$1(backend) {
     args.status = RUNNING$2;
 
     return table.get(args.id).do(function (stepRun) {
-      return stepRun.eq(null).branch(r.error('StepRun not found'), stepRun('status').ne(CREATED$1).branch(r.error('StepRun is not in a state that can be started'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
+      return stepRun.eq(null).branch(r.error('StepRun not found'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
         return true;
-      })));
+      })
+      /*
+      stepRun('status').ne(CREATED).branch(
+        r.error('StepRun is not in a state that can be started'),
+        table.get(args.id).update(_.omit(args, 'id'))
+          .do(() => true)
+      )
+      */
+      );
     }).run(connection);
   };
 }
