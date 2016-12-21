@@ -1104,8 +1104,7 @@ var WorkflowRunThread = {
     },
     currentStepRun: {
       type: 'StepRun',
-      has: 'id',
-      resolve: 'readStepRun'
+      has: 'id'
     },
     stepRuns: {
       type: ['StepRun'],
@@ -1192,6 +1191,7 @@ function temporalTables(allTypes) {
 
 var _ParameterClassEnum$v = ParameterClassEnum.values;
 var INPUT = _ParameterClassEnum$v.INPUT;
+var OUTPUT = _ParameterClassEnum$v.OUTPUT;
 
 
 function expandGQLErrors(errors) {
@@ -1244,7 +1244,7 @@ function convertType(type, name, value) {
     case 'STRING':
       if (_.isString(value)) return String(value);
     default:
-      throw new Error(name + ' could not be cast to type ' + type);
+      throw new Error(name + ' could not be cast to type ' + type + ', value of ' + value);
   }
 }
 
@@ -1262,12 +1262,14 @@ function mapInput(input, context, parameters) {
             parameter = _ref.parameter,
             value = _ref.value;
 
-        if (parameter) params[param.name] = value;
+        if (parameter) params[param.name] = convertType(param.type, param.name, value);
       } else {
         try {
           params[param.name] = convertType(param.type, param.name, _.get(input, param.name));
         } catch (err) {}
       }
+    } else if (param.class === OUTPUT && !_.has(params, '["' + param.name + '"]')) {
+      params[param.name] = null;
     }
   });
 
@@ -3270,7 +3272,7 @@ function createWorkflowRun(backend) {
           return {
             subWorkflow: fstep.hasFields('subWorkflow').branch(first(filterWorkflow(r.expr(args).merge(function () {
               return {
-                recordId: fstep('_temporal')('recordId')
+                recordId: fstep('subWorkflow')
               };
             }, fstep.hasFields('versionArgs').branch(fstep('versionArgs'), {}))), null), null),
             parameters: parameter.filter({ parentId: fstep('id') }).coerceTo('array')
@@ -3415,17 +3417,24 @@ function endWorkflowRun$1(backend) {
 }
 
 function readWorkflowRunThread(backend) {
-  return function (source, args, context, info) {
+  return function () {
+    var source = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var args = arguments[1];
+    var context = arguments[2];
+    var info = arguments[3];
     var r = backend.r,
         connection = backend.connection;
 
     var table = backend.getTypeCollection('WorkflowRunThread');
 
+    var infoPath = _.get(info, 'path', []);
+    var currentPath = _.isArray(infoPath) ? _.last(infoPath) : infoPath.key;
+
     if (source && source.workflowRunThread) {
       return table.get(source.workflowRunThread).run(connection);
     }
 
-    if (_.isArray(info.path) && info.path.join('.').match(/threads$/) && source && source.id) {
+    if (currentPath === 'threads' && source.id) {
       return table.filter({ workflowRun: source.id }).run(connection);
     }
     if (args.id) return table.filter({ id: args.id }).run(connection);
@@ -3801,6 +3810,10 @@ function runSubWorkflow(payload, done) {
           stepRunId = payload.stepRunId;
       var subWorkflow = step.subWorkflow;
 
+
+      if (!subWorkflow) return {
+          v: done(new Error('attempting to run an unpublished sub workflow'))
+        };
 
       return {
         v: updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + RUNNING$5 }, function (err) {

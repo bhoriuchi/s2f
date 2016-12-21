@@ -10,6 +10,8 @@ export default function runSubWorkflow (payload, done) {
     let { runner, taskId, thread, localCtx, args, step, stepRunId } = payload
     let { subWorkflow } = step
 
+    if (!subWorkflow) return done(new Error('attempting to run an unpublished sub workflow'))
+
     return updateWorkflowRunThread(this, {id: thread, status: `Enum::${RUNNING}` }, (err) => {
       if (err) return done(err)
 

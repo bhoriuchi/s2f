@@ -22,7 +22,7 @@ export default {
     currentStepRun: {
       type: 'StepRun',
       has: 'id',
-      resolve: 'readStepRun'
+      // resolve: 'readStepRun'
     },
     stepRuns: {
       type: ['StepRun'],

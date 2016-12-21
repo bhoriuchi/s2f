@@ -66,6 +66,7 @@ lib.S2FWorkflow(`{
   }
 }`)
   */
+/*
 lib.S2FWorkflow(`mutation Mutation {
   branchTask (
     id: "b98548c6-d294-4406-88c1-3d7cffb97cfa",
@@ -76,8 +77,21 @@ lib.S2FWorkflow(`mutation Mutation {
     }
   ) { _temporal {version, recordId }, id }
 }`)
+*/
+lib.S2FWorkflow(`{
+  readWorkflowRun {
+    threads {
+      currentStepRun {
+        id,
+        step {
+          id
+        }
+      }
+    }
+  }
+}`)
   .then((res) => {
-    console.log(res)
+    console.log(JSON.stringify(res, null, '  '))
     // let steps = _.get(res, 'data.readWorkflow[0].steps')
     // console.log(JSON.stringify(steps, null, '  '))
     setTimeout(process.exit, 100)

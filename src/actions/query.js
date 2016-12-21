@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import obj2arg from 'graphql-obj2arg'
 import { expandGQLErrors } from './common'
+import chalk from 'chalk'
 
 export function getStepRun (backend, stepRunId, callback) {
   let GraphQLError = backend.graphql.GraphQLError

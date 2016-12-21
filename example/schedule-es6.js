@@ -10,10 +10,13 @@ backend.cmd({
     action: 'startWorkflow',
     context: {
       args: {
-        id: '7e41171e-12e0-489c-9e55-395700f2b235'
+        // id: 'a0982a11-316a-4558-ba6e-969fdf90c182' // unpublished sub
+        // id: '4b38805a-a95a-4bb2-b28c-2d7c17d08299' // published sub
+        id: '3f287eca-d8ad-47cd-9bbb-d86959e405b8' // logic
       },
       input: {
-        str: 'PRINTME'
+        // name: 'JOHN'
+        bool: false
       }
     }
   }

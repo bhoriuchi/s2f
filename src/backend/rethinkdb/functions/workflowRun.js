@@ -1,4 +1,3 @@
-import chalk from 'chalk'
 import _ from 'lodash'
 import { convertType } from '../../../actions/common'
 import { first, getWorkflowInputs } from './common'
@@ -47,23 +46,24 @@ export function createWorkflowRun (backend) {
           step: firstStep(r, step, wf('id'))
             .merge((fstep) => {
               return {
-                subWorkflow: fstep.hasFields('subWorkflow').branch(
-                  first(
-                    filterWorkflow(
-                      r.expr(args).merge(() => {
-                        return {
-                          recordId: fstep('_temporal')('recordId')
-                        }
-                      }, fstep.hasFields('versionArgs').branch(
-                        fstep('versionArgs'),
-                        {}
-                      ))
+                subWorkflow: fstep.hasFields('subWorkflow')
+                  .branch(
+                    first(
+                      filterWorkflow(
+                        r.expr(args).merge(() => {
+                          return {
+                            recordId: fstep('subWorkflow')
+                          }
+                        }, fstep.hasFields('versionArgs').branch(
+                          fstep('versionArgs'),
+                          {}
+                        ))
+                      ),
+                      null
                     ),
                     null
                   ),
-                  null
-                ),
-                parameters: parameter.filter({ parentId: fstep('id') }).coerceTo('array')
+                  parameters: parameter.filter({ parentId: fstep('id') }).coerceTo('array')
               }
             })
         }

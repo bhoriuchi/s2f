@@ -18,11 +18,14 @@ export function createParameterRun (backend) {
 }
 
 export function readParameterRun (backend) {
-  return function (source, args, context, info) {
+  return function (source = {}, args, context, info) {
     let { r, connection } = backend
     let table = backend.getTypeCollection('ParameterRun')
 
-    if (_.isArray(info.path) && info.path.join('.').match(/context$/) && source && source.id) {
+    let infoPath = _.get(info, 'path', [])
+    let currentPath = _.isArray(infoPath) ? _.last(infoPath) : infoPath.key
+
+    if (currentPath === context && source.id) {
       return table.filter({ parentId: source.id }).run(connection)
     }
     if (args.id) return table.filter({ id: args.id }).run(connection)

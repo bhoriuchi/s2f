@@ -56,7 +56,7 @@ export function convertType (type, name, value) {
     case 'STRING':
       if (_.isString(value)) return String(value)
     default:
-      throw new Error(`${name} could not be cast to type ${type}`)
+      throw new Error(`${name} could not be cast to type ${type}, value of ${value}`)
   }
 }
 
@@ -72,12 +72,14 @@ export function mapInput (input, context, parameters) {
     if (param.class === INPUT) {
       if (param.mapsTo) {
         let { parameter, value } = _.find(context, (ctx) => _.get(ctx, 'parameter.id') === param.mapsTo) || {}
-        if (parameter) params[param.name] = value
+        if (parameter) params[param.name] = convertType(param.type, param.name, value)
       } else {
         try {
           params[param.name] = convertType(param.type, param.name, _.get(input, param.name))
         } catch (err) {}
       }
+    } else if (param.class === OUTPUT && !_.has(params, `["${param.name}"]`)) {
+      params[param.name] = null
     }
   })
 

@@ -113,14 +113,17 @@ export function createStepRun (backend) {
 }
 
 export function readStepRun (backend) {
-  return function (source, args, context, info) {
+  return function (source = {}, args, context, info) {
     let { r, connection } = backend
     let table = backend.getTypeCollection('StepRun')
 
-    if (_.isArray(info.path) && info.path.join('.').match(/stepRuns$/) && source && source.id) {
+    let infoPath = _.get(info, 'path', [])
+    let currentPath = _.isArray(infoPath) ? _.last(infoPath) : infoPath.key
+
+    if (currentPath === 'stepRun' && source.id) {
       return table.filter({ workflowRunThread: source.id }).run(connection)
     }
-    if (source && source.currentStepRun) {
+    if (source.currentStepRun) {
       return table.get(source.currentStepRun).run(connection)
     }
     if (args.id) return table.filter({ id: args.id }).run(connection)

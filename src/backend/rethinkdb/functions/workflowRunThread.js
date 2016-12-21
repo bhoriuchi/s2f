@@ -13,15 +13,18 @@ export function createWorkflowRunThread (backend) {
 }
 
 export function readWorkflowRunThread (backend) {
-  return function (source, args, context, info) {
+  return function (source = {}, args, context, info) {
     let { r, connection } = backend
     let table = backend.getTypeCollection('WorkflowRunThread')
+
+    let infoPath = _.get(info, 'path', [])
+    let currentPath = _.isArray(infoPath) ? _.last(infoPath) : infoPath.key
 
     if (source && source.workflowRunThread) {
       return table.get(source.workflowRunThread).run(connection)
     }
 
-    if (_.isArray(info.path) && info.path.join('.').match(/threads$/) && source && source.id) {
+    if (currentPath === 'threads' && source.id) {
       return table.filter({ workflowRun: source.id }).run(connection)
     }
     if (args.id) return table.filter({ id: args.id }).run(connection)
