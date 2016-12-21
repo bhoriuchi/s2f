@@ -1284,7 +1284,7 @@ function winTieBreak(thread, ending) {
 function getStepRun(backend, stepRunId, callback) {
   var GraphQLError$$1 = backend.graphql.GraphQLError;
 
-  return backend.lib.S2FWorkflow('{\n    readStepRun (id: "' + stepRunId + '") {\n      status,\n      thread { id, workflowRun { id } },\n      step { async, success }\n    }\n  }').then(function (result) {
+  return backend.lib.S2FWorkflow('{\n    readStepRun (id: "' + stepRunId + '") {\n      status,\n      thread {\n        id,\n        workflowRun {\n          id,\n          args,\n          input,\n          context {\n            id,\n            parameter { id, name, type, scope, class },\n            value\n          },\n          workflow {\n            endStep { id }\n          }\n        }\n      },\n      step {\n        id,\n        type,\n        async,\n        source,\n        subWorkflow {\n          _temporal { recordId },\n          id\n        },\n        timeout,\n        failsWorkflow,\n        waitOnSuccess,\n        requireResumeKey,\n        success,\n        fail,\n        parameters { id, name, type, scope, class, mapsTo }\n      }\n    }\n  }').then(function (result) {
     if (result.errors) return callback(new GraphQLError$$1(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.readStepRun[0]'));
   }).catch(callback);
@@ -1477,14 +1477,14 @@ var possibleConstructorReturn = function (self, call) {
   return call && (typeof call === "object" || typeof call === "function") ? call : self;
 };
 
-var _StepTypeEnum$values = StepTypeEnum.values;
-var BASIC = _StepTypeEnum$values.BASIC;
-var TASK = _StepTypeEnum$values.TASK;
-var WORKFLOW = _StepTypeEnum$values.WORKFLOW;
-var _RunStatusEnum$values$2 = RunStatusEnum.values;
-var FAIL = _RunStatusEnum$values$2.FAIL;
-var SUCCESS$1 = _RunStatusEnum$values$2.SUCCESS;
-var JOINED$1 = _RunStatusEnum$values$2.JOINED;
+var _StepTypeEnum$values$1 = StepTypeEnum.values;
+var BASIC = _StepTypeEnum$values$1.BASIC;
+var TASK = _StepTypeEnum$values$1.TASK;
+var WORKFLOW = _StepTypeEnum$values$1.WORKFLOW;
+var _RunStatusEnum$values$3 = RunStatusEnum.values;
+var FAIL$1 = _RunStatusEnum$values$3.FAIL;
+var SUCCESS$2 = _RunStatusEnum$values$3.SUCCESS;
+var JOINED$1 = _RunStatusEnum$values$3.JOINED;
 
 
 function computeWorkflowStatus(payload, done) {
@@ -1524,11 +1524,11 @@ function computeWorkflowStatus(payload, done) {
           // reduce success by type
           var success = _.reduce(stepRuns, function (left, stepRun) {
             var failable = _.includes([BASIC, TASK, WORKFLOW], stepRun.type);
-            var stepSuccess = !(stepRun.failsWorkflow && failable && stepRun.status !== FAIL);
+            var stepSuccess = !(stepRun.failsWorkflow && failable && stepRun.status !== FAIL$1);
             return left && stepSuccess;
           }, true);
 
-          var status = success ? SUCCESS$1 : FAIL;
+          var status = success ? SUCCESS$2 : FAIL$1;
 
           return updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + JOINED$1 }, function (err) {
             if (err) return done(err);
@@ -1538,7 +1538,7 @@ function computeWorkflowStatus(payload, done) {
               if (err) return done(err);
 
               _this.log.debug({ workflowRun: workflowRun, success: success }, 'workflow run completed');
-              if (parentStepRun) runner.resume(taskId, { status: status, context: localCtx });
+              if (parentStepRun) runner.resume(taskId, { parentStepRun: parentStepRun, status: status, context: localCtx });
               return done(null, status, { context: localCtx });
             });
           });
@@ -1552,6 +1552,64 @@ function computeWorkflowStatus(payload, done) {
       errors: error.message || error,
       stack: error.stack
     }, 'Failed to compute workflow status');
+    done(error);
+  }
+}
+
+var _RunStatusEnum$values$2 = RunStatusEnum.values;
+var CREATED = _RunStatusEnum$values$2.CREATED;
+var FORKING = _RunStatusEnum$values$2.FORKING;
+var JOINING = _RunStatusEnum$values$2.JOINING;
+var ENDING = _RunStatusEnum$values$2.ENDING;
+var RUNNING = _RunStatusEnum$values$2.RUNNING;
+var JOINED = _RunStatusEnum$values$2.JOINED;
+
+var RUNNING_STATES = [CREATED, FORKING, JOINING, RUNNING];
+
+function endWorkflow(payload, done) {
+  var _this = this;
+
+  try {
+    var _ret = function () {
+      var workflowRun = payload.workflowRun,
+          thread = payload.thread;
+      var ending = [],
+          running = [];
+
+
+      return {
+        v: updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + ENDING }, function (err) {
+          if (err) return done(err);
+
+          return getRunThreads(_this, workflowRun, function (err, threads) {
+            if (err) return done(err);
+
+            _.forEach(threads, function (t) {
+              if (_.includes(RUNNING_STATES, t.status)) running.push(t.id);else if (t.status === ENDING) ending.push(t.id);
+            });
+
+            // determine if the current call should complete the workflow
+            // if there are no running threads and this thread is the only ending thread
+            // then it is ok, otherwise if there are multiple ending then a tiebreaker should
+            // take place. the tie breaker will be the sorted order of ids.
+            if (running.length || !winTieBreak(thread, ending)) {
+              return updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + JOINED }, function (err) {
+                if (err) return done(err);
+                return done();
+              });
+            }
+            return computeWorkflowStatus.call(_this, payload, done);
+          });
+        })
+      };
+    }();
+
+    if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+  } catch (error) {
+    this.log.error({
+      errors: error.message || error,
+      stack: error.stack
+    }, 'Failed to end workflow');
     done(error);
   }
 }
@@ -1588,7 +1646,7 @@ current state of appropriate threads
 
  */
 
-var RUNNING = RunStatusEnum.values.RUNNING;
+var RUNNING$1 = RunStatusEnum.values.RUNNING;
 var JOIN = StepTypeEnum.values.JOIN;
 
 
@@ -1622,7 +1680,7 @@ function nextStepRun(payload, done) {
 
             var stepRunId = _.get(stepRun, 'id');
             if (!stepRunId) throw new Error('Unable to create StepRun');
-            var args = { id: thread, status: 'Enum::' + RUNNING, currentStepRun: stepRunId };
+            var args = { id: thread, status: 'Enum::' + RUNNING$1, currentStepRun: stepRunId };
             return updateWorkflowRunThread(_this, args, function (err) {
               if (err) return done(err);
 
@@ -1652,30 +1710,153 @@ function nextStepRun(payload, done) {
   }
 }
 
+var _RunStatusEnum$values$1 = RunStatusEnum.values;
+var SUCCESS$1 = _RunStatusEnum$values$1.SUCCESS;
+var FAIL = _RunStatusEnum$values$1.FAIL;
+var WAITING$1 = _RunStatusEnum$values$1.WAITING;
+var _ParameterClassEnum$v$1 = ParameterClassEnum.values;
+var OUTPUT$1 = _ParameterClassEnum$v$1.OUTPUT;
+var ATTRIBUTE = _ParameterClassEnum$v$1.ATTRIBUTE;
+var _StepTypeEnum$values = StepTypeEnum.values;
+var CONDITION = _StepTypeEnum$values.CONDITION;
+var LOOP = _StepTypeEnum$values.LOOP;
+
+
+function handleContext(payload, done) {
+  var _this = this;
+
+  return function (ctx) {
+    try {
+      var _ret = function () {
+        var outputs = [];
+        var runner = payload.runner,
+            workflowRun = payload.workflowRun,
+            thread = payload.thread,
+            endStep = payload.endStep,
+            localCtx = payload.localCtx,
+            context = payload.context,
+            args = payload.args,
+            step = payload.step,
+            stepRunId = payload.stepRunId,
+            resume = payload.resume;
+        var async = step.async,
+            source = step.source,
+            timeout = step.timeout,
+            failsWorkflow = step.failsWorkflow,
+            waitOnSuccess = step.waitOnSuccess,
+            success = step.success,
+            fail = step.fail,
+            parameters = step.parameters;
+
+        fail = fail || endStep;
+
+        var failed = ctx._exception || ctx._result === false;
+        var nextStep = failed ? fail : success;
+        var status = failed ? FAIL : SUCCESS$1;
+
+        switch (step.type) {
+          case CONDITION:
+            status = SUCCESS$1;
+            break;
+          case LOOP:
+            status = SUCCESS$1;
+            break;
+          default:
+            break;
+        }
+
+        // generate value changes to push
+        _.forEach(parameters, function (param) {
+          if (param.class === OUTPUT$1 && _.has(ctx, param.name) && _.has(param, 'mapsTo')) {
+            try {
+              var target = _.find(context, { parameter: { id: param.mapsTo, class: ATTRIBUTE } });
+              if (!target) return;
+              outputs.push({
+                id: target.id,
+                value: convertType(param.type, param.name, _.get(ctx, param.name))
+              });
+            } catch (error) {
+              _this.log.warn({ error: error }, 'type conversion failed so value will not be set');
+            }
+          }
+        });
+
+        return {
+          v: updateAttributeValues(_this, outputs, function (err) {
+            if (err) return done(err);
+
+            if (step.waitOnSuccess && status === SUCCESS$1 && !resume) {
+              return setStepRunStatus(_this, stepRunId, WAITING$1, function (err) {
+                if (err) return done(err);
+                done();
+              });
+            }
+
+            return setStepRunStatus(_this, stepRunId, status, function (err) {
+              if (err) return done(err);
+
+              if (nextStep === endStep) return endWorkflow.call(_this, payload, done);else if (!async) return nextStepRun.call(_this, { thread: thread, workflowRun: workflowRun, nextStep: nextStep, async: async }, done);
+              return done();
+            });
+          })
+        };
+      }();
+
+      if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+    } catch (error) {
+      _this.log.error({
+        errors: error.message || error,
+        stack: error.stack
+      }, 'Failed to handle context');
+      done(error);
+    }
+  };
+}
+
 var _RunStatusEnum$values = RunStatusEnum.values;
 var SUCCESS = _RunStatusEnum$values.SUCCESS;
 var WAITING = _RunStatusEnum$values.WAITING;
 
 
-function resumeStep(backend, stepRunId, done) {
+function resumeStep(backend, stepRunId) {
+  var resumeStatus = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : SUCCESS;
+  var localCtx = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
+  var done = arguments[4];
+
   try {
     return getStepRun(backend, stepRunId, function (err, stepRun) {
+      if (err) return done(err);
+
       var status = _.get(stepRun, 'status');
       var thread = _.get(stepRun, 'thread.id');
       var workflowRun = _.get(stepRun, 'thread.workflowRun.id');
-      var nextStep = _.get(stepRun, 'step.success');
-      var async = _.get(stepRun, 'step.async', false);
+      var endStep = _.get(stepRun, 'thread.workflowRun.workflow.endStep.id');
+      var context = _.get(stepRun, 'thread.workflowRun.context');
+      var args = _.get(stepRun, 'thread.workflowRun.args');
+      var step = _.get(stepRun, 'step');
+      var nextStep = _.get(step, 'success');
+      var async = _.get(step, 'async', false);
 
-      if (err) return done(err);
+      var payload = {
+        runner: backend.server,
+        workflowRun: workflowRun,
+        thread: thread,
+        endStep: endStep,
+        context: context,
+        args: args,
+        step: step,
+        stepRunId: stepRunId,
+        resume: true
+      };
+
+      if (!thread || !workflowRun) return done(new Error('unable to retrieve workflow run and/or thread info'));
       if (!stepRun) return done(new Error('invalid step run'));
       if (!nextStep) return done(new Error('attempting to resume a step with no success path'));
-      if (!thread || !workflowRun) return done(new Error('unable to retrieve workflow run and/or thread info'));
       if (status !== WAITING) return done(new Error('invalid step run status ' + status + ', must be ' + WAITING));
 
-      return setStepRunStatus(backend, stepRunId, SUCCESS, function (err) {
+      return setStepRunStatus(backend, stepRunId, status, function (err) {
         if (err) return done(err);
-
-        return nextStepRun.call(backend, { thread: thread, workflowRun: workflowRun, nextStep: nextStep, async: async }, done);
+        return handleContext.call(backend, payload, done)(localCtx);
       });
     });
   } catch (error) {
@@ -1696,21 +1877,22 @@ var resume = {
     var log = this.backend.log;
     var eventName = 'workflow.resume.' + requestId;
     var event = _.get(this.backend, 'server._emitter');
-    var resumeKey = payload.resumeKey;
-
+    var resumeKey = payload.resumeKey,
+        status = payload.status,
+        context = payload.context;
 
     if (!resumeKey || !requestId) {
       var errors = [new Error('no resumeKey or requestId specified')];
       log.error({ resumeKey: resumeKey, requestId: requestId }, 'missing resume key or requestId');
-      event.emit(eventName, { errors: errors });
       if (socket) socket.emit(eventName, { errors: errors });
+      return event.emit(eventName, { errors: errors });
     }
 
-    return resumeStep(this.backend, resumeKey, function (error) {
+    return resumeStep(this.backend, resumeKey, status, context, function (error) {
       var result = error ? { errors: [error] } : { status: 'OK' };
       if (result.errors) log.error({ errors: result.errors }, 'failed to resume step');
-      event.emit(eventName, result);
       if (socket) socket.emit(eventName, result);
+      return event.emit(eventName, result);
     });
   }
 };
@@ -1948,7 +2130,7 @@ function deleteParameter(backend) {
   };
 }
 
-var ATTRIBUTE = ParameterClassEnum.values.ATTRIBUTE;
+var ATTRIBUTE$1 = ParameterClassEnum.values.ATTRIBUTE;
 
 
 function createParameterRun(backend) {
@@ -2002,7 +2184,7 @@ function updateAttributeValues$1(backend) {
     return r.expr(args.values).forEach(function (value) {
       return parameterRun.get(value('id')).do(function (param) {
         return param.eq(null).branch(r.error('ParameterRun not found'), parameter.get(param('parameter')).do(function (p) {
-          return p.eq(null).or(p('class').ne(ATTRIBUTE)).branch(r.error('Invalid Parameter type'), parameterRun.get(value('id')).update({ value: value('value') }));
+          return p.eq(null).or(p('class').ne(ATTRIBUTE$1)).branch(r.error('Invalid Parameter type'), parameterRun.get(value('id')).update({ value: value('value') }));
         }));
       });
     }).do(function () {
@@ -2045,9 +2227,9 @@ function getWorkflowInputs(step, parameter, workflowId) {
   });
 }
 
-var _StepTypeEnum$values$1 = StepTypeEnum.values;
-var WORKFLOW$1 = _StepTypeEnum$values$1.WORKFLOW;
-var TASK$1 = _StepTypeEnum$values$1.TASK;
+var _StepTypeEnum$values$2 = StepTypeEnum.values;
+var WORKFLOW$1 = _StepTypeEnum$values$2.WORKFLOW;
+var TASK$1 = _StepTypeEnum$values$2.TASK;
 
 
 function destroyStep(backend, ids) {
@@ -2237,10 +2419,10 @@ function readStepParams(backend) {
 }
 
 var INPUT$2 = ParameterClassEnum.values.INPUT;
-var _RunStatusEnum$values$3 = RunStatusEnum.values;
-var FORKED = _RunStatusEnum$values$3.FORKED;
-var CREATED$1 = _RunStatusEnum$values$3.CREATED;
-var RUNNING$2 = _RunStatusEnum$values$3.RUNNING;
+var _RunStatusEnum$values$5 = RunStatusEnum.values;
+var FORKED = _RunStatusEnum$values$5.FORKED;
+var CREATED$2 = _RunStatusEnum$values$5.CREATED;
+var RUNNING$3 = _RunStatusEnum$values$5.RUNNING;
 var FORK = StepTypeEnum.values.FORK;
 
 
@@ -2290,7 +2472,7 @@ function newStepRun$1(backend, args, id) {
             workflowRunThread: args.workflowRunThread,
             step: args.step,
             started: r.now(),
-            status: CREATED$1,
+            status: CREATED$2,
             taskId: args.taskId
           }, { returnChanges: returnChanges });
         }));
@@ -2331,7 +2513,7 @@ function startStepRun$1(backend) {
     var table = backend.getTypeCollection('StepRun');
 
     args.started = r.now();
-    args.status = RUNNING$2;
+    args.status = RUNNING$3;
 
     return table.get(args.id).do(function (stepRun) {
       return stepRun.eq(null).branch(r.error('StepRun not found'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
@@ -2400,7 +2582,7 @@ function createForks(backend) {
                 id: v('threadId'),
                 workflowRun: args.workflowRun,
                 currentStepRun: v('stepRunId'),
-                status: CREATED$1,
+                status: CREATED$2,
                 parentThread: args.workflowRunThread
               };
             }).coerceTo('array').do(function (d) {
@@ -2922,10 +3104,10 @@ function deleteTask(backend) {
   };
 }
 
-var _StepTypeEnum$values$2 = StepTypeEnum.values;
-var END$1 = _StepTypeEnum$values$2.END;
-var _ParameterClassEnum$v$1 = ParameterClassEnum.values;
-var ATTRIBUTE$1 = _ParameterClassEnum$v$1.ATTRIBUTE;
+var _StepTypeEnum$values$3 = StepTypeEnum.values;
+var END$1 = _StepTypeEnum$values$3.END;
+var _ParameterClassEnum$v$2 = ParameterClassEnum.values;
+var ATTRIBUTE$2 = _ParameterClassEnum$v$2.ATTRIBUTE;
 
 
 function getFullWorkflow(backend, args) {
@@ -3218,7 +3400,7 @@ function readWorkflowParameters(backend) {
 
     var parameter = backend.getTypeCollection('Parameter');
 
-    return parameter.filter({ parentId: source.id, class: ATTRIBUTE$1 }).run(connection);
+    return parameter.filter({ parentId: source.id, class: ATTRIBUTE$2 }).run(connection);
   };
 }
 
@@ -3235,10 +3417,10 @@ function readEndStep(backend) {
   };
 }
 
-var ATTRIBUTE$2 = ParameterClassEnum.values.ATTRIBUTE;
-var _StepTypeEnum$values$3 = StepTypeEnum.values;
-var START = _StepTypeEnum$values$3.START;
-var END$2 = _StepTypeEnum$values$3.END;
+var ATTRIBUTE$3 = ParameterClassEnum.values.ATTRIBUTE;
+var _StepTypeEnum$values$4 = StepTypeEnum.values;
+var START = _StepTypeEnum$values$4.START;
+var END$2 = _StepTypeEnum$values$4.END;
 
 
 function firstStep(r, step, workflowId) {
@@ -3267,7 +3449,7 @@ function createWorkflowRun(backend) {
     return first(filterWorkflow(args.args), r.error('wokflow not found')).merge(function (wf) {
       return {
         inputs: getWorkflowInputs(step, parameter, wf('id')).coerceTo('array'),
-        parameters: parameter.filter({ parentId: wf('id'), class: ATTRIBUTE$2 }).coerceTo('array'),
+        parameters: parameter.filter({ parentId: wf('id'), class: ATTRIBUTE$3 }).coerceTo('array'),
         step: firstStep(r, step, wf('id')).merge(function (fstep) {
           return {
             subWorkflow: fstep.hasFields('subWorkflow').branch(first(filterWorkflow(r.expr(args).merge(function () {
@@ -3494,167 +3676,8 @@ var functions = {
   readWorkflowRunThread: readWorkflowRunThread
 };
 
-var _RunStatusEnum$values$5 = RunStatusEnum.values;
-var CREATED$2 = _RunStatusEnum$values$5.CREATED;
-var FORKING$1 = _RunStatusEnum$values$5.FORKING;
-var JOINING$1 = _RunStatusEnum$values$5.JOINING;
-var ENDING$1 = _RunStatusEnum$values$5.ENDING;
-var RUNNING$4 = _RunStatusEnum$values$5.RUNNING;
-var JOINED$2 = _RunStatusEnum$values$5.JOINED;
-
-var RUNNING_STATES$1 = [CREATED$2, FORKING$1, JOINING$1, RUNNING$4];
-
-function endWorkflow(payload, done) {
-  var _this = this;
-
-  try {
-    var _ret = function () {
-      var workflowRun = payload.workflowRun,
-          thread = payload.thread;
-      var ending = [],
-          running = [];
-
-
-      return {
-        v: updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + ENDING$1 }, function (err) {
-          if (err) return done(err);
-
-          return getRunThreads(_this, workflowRun, function (err, threads) {
-            if (err) return done(err);
-
-            _.forEach(threads, function (t) {
-              if (_.includes(RUNNING_STATES$1, t.status)) running.push(t.id);else if (t.status === ENDING$1) ending.push(t.id);
-            });
-
-            // determine if the current call should complete the workflow
-            // if there are no running threads and this thread is the only ending thread
-            // then it is ok, otherwise if there are multiple ending then a tiebreaker should
-            // take place. the tie breaker will be the sorted order of ids.
-            if (running.length || !winTieBreak(thread, ending)) {
-              return updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + JOINED$2 }, function (err) {
-                if (err) return done(err);
-                return done();
-              });
-            }
-            return computeWorkflowStatus.call(_this, payload, done);
-          });
-        })
-      };
-    }();
-
-    if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
-  } catch (error) {
-    this.log.error({
-      errors: error.message || error,
-      stack: error.stack
-    }, 'Failed to end workflow');
-    done(error);
-  }
-}
-
-var _RunStatusEnum$values$4 = RunStatusEnum.values;
-var SUCCESS$2 = _RunStatusEnum$values$4.SUCCESS;
-var FAIL$1 = _RunStatusEnum$values$4.FAIL;
-var WAITING$1 = _RunStatusEnum$values$4.WAITING;
-var _ParameterClassEnum$v$2 = ParameterClassEnum.values;
-var OUTPUT$1 = _ParameterClassEnum$v$2.OUTPUT;
-var ATTRIBUTE$3 = _ParameterClassEnum$v$2.ATTRIBUTE;
-var _StepTypeEnum$values$4 = StepTypeEnum.values;
-var CONDITION$1 = _StepTypeEnum$values$4.CONDITION;
-var LOOP$2 = _StepTypeEnum$values$4.LOOP;
-
-
-function handleContext(payload, done) {
-  var _this = this;
-
-  return function (ctx) {
-    try {
-      var _ret = function () {
-        var outputs = [];
-        var runner = payload.runner,
-            workflowRun = payload.workflowRun,
-            thread = payload.thread,
-            endStep = payload.endStep,
-            localCtx = payload.localCtx,
-            context = payload.context,
-            args = payload.args,
-            step = payload.step,
-            stepRunId = payload.stepRunId;
-        var async = step.async,
-            source = step.source,
-            timeout = step.timeout,
-            failsWorkflow = step.failsWorkflow,
-            waitOnSuccess = step.waitOnSuccess,
-            success = step.success,
-            fail = step.fail,
-            parameters = step.parameters;
-
-        fail = fail || endStep;
-
-        var failed = ctx._exception || ctx._result === false;
-        var nextStep = failed ? fail : success;
-        var status = failed ? FAIL$1 : SUCCESS$2;
-
-        switch (step.type) {
-          case CONDITION$1:
-            status = SUCCESS$2;
-            break;
-          case LOOP$2:
-            status = SUCCESS$2;
-            break;
-          default:
-            break;
-        }
-
-        // generate value changes to push
-        _.forEach(parameters, function (param) {
-          if (param.class === OUTPUT$1 && _.has(ctx, param.name) && _.has(param, 'mapsTo')) {
-            try {
-              var target = _.find(context, { parameter: { id: param.mapsTo, class: ATTRIBUTE$3 } });
-              if (!target) return;
-              outputs.push({
-                id: target.id,
-                value: convertType(param.type, param.name, _.get(ctx, param.name))
-              });
-            } catch (error) {
-              _this.log.warn({ error: error }, 'type conversion failed so value will not be set');
-            }
-          }
-        });
-
-        return {
-          v: updateAttributeValues(_this, outputs, function (err) {
-            if (err) return done(err);
-
-            if (step.waitOnSuccess && status === SUCCESS$2) {
-              return setStepRunStatus(_this, stepRunId, WAITING$1, function (err) {
-                if (err) return done(err);
-              });
-            }
-
-            return setStepRunStatus(_this, stepRunId, status, function (err) {
-              if (err) return done(err);
-
-              if (nextStep === endStep) return endWorkflow.call(_this, payload, done);else if (!async) return nextStepRun.call(_this, { thread: thread, workflowRun: workflowRun, nextStep: nextStep, async: async }, done);
-              return done();
-            });
-          })
-        };
-      }();
-
-      if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
-    } catch (error) {
-      _this.log.error({
-        errors: error.message || error,
-        stack: error.stack
-      }, 'Failed to handle context');
-      done(error);
-    }
-  };
-}
-
-var RUNNING$3 = RunStatusEnum.values.RUNNING;
-var LOOP$1 = StepTypeEnum.values.LOOP;
+var RUNNING$4 = RunStatusEnum.values.RUNNING;
+var LOOP$2 = StepTypeEnum.values.LOOP;
 
 // basic source run
 
@@ -3716,11 +3739,11 @@ function runSource(payload, done) {
         };
 
       return {
-        v: updateWorkflowRunThread(_this3, { id: thread, status: 'Enum::' + RUNNING$3 }, function (err) {
+        v: updateWorkflowRunThread(_this3, { id: thread, status: 'Enum::' + RUNNING$4 }, function (err) {
           if (err) return done(err);
 
           var runOpts = { source: source, context: localCtx, timeout: timeout, payload: payload, done: done };
-          var run = step.type === LOOP$1 ? loopRun.call(_this3, runOpts) : basicRun.call(_this3, runOpts);
+          var run = step.type === LOOP$2 ? loopRun.call(_this3, runOpts) : basicRun.call(_this3, runOpts);
 
           // non-async or last step
           if (!async || success === endStep) return run;
@@ -3793,7 +3816,9 @@ function forkSteps(payload, done) {
   }
 }
 
-var RUNNING$5 = RunStatusEnum.values.RUNNING;
+var _RunStatusEnum$values$6 = RunStatusEnum.values;
+var RUNNING$5 = _RunStatusEnum$values$6.RUNNING;
+var WAITING$2 = _RunStatusEnum$values$6.WAITING;
 
 
 function runSubWorkflow(payload, done) {
@@ -3819,19 +3844,23 @@ function runSubWorkflow(payload, done) {
         v: updateWorkflowRunThread(_this, { id: thread, status: 'Enum::' + RUNNING$5 }, function (err) {
           if (err) return done(err);
 
-          return startWorkflow(_this)(runner, {
-            id: taskId,
-            context: {
-              args: {
-                recordId: _.get(subWorkflow, '_temporal.recordId'),
-                date: args.date,
-                version: args.version
-              },
-              input: localCtx,
-              parent: stepRunId
-            }
-          }, function (err) {
+          return setStepRunStatus(_this, stepRunId, WAITING$2, function (err) {
             if (err) return done(err);
+
+            return startWorkflow(_this)(runner, {
+              id: taskId,
+              context: {
+                args: {
+                  recordId: _.get(subWorkflow, '_temporal.recordId'),
+                  date: args.date,
+                  version: args.version
+                },
+                input: localCtx,
+                parent: stepRunId
+              }
+            }, function (err) {
+              if (err) return done(err);
+            });
           });
         })
       };
@@ -3849,10 +3878,10 @@ function runSubWorkflow(payload, done) {
 
 var _StepTypes$values = StepTypeEnum.values;
 var BASIC$1 = _StepTypes$values.BASIC;
-var CONDITION = _StepTypes$values.CONDITION;
+var CONDITION$1 = _StepTypes$values.CONDITION;
 var FORK$1 = _StepTypes$values.FORK;
 var JOIN$1 = _StepTypes$values.JOIN;
-var LOOP = _StepTypes$values.LOOP;
+var LOOP$1 = _StepTypes$values.LOOP;
 var TASK$4 = _StepTypes$values.TASK;
 var WORKFLOW$4 = _StepTypes$values.WORKFLOW;
 
@@ -3920,9 +3949,9 @@ function runStep(backend) {
                   return runSource.call(backend, payload, done);
                 case TASK$4:
                   return runSource.call(backend, payload, done);
-                case LOOP:
+                case LOOP$1:
                   return runSource.call(backend, payload, done);
-                case CONDITION:
+                case CONDITION$1:
                   return runSource.call(backend, payload, done);
                 case JOIN$1:
                   return joinThreads.call(backend, payload, done);
@@ -3953,12 +3982,26 @@ function startWorkflow(backend) {
   return function (runner, task, done) {
     try {
       var _ret = function () {
-        var _task$context = task.context,
+        var resume = task.resume,
+            data = task.data,
+            _task$context = task.context,
             args = _task$context.args,
             input = _task$context.input,
             parent = _task$context.parent;
 
+        var _ref = data || {},
+            parentStepRun = _ref.parentStepRun,
+            status = _ref.status,
+            context = _ref.context;
+
         var taskId = task.id;
+
+        // special case, if a subworkflow is the first step in a workflow
+        // then the runstep should immediately be called to resume otherwise
+        // an infinite loop will occur
+        if (resume) return {
+            v: resumeStep(backend, parentStepRun, status, context, done)
+          };
 
         if (!args) return {
             v: done(new Error('No arguments were supplied'))

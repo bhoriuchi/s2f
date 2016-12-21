@@ -9,8 +9,39 @@ export function getStepRun (backend, stepRunId, callback) {
   return backend.lib.S2FWorkflow(`{
     readStepRun (id: "${stepRunId}") {
       status,
-      thread { id, workflowRun { id } },
-      step { async, success }
+      thread {
+        id,
+        workflowRun {
+          id,
+          args,
+          input,
+          context {
+            id,
+            parameter { id, name, type, scope, class },
+            value
+          },
+          workflow {
+            endStep { id }
+          }
+        }
+      },
+      step {
+        id,
+        type,
+        async,
+        source,
+        subWorkflow {
+          _temporal { recordId },
+          id
+        },
+        timeout,
+        failsWorkflow,
+        waitOnSuccess,
+        requireResumeKey,
+        success,
+        fail,
+        parameters { id, name, type, scope, class, mapsTo }
+      }
     }
   }`)
     .then((result) => {

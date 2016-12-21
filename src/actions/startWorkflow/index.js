@@ -1,12 +1,19 @@
 import _ from 'lodash'
 import { newWorkflowRun } from '../query'
 import runStep from '../runStep/index'
+import resumeStep from '../runStep/resumeStep'
 
 export default function startWorkflow (backend) {
   return function (runner, task, done) {
     try {
-      let { context: { args, input, parent } } = task
+      let { resume, data, context: { args, input, parent } } = task
+      let { parentStepRun, status, context } = data || {}
       let taskId = task.id
+
+      // special case, if a subworkflow is the first step in a workflow
+      // then the runstep should immediately be called to resume otherwise
+      // an infinite loop will occur
+      if (resume) return resumeStep(backend, parentStepRun, status, context, done)
 
       if (!args) return done(new Error('No arguments were supplied'))
 

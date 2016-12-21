@@ -43,7 +43,7 @@ export default function computeWorkflowStatus (payload, done) {
           if (err) return done(err)
 
           this.log.debug({ workflowRun, success }, 'workflow run completed')
-          if (parentStepRun) runner.resume(taskId, { status, context: localCtx })
+          if (parentStepRun) runner.resume(taskId, { parentStepRun, status, context: localCtx })
           return done(null, status, { context: localCtx })
         })
       })

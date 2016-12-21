@@ -1,9 +1,9 @@
 import _ from 'lodash'
-import { updateWorkflowRunThread } from '../query'
+import { updateWorkflowRunThread, setStepRunStatus } from '../query'
 import RunStatusEnum from '../../graphql/types/RunStatusEnum'
 import startWorkflow from '../startWorkflow/index'
 
-let { values: { RUNNING } } = RunStatusEnum
+let { values: { RUNNING, WAITING } } = RunStatusEnum
 
 export default function runSubWorkflow (payload, done) {
   try {
@@ -15,19 +15,23 @@ export default function runSubWorkflow (payload, done) {
     return updateWorkflowRunThread(this, {id: thread, status: `Enum::${RUNNING}` }, (err) => {
       if (err) return done(err)
 
-      return startWorkflow(this)(runner, {
-        id: taskId,
-        context: {
-          args: {
-            recordId: _.get(subWorkflow, '_temporal.recordId'),
-            date: args.date,
-            version: args.version
-          },
-          input: localCtx,
-          parent: stepRunId
-        }
-      }, (err) => {
+      return setStepRunStatus(this, stepRunId, WAITING, (err) => {
         if (err) return done(err)
+
+        return startWorkflow(this)(runner, {
+          id: taskId,
+          context: {
+            args: {
+              recordId: _.get(subWorkflow, '_temporal.recordId'),
+              date: args.date,
+              version: args.version
+            },
+            input: localCtx,
+            parent: stepRunId
+          }
+        }, (err) => {
+          if (err) return done(err)
+        })
       })
     })
   } catch (error) {

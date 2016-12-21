@@ -15,7 +15,7 @@ export default function handleContext (payload, done) {
   return (ctx) => {
     try {
       let outputs = []
-      let { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId } = payload
+      let { runner, workflowRun, thread, endStep, localCtx, context, args, step, stepRunId, resume } = payload
       let { async, source, timeout, failsWorkflow, waitOnSuccess, success, fail, parameters } = step
       fail = fail || endStep
 
@@ -53,9 +53,10 @@ export default function handleContext (payload, done) {
       return updateAttributeValues(this, outputs, (err) => {
         if (err) return done(err)
 
-        if (step.waitOnSuccess && status === SUCCESS) {
+        if (step.waitOnSuccess && status === SUCCESS && !resume) {
           return setStepRunStatus(this, stepRunId, WAITING, (err) => {
             if (err) return done(err)
+            done()
           })
         }
 
