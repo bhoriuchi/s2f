@@ -1,6 +1,6 @@
 {
   "name": "s2f",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Step based workflow engine (Start to finish)",
   "license": "MIT",
   "main": "index.js",
