@@ -5,8 +5,8 @@ let { values: { ATTRIBUTE } } = ParameterClassEnum
 export function createParameterRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let parameter = backend.getTypeCollection('Parameter')
-    let table = backend.getTypeCollection('ParameterRun')
+    let parameter = backend.getCollection('Parameter')
+    let table = backend.getCollection('ParameterRun')
 
     return parameter.get(args.parameter).eq(null).branch(
       r.error(`Parameter ${args.parameter} not found`),
@@ -20,7 +20,7 @@ export function createParameterRun (backend) {
 export function readParameterRun (backend) {
   return function (source = {}, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('ParameterRun')
+    let table = backend.getCollection('ParameterRun')
 
     let infoPath = _.get(info, 'path', [])
     let currentPath = _.isArray(infoPath) ? _.last(infoPath) : infoPath.key
@@ -36,7 +36,7 @@ export function readParameterRun (backend) {
 export function updateParameterRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('ParameterRun')
+    let table = backend.getCollection('ParameterRun')
 
     return table.get(args.id).eq(null).branch(
       r.error('ParameterRun not found'),
@@ -50,7 +50,7 @@ export function updateParameterRun (backend) {
 export function deleteParameterRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('ParameterRun')
+    let table = backend.getCollection('ParameterRun')
 
     return table.get(args.id).eq(null).branch(
       r.error('ParameterRun not found'),
@@ -64,8 +64,8 @@ export function deleteParameterRun (backend) {
 export function updateAttributeValues (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let parameterRun = backend.getTypeCollection('ParameterRun')
-    let parameter = backend.getTypeCollection('Parameter')
+    let parameterRun = backend.getCollection('ParameterRun')
+    let parameter = backend.getCollection('Parameter')
 
     return r.expr(args.values).forEach((value) => {
       return parameterRun.get(value('id'))

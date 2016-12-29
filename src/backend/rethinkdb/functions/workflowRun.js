@@ -28,12 +28,12 @@ function firstStep (r, step, workflowId) {
 export function createWorkflowRun (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let workflowRun = backend.getTypeCollection('WorkflowRun')
-    let parameter = backend.getTypeCollection('Parameter')
-    let parameterRun = backend.getTypeCollection('ParameterRun')
-    let step = backend.getTypeCollection('Step')
-    let stepRun = backend.getTypeCollection('StepRun')
-    let workflowRunThread = backend.getTypeCollection('WorkflowRunThread')
+    let workflowRun = backend.getCollection('WorkflowRun')
+    let parameter = backend.getCollection('Parameter')
+    let parameterRun = backend.getCollection('ParameterRun')
+    let step = backend.getCollection('Step')
+    let stepRun = backend.getCollection('StepRun')
+    let workflowRunThread = backend.getCollection('WorkflowRunThread')
     let filterWorkflow = this.globals._temporal.filterTemporalWorkflow
     let input = _.isObject(args.input) ? args.input : {}
 
@@ -150,7 +150,7 @@ export function createWorkflowRun (backend) {
 export function readWorkflowRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('WorkflowRun')
+    let table = backend.getCollection('WorkflowRun')
 
     let filter = table
     if (args.id) {
@@ -169,7 +169,7 @@ export function readWorkflowRun (backend) {
 export function updateWorkflowRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('WorkflowRun')
+    let table = backend.getCollection('WorkflowRun')
 
     return table.get(args.id).eq(null).branch(
       r.error('WorkflowRun not found'),
@@ -183,7 +183,7 @@ export function updateWorkflowRun (backend) {
 export function deleteWorkflowRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('WorkflowRun')
+    let table = backend.getCollection('WorkflowRun')
 
     return table.get(args.id).eq(null).branch(
       r.error('WorkflowRun not found'),
@@ -197,7 +197,7 @@ export function deleteWorkflowRun (backend) {
 export function endWorkflowRun (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let table = backend.getTypeCollection('WorkflowRun')
+    let table = backend.getCollection('WorkflowRun')
 
     args.ended = r.now()
 

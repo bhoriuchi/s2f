@@ -52,11 +52,11 @@ export function getOp (ids, uuid, prefix) {
 export default function syncWorkflow (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let parameter = backend.getTypeCollection('Parameter')
-    let workflow = backend.getTypeCollection('Workflow')
-    let step = backend.getTypeCollection('Step')
-    let folder = backend.getTypeCollection('Folder')
-    let membership = backend.getTypeCollection('FolderMembership')
+    let parameter = backend.getCollection('Parameter')
+    let workflow = backend.getCollection('Workflow')
+    let step = backend.getCollection('Step')
+    let folder = backend.getCollection('Folder')
+    let membership = backend.getCollection('FolderMembership')
     let owner = args.owner || null
 
     let makeTemporal = (obj, recordId) => {

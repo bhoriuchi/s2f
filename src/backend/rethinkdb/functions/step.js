@@ -8,8 +8,8 @@ let { values: { WORKFLOW, TASK } } = StepTypeEnum
 
 export function destroyStep (backend, ids) {
   let { r, connection } = backend
-  let step = backend.getTypeCollection('Step')
-  let parameter = backend.getTypeCollection('Parameter')
+  let step = backend.getCollection('Step')
+  let parameter = backend.getCollection('Parameter')
 
   ids = _.isString(ids) ? [ids] : ids
   return step.filter((s) => r.expr(ids).contains(s('id')))
@@ -24,8 +24,8 @@ export function destroyStep (backend, ids) {
 export function createStep (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let parameter = backend.getTypeCollection('Parameter')
-    let workflow = backend.getTypeCollection('Workflow')
+    let parameter = backend.getCollection('Parameter')
+    let workflow = backend.getCollection('Workflow')
 
     let { createTemporalStep, filterTemporalTask } = this.globals._temporal
 
@@ -76,7 +76,7 @@ export function createStep (backend) {
 export function readStepThreads (backend) {
   return function (source = {}, args, context = {}, info) {
     let {r, connection} = backend
-    let table = backend.getTypeCollection('Step')
+    let table = backend.getCollection('Step')
 
     switch (source.type) {
       case 'FORK':
@@ -89,15 +89,16 @@ export function readStepThreads (backend) {
 
 export function readStep (backend) {
   return function (source = {}, args, context = {}, info) {
+    console.log('calling readStep')
     let { r, connection } = backend
-    let table = backend.getTypeCollection('Step')
+    let table = backend.getCollection('Step')
 
-    let { filterTemporalStep } = this.globals._temporal
+    let { temporalFilter } = this.globals._temporal
     context.date = args.date || context.date
 
     if (source.step) return table.get(source.step).run(connection)
 
-    let filter = filterTemporalStep(args)
+    let filter = temporalFilter('Step', args)
 
     if (source.id) {
       filter = table.filter({ workflowId: source.id })
@@ -123,7 +124,7 @@ export function readStep (backend) {
 export function updateStep (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('Step')
+    let table = backend.getCollection('Step')
 
     return isPublished(backend, 'Step', args.id).branch(
       r.error('This step is published and cannot be modified'),
@@ -178,7 +179,7 @@ export function readStepParams (backend) {
   return function (source = {}, args, context = {}, info) {
     let {r, connection} = backend
     let {filterTemporalWorkflow, filterTemporalTask} = this.globals._temporal
-    let parameter = backend.getTypeCollection('Parameter')
+    let parameter = backend.getCollection('Parameter')
     context = _.omit(context, ['recordId', 'id'])
 
     return r.expr(source).do((s) => {

@@ -42,10 +42,10 @@ export function getOp (ids, uuid, prefix) {
 export default function syncTask (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let task = backend.getTypeCollection('Task')
-    let parameter = backend.getTypeCollection('Parameter')
-    let folder = backend.getTypeCollection('Folder')
-    let membership = backend.getTypeCollection('FolderMembership')
+    let task = backend.getCollection('Task')
+    let parameter = backend.getCollection('Parameter')
+    let folder = backend.getCollection('Folder')
+    let membership = backend.getCollection('FolderMembership')
     let owner = args.owner || null
 
     let makeTemporal = (obj, recordId) => {

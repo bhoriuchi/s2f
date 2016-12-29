@@ -3,7 +3,7 @@ import _ from 'lodash'
 export function createWorkflowRunThread (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('WorkflowRunThread')
+    let table = backend.getCollection('WorkflowRunThread')
 
     args.status = 'CREATED'
     return table.insert(args, { returnChanges: true })('changes')
@@ -15,7 +15,7 @@ export function createWorkflowRunThread (backend) {
 export function readWorkflowRunThread (backend) {
   return function (source = {}, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('WorkflowRunThread')
+    let table = backend.getCollection('WorkflowRunThread')
 
     let infoPath = _.get(info, 'path', [])
     let currentPath = _.isArray(infoPath) ? _.last(infoPath) : infoPath.key
@@ -35,7 +35,7 @@ export function readWorkflowRunThread (backend) {
 export function updateWorkflowRunThread (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('WorkflowRunThread')
+    let table = backend.getCollection('WorkflowRunThread')
 
     return table.get(args.id).eq(null).branch(
       r.error('WorkflowRunThead not found'),
@@ -49,7 +49,7 @@ export function updateWorkflowRunThread (backend) {
 export function deleteWorkflowRunThread (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('WorkflowRunThread')
+    let table = backend.getCollection('WorkflowRunThread')
 
     return table.get(args.id).eq(null).branch(
       r.error('WorkflowRunThead not found'),

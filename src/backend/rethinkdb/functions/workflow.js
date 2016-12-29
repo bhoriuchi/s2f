@@ -9,9 +9,9 @@ let { values: { INPUT, ATTRIBUTE } } = ParameterClassEnum
 
 export function getFullWorkflow (backend, args) {
   let { r, connection } = backend
-  let workflow = backend.getTypeCollection('Workflow')
-  let parameter = backend.getTypeCollection('Parameter')
-  let step = backend.getTypeCollection('Step')
+  let workflow = backend.getCollection('Workflow')
+  let parameter = backend.getCollection('Parameter')
+  let step = backend.getCollection('Step')
 
   return workflow.get(args.id)
     .eq(null)
@@ -86,9 +86,9 @@ export function remapObjects (wf, idmap) {
 
 export function cloneWorkflow (type, backend, args) {
   let { r, connection } = backend
-  let workflow = backend.getTypeCollection('Workflow')
-  let parameter = backend.getTypeCollection('Parameter')
-  let step = backend.getTypeCollection('Step')
+  let workflow = backend.getCollection('Workflow')
+  let parameter = backend.getCollection('Parameter')
+  let step = backend.getCollection('Step')
 
   let idmap = {}
 
@@ -132,7 +132,7 @@ export function forkWorkflow (backend) {
 export function publishWorkflow (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let step = backend.getTypeCollection('Step')
+    let step = backend.getCollection('Step')
     let tableName = backend.getTypeComputed('Workflow').collection
 
     let { extendPublish } = this.globals._temporal
@@ -149,8 +149,8 @@ export function publishWorkflow (backend) {
 export function readWorkflowInputs (backend) {
   return function (source, args, context = {}, info) {
     let {r, connection} = backend
-    let parameter = backend.getTypeCollection('Parameter')
-    let step = backend.getTypeCollection('Step')
+    let parameter = backend.getCollection('Parameter')
+    let step = backend.getCollection('Step')
     return getWorkflowInputs(step, parameter, source.id).run(connection)
   }
 }
@@ -200,18 +200,19 @@ export function createWorkflow (backend) {
 
 export function readWorkflow (backend) {
   return function (source, args, context = {}, info) {
+    console.log('called overriden readWorkflow function')
     let { r, connection } = backend
-    let table = backend.getTypeCollection('Workflow')
-    let { filterTemporalWorkflow, mostCurrentTemporalWorkflow } = this.globals._temporal
+    let table = backend.getCollection('Workflow')
+    let { temporalFilter, temporalMostCurrent } = this.globals._temporal
     context.date = args.date || context.date
     let filter = r.expr(null)
     if (_.isEmpty(source)) {
-      if (!_.keys(args).length) return mostCurrentTemporalWorkflow().run(connection)
-      filter = filterTemporalWorkflow(args)
+      if (!_.keys(args).length) return temporalMostCurrent('Workflow').run(connection)
+      filter = temporalFilter('Workflow', args)
     } else if (source.workflow) {
       return table.get(source.workflow).run(connection)
     } else if (source.subWorkflow) {
-      filter = filterTemporalWorkflow({ recordId: source.subWorkflow, date: context.date })
+      filter = temporalFilter('Workflow', { recordId: source.subWorkflow, date: context.date })
         .coerceTo('array')
         .do((task) => {
           return task.count().eq(0).branch(
@@ -227,7 +228,7 @@ export function readWorkflow (backend) {
 export function readWorkflowVersions (backend) {
   return function (source, args, context = {}, info) {
     let {r, connection} = backend
-    let table = backend.getTypeCollection('Workflow')
+    let table = backend.getCollection('Workflow')
     let filter = table.filter({ _temporal: { recordId: args.recordId } })
     if (args.offset) filter = filter.skip(args.offset)
     if (args.limit) filter = filter.limit(args.limit)
@@ -238,7 +239,7 @@ export function readWorkflowVersions (backend) {
 export function updateWorkflow (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('Workflow')
+    let table = backend.getCollection('Workflow')
 
     return isPublished(backend, 'Workflow', args.id).branch(
       r.error('This workflow is published and cannot be modified'),
@@ -253,9 +254,9 @@ export function updateWorkflow (backend) {
 export function deleteWorkflow (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let workflow = backend.getTypeCollection('Workflow')
-    let parameter = backend.getTypeCollection('Parameter')
-    let step = backend.getTypeCollection('Step')
+    let workflow = backend.getCollection('Workflow')
+    let parameter = backend.getCollection('Parameter')
+    let step = backend.getCollection('Step')
 
     return isPublished(backend, 'Workflow', args.id).branch(
       r.error('This workflow is published and cannot be deleted'),
@@ -277,7 +278,7 @@ export function deleteWorkflow (backend) {
 export function readWorkflowParameters (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let parameter = backend.getTypeCollection('Parameter')
+    let parameter = backend.getCollection('Parameter')
 
     return parameter.filter({ parentId: source.id, class: ATTRIBUTE })
       .run(connection)
@@ -287,7 +288,7 @@ export function readWorkflowParameters (backend) {
 export function readEndStep (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let step = backend.getTypeCollection('Step')
+    let step = backend.getCollection('Step')
 
     return step.filter({ workflowId: source.id, type: END })
       .coerceTo('array')

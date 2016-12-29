@@ -22,6 +22,6 @@ let backend = RethinkDBBackend('_yj', graphql, rethinkdbdash(), {
       }
     }
   }
-})
+}).make()
 
 export default backend

@@ -20,7 +20,7 @@ export default {
     },
     context: {
       type: ['ParameterRun'],
-      resolve: 'readParameterRun'
+      has: 'id'
     },
     threads: {
       type: ['WorkflowRunThread'],

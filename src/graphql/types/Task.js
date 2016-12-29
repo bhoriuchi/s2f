@@ -20,14 +20,17 @@ export default {
     },
     parameters: {
       type: ['Parameter'],
-      resolve: 'readParameter'
+      has: 'id'
     }
+  },
+  _temporal: {
+    versioned: true
   },
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'task',
-    temporal: true,
     query: {
+      /*
       read: {
         type: ['Task'],
         args: {
@@ -38,6 +41,7 @@ export default {
         },
         resolve: 'readTask'
       },
+      */
       readTaskVersions: {
         type: ['Task'],
         args: {
@@ -49,6 +53,7 @@ export default {
       }
     },
     mutation: {
+      /*
       create: {
         type: 'Task',
         args: {
@@ -104,6 +109,7 @@ export default {
         },
         resolve: 'publishTemporalTask'
       },
+      */
       syncTask: {
         type: 'Task',
         args: {

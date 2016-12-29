@@ -55,7 +55,14 @@ export default {
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'parameter',
+    query: {
+      read: true
+    },
     mutation: {
+      create: false,
+      update: false,
+      delete: false
+      /*
       create: {
         resolve: 'createParameter'
       },
@@ -65,6 +72,7 @@ export default {
       delete: {
         resolve: 'deleteParameter'
       }
+      */
     }
   }
 }

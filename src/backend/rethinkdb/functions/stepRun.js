@@ -9,12 +9,12 @@ let { values: { FORK } } = StepTypeEnum
 
 export function newStepRun (backend, args, id, returnChanges = true, checkThread = true) {
   let { r } = backend
-  let thread = backend.getTypeCollection('WorkflowRunThread')
-  let step = backend.getTypeCollection('Step')
-  let stepRun = backend.getTypeCollection('StepRun')
-  let parameterRun = backend.getTypeCollection('ParameterRun')
-  let parameter = backend.getTypeCollection('Parameter')
-  let workflowRun = backend.getTypeCollection('WorkflowRun')
+  let thread = backend.getCollection('WorkflowRunThread')
+  let step = backend.getCollection('Step')
+  let stepRun = backend.getCollection('StepRun')
+  let parameterRun = backend.getCollection('ParameterRun')
+  let parameter = backend.getCollection('Parameter')
+  let workflowRun = backend.getCollection('WorkflowRun')
 
   // verify the step is valid
   return step.get(args.step)
@@ -115,7 +115,7 @@ export function createStepRun (backend) {
 export function readStepRun (backend) {
   return function (source = {}, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('StepRun')
+    let table = backend.getCollection('StepRun')
 
     let infoPath = _.get(info, 'path', [])
     let currentPath = _.isArray(infoPath) ? _.last(infoPath) : infoPath.key
@@ -134,7 +134,7 @@ export function readStepRun (backend) {
 export function updateStepRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('StepRun')
+    let table = backend.getCollection('StepRun')
 
     return table.get(args.id).eq(null).branch(
       r.error('StepRun not found'),
@@ -148,7 +148,7 @@ export function updateStepRun (backend) {
 export function deleteStepRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('StepRun')
+    let table = backend.getCollection('StepRun')
 
     return table.get(args.id).eq(null).branch(
       r.error('StepRun not found'),
@@ -162,7 +162,7 @@ export function deleteStepRun (backend) {
 export function startStepRun (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('StepRun')
+    let table = backend.getCollection('StepRun')
 
     args.started = r.now()
     args.status = RUNNING
@@ -188,7 +188,7 @@ export function startStepRun (backend) {
 export function setStepRunStatus (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('StepRun')
+    let table = backend.getCollection('StepRun')
 
     args.ended = r.now()
 
@@ -204,9 +204,9 @@ export function setStepRunStatus (backend) {
 export function createForks (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let workflowRun = backend.getTypeCollection('WorkflowRun')
-    let thread = backend.getTypeCollection('WorkflowRunThread')
-    let step = backend.getTypeCollection('Step')
+    let workflowRun = backend.getCollection('WorkflowRun')
+    let thread = backend.getCollection('WorkflowRunThread')
+    let step = backend.getCollection('Step')
 
     return workflowRun.get(args.workflowRun)
       .do((wfRun) => wfRun.eq(null).branch(r.error('Workflow run does not exist'), wfRun))
@@ -271,9 +271,9 @@ export function createForks (backend) {
 export function getJoinThreads (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let thread = backend.getTypeCollection('WorkflowRunThread')
-    let step = backend.getTypeCollection('Step')
-    let stepRun = backend.getTypeCollection('StepRun')
+    let thread = backend.getCollection('WorkflowRunThread')
+    let step = backend.getCollection('Step')
+    let stepRun = backend.getCollection('StepRun')
 
     // first get steps that should be joined
     return step.filter({ join: args.step })('id')

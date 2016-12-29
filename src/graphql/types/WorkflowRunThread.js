@@ -26,7 +26,7 @@ export default {
     },
     stepRuns: {
       type: ['StepRun'],
-      resolve: 'readStepRun'
+      has: 'id'
     },
     status: {
       type: 'RunStatusEnum'

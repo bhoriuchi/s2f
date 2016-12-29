@@ -3,7 +3,7 @@ import _ from 'lodash'
 export function createParameter (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('Parameter')
+    let table = backend.getCollection('Parameter')
 
     if (args.scope === 'WORKFLOW' && (args.class !== 'ATTRIBUTE')) {
       throw new Error('Workflow parameters can only be of class ATTRIBUTE')
@@ -26,7 +26,7 @@ export function createParameter (backend) {
 export function readParameter (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('Parameter')
+    let table = backend.getCollection('Parameter')
     let paramId = _.get(source, 'parameter') || _.get(source, 'parameter.id')
     if (!source) return table.run(connection)
     if (paramId) {
@@ -38,10 +38,10 @@ export function readParameter (backend) {
 
 export function isParentPublished (backend, id) {
   let { r, connection } = backend
-  let parameter = backend.getTypeCollection('Parameter')
-  let workflow = backend.getTypeCollection('Workflow')
-  let step = backend.getTypeCollection('Step')
-  let task = backend.getTypeCollection('Task')
+  let parameter = backend.getCollection('Parameter')
+  let workflow = backend.getCollection('Workflow')
+  let step = backend.getCollection('Step')
+  let task = backend.getCollection('Task')
 
   return parameter.get(id).do((param) => {
     return r.branch(
@@ -70,7 +70,7 @@ export function isParentPublished (backend, id) {
 export function updateParameter (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let parameter = backend.getTypeCollection('Parameter')
+    let parameter = backend.getCollection('Parameter')
 
     return isParentPublished(backend, args.id).branch(
       r.error('This parameter belongs to a published record and cannot be modified'),
@@ -90,7 +90,7 @@ export function updateParameter (backend) {
 export function deleteParameter (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let parameter = backend.getTypeCollection('Parameter')
+    let parameter = backend.getCollection('Parameter')
 
     return isParentPublished(backend, args.id).branch(
       r.error('This parameter belongs to a published record and cannot be deleted'),

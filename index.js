@@ -185,7 +185,14 @@ var Parameter = {
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'parameter',
+    query: {
+      read: true
+    },
     mutation: {
+      create: false,
+      update: false,
+      delete: false
+      /*
       create: {
         resolve: 'createParameter'
       },
@@ -195,6 +202,7 @@ var Parameter = {
       delete: {
         resolve: 'deleteParameter'
       }
+      */
     }
   }
 };
@@ -401,7 +409,7 @@ var Step = {
     parameters: {
       description: 'Local parameters associated with the step',
       type: ['Parameter'],
-      resolve: 'readParameter'
+      has: 'id'
     },
     fork: {
       type: 'String',
@@ -419,16 +427,24 @@ var Step = {
       type: 'FactoryJSON'
     }
   },
+  _temporal: {
+    versioned: true,
+    branch: false,
+    fork: false,
+    publish: false,
+    read: 'readStep',
+    create: false,
+    update: false,
+    delete: false
+  },
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'step',
-    temporal: true,
-    query: {
-      read: {
-        resolve: 'readStep'
-      }
-    },
     mutation: {
+      create: false,
+      update: false,
+      delete: false
+      /*
       create: {
         type: 'Step',
         args: {
@@ -473,6 +489,7 @@ var Step = {
         },
         resolve: 'deleteStep'
       }
+      */
     }
   }
 };
@@ -747,14 +764,17 @@ var Task = {
     },
     parameters: {
       type: ['Parameter'],
-      resolve: 'readParameter'
+      has: 'id'
     }
+  },
+  _temporal: {
+    versioned: true
   },
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'task',
-    temporal: true,
     query: {
+      /*
       read: {
         type: ['Task'],
         args: {
@@ -765,6 +785,7 @@ var Task = {
         },
         resolve: 'readTask'
       },
+      */
       readTaskVersions: {
         type: ['Task'],
         args: {
@@ -776,6 +797,7 @@ var Task = {
       }
     },
     mutation: {
+      /*
       create: {
         type: 'Task',
         args: {
@@ -831,6 +853,7 @@ var Task = {
         },
         resolve: 'publishTemporalTask'
       },
+      */
       syncTask: {
         type: 'Task',
         args: {
@@ -879,30 +902,46 @@ var Workflow = {
     parameters: {
       description: 'Global parameters',
       type: ['Parameter'],
+      has: 'parentId'
+      /*
       args: {
         id: { type: 'String' }
       },
-      resolve: 'readParameter'
+      resolve: 'backend_readParameter'
+      */
     },
     steps: {
       description: 'Steps in the workflow',
       type: ['Step'],
+      has: 'workflowId'
+      /*
       args: {
         id: { type: 'String' },
         first: { type: 'Boolean' }
       },
       resolve: 'readStep'
+      */
     },
     endStep: {
       type: 'Step',
       resolve: 'readEndStep'
     }
   },
+  _temporal: {
+    versioned: true,
+    create: false,
+    update: false,
+    delete: false,
+    branch: 'branchWorkflow',
+    fork: 'forkWorkflow',
+    publish: 'publishWorkflow',
+    readMostCurrent: true
+  },
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'workflow',
-    temporal: true,
     query: {
+      /*
       read: {
         type: ['Workflow'],
         args: {
@@ -913,6 +952,7 @@ var Workflow = {
         },
         resolve: 'readWorkflow'
       },
+      */
       readWorkflowVersions: {
         type: ['Workflow'],
         args: {
@@ -924,6 +964,7 @@ var Workflow = {
       }
     },
     mutation: {
+      /*
       create: {
         type: 'Workflow',
         args: {
@@ -976,6 +1017,7 @@ var Workflow = {
         },
         resolve: 'publishWorkflow'
       },
+      */
       syncWorkflow: {
         type: 'Workflow',
         args: {
@@ -1015,7 +1057,7 @@ var WorkflowRun = {
     },
     context: {
       type: ['ParameterRun'],
-      resolve: 'readParameterRun'
+      has: 'id'
     },
     threads: {
       type: ['WorkflowRunThread'],
@@ -1108,7 +1150,7 @@ var WorkflowRunThread = {
     },
     stepRuns: {
       type: ['StepRun'],
-      resolve: 'readStepRun'
+      has: 'id'
     },
     status: {
       type: 'RunStatusEnum'
@@ -1178,15 +1220,6 @@ function mergeConfig() {
 
   // merge passed config with required config
   return _.merge({}, config, { types: types, fields: fields });
-}
-
-function temporalTables(allTypes) {
-  return _.omitBy(_.mapValues(allTypes, function (type) {
-    var be = _.get(type, '_backend', {});
-    return be.temporal ? { table: _.get(type, '_backend.collection') } : null;
-  }), function (v) {
-    return v === null;
-  });
 }
 
 var _ParameterClassEnum$v = ParameterClassEnum.values;
@@ -1948,7 +1981,7 @@ function createFolder(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var folder = backend.getTypeCollection('Folder');
+    var folder = backend.getCollection('Folder');
   };
 }
 
@@ -1957,7 +1990,7 @@ function readFolder(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var folder = backend.getTypeCollection('Folder');
+    var folder = backend.getCollection('Folder');
   };
 }
 
@@ -1966,7 +1999,7 @@ function updateFolder(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var folder = backend.getTypeCollection('Folder');
+    var folder = backend.getCollection('Folder');
   };
 }
 
@@ -1975,7 +2008,7 @@ function deleteFolder(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var folder = backend.getTypeCollection('Folder');
+    var folder = backend.getCollection('Folder');
   };
 }
 
@@ -1984,8 +2017,8 @@ function readWorkflowFolder(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var folder = backend.getTypeCollection('Folder');
-    var membership = backend.getTypeCollection('FolderMembership');
+    var folder = backend.getCollection('Folder');
+    var membership = backend.getCollection('FolderMembership');
     return membership.get(source._temporal.recordId).do(function (m) {
       return m.eq(null).branch(folder.filter({ type: 'WORKFLOW', parent: 'ROOT' }).nth(0)('id'), m('folder'));
     }).run(connection);
@@ -1997,10 +2030,10 @@ function readRootFolder(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var folder = backend.getTypeCollection('Folder');
-    var member = backend.getTypeCollection('FolderMembership');
-    var task = backend.getTypeCollection('Task');
-    var workflow = backend.getTypeCollection('Workflow');
+    var folder = backend.getCollection('Folder');
+    var member = backend.getCollection('FolderMembership');
+    var task = backend.getCollection('Task');
+    var workflow = backend.getCollection('Workflow');
 
     return folder.filter(function (f) {
       return f('type').eq(args.type).and(f('parent').eq('ROOT'));
@@ -2033,10 +2066,10 @@ function readSubFolder(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var folder = backend.getTypeCollection('Folder');
-    var member = backend.getTypeCollection('FolderMembership');
-    var task = backend.getTypeCollection('Task');
-    var workflow = backend.getTypeCollection('Workflow');
+    var folder = backend.getCollection('Folder');
+    var member = backend.getCollection('FolderMembership');
+    var task = backend.getCollection('Task');
+    var workflow = backend.getCollection('Workflow');
 
     return folder.filter({ id: args.id }).merge(function (p) {
       return {
@@ -2067,7 +2100,7 @@ function createParameter(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Parameter');
+    var table = backend.getCollection('Parameter');
 
     if (args.scope === 'WORKFLOW' && args.class !== 'ATTRIBUTE') {
       throw new Error('Workflow parameters can only be of class ATTRIBUTE');
@@ -2088,10 +2121,10 @@ function isParentPublished(backend, id) {
   var r = backend.r,
       connection = backend.connection;
 
-  var parameter = backend.getTypeCollection('Parameter');
-  var workflow = backend.getTypeCollection('Workflow');
-  var step = backend.getTypeCollection('Step');
-  var task = backend.getTypeCollection('Task');
+  var parameter = backend.getCollection('Parameter');
+  var workflow = backend.getCollection('Workflow');
+  var step = backend.getCollection('Step');
+  var task = backend.getCollection('Task');
 
   return parameter.get(id).do(function (param) {
     return r.branch(param.eq(null), r.error('Parameter does not exist'), r.branch(param('scope').eq('WORKFLOW'), workflow.get(param('parentId')), r.branch(param('scope').eq('TASK'), task.get(param('parentId')), step.get(param('parentId')))).do(function (parent) {
@@ -2105,7 +2138,7 @@ function updateParameter(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var parameter = backend.getTypeCollection('Parameter');
+    var parameter = backend.getCollection('Parameter');
 
     return isParentPublished(backend, args.id).branch(r.error('This parameter belongs to a published record and cannot be modified'), parameter.get(args.id).do(function (param) {
       return r.branch(r.expr(['WORKFLOW', 'TASK']).contains(param('scope')), parameter.get(args.id).update(_.omit(args, 'id', 'mapsTo')).do(function () {
@@ -2122,7 +2155,7 @@ function deleteParameter(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var parameter = backend.getTypeCollection('Parameter');
+    var parameter = backend.getCollection('Parameter');
 
     return isParentPublished(backend, args.id).branch(r.error('This parameter belongs to a published record and cannot be deleted'), parameter.get(args.id).delete().do(function () {
       return true;
@@ -2138,8 +2171,8 @@ function createParameterRun(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var parameter = backend.getTypeCollection('Parameter');
-    var table = backend.getTypeCollection('ParameterRun');
+    var parameter = backend.getCollection('Parameter');
+    var table = backend.getCollection('ParameterRun');
 
     return parameter.get(args.parameter).eq(null).branch(r.error('Parameter ' + args.parameter + ' not found'), table.insert(args, { returnChanges: true })('changes').nth(0)('new_val')).run(connection);
   };
@@ -2152,7 +2185,7 @@ function updateParameterRun(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('ParameterRun');
+    var table = backend.getCollection('ParameterRun');
 
     return table.get(args.id).eq(null).branch(r.error('ParameterRun not found'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
       return table.get(args.id);
@@ -2165,7 +2198,7 @@ function deleteParameterRun(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('ParameterRun');
+    var table = backend.getCollection('ParameterRun');
 
     return table.get(args.id).eq(null).branch(r.error('ParameterRun not found'), table.get(args.id).delete().do(function () {
       return true;
@@ -2178,8 +2211,8 @@ function updateAttributeValues$1(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var parameterRun = backend.getTypeCollection('ParameterRun');
-    var parameter = backend.getTypeCollection('Parameter');
+    var parameterRun = backend.getCollection('ParameterRun');
+    var parameter = backend.getCollection('Parameter');
 
     return r.expr(args.values).forEach(function (value) {
       return parameterRun.get(value('id')).do(function (param) {
@@ -2236,8 +2269,8 @@ function destroyStep(backend, ids) {
   var r = backend.r,
       connection = backend.connection;
 
-  var step = backend.getTypeCollection('Step');
-  var parameter = backend.getTypeCollection('Parameter');
+  var step = backend.getCollection('Step');
+  var parameter = backend.getCollection('Parameter');
 
   ids = _.isString(ids) ? [ids] : ids;
   return step.filter(function (s) {
@@ -2256,8 +2289,8 @@ function createStep(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var parameter = backend.getTypeCollection('Parameter');
-    var workflow = backend.getTypeCollection('Workflow');
+    var parameter = backend.getCollection('Parameter');
+    var workflow = backend.getCollection('Workflow');
 
     var _globals$_temporal = this.globals._temporal,
         createTemporalStep = _globals$_temporal.createTemporalStep,
@@ -2302,7 +2335,7 @@ function readStepThreads(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Step');
+    var table = backend.getCollection('Step');
 
     switch (source.type) {
       case 'FORK':
@@ -2319,18 +2352,20 @@ function readStep(backend) {
     var args = arguments[1];
     var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
+
+    console.log('calling readStep');
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Step');
+    var table = backend.getCollection('Step');
 
-    var filterTemporalStep = this.globals._temporal.filterTemporalStep;
+    var temporalFilter = this.globals._temporal.temporalFilter;
 
     context.date = args.date || context.date;
 
     if (source.step) return table.get(source.step).run(connection);
 
-    var filter = filterTemporalStep(args);
+    var filter = temporalFilter('Step', args);
 
     if (source.id) {
       filter = table.filter({ workflowId: source.id });
@@ -2350,7 +2385,7 @@ function updateStep(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Step');
+    var table = backend.getCollection('Step');
 
     return isPublished(backend, 'Step', args.id).branch(r.error('This step is published and cannot be modified'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
       return table.get(args.id);
@@ -2403,7 +2438,7 @@ function readStepParams(backend) {
         filterTemporalWorkflow = _globals$_temporal2.filterTemporalWorkflow,
         filterTemporalTask = _globals$_temporal2.filterTemporalTask;
 
-    var parameter = backend.getTypeCollection('Parameter');
+    var parameter = backend.getCollection('Parameter');
     context = _.omit(context, ['recordId', 'id']);
 
     return r.expr(source).do(function (s) {
@@ -2431,12 +2466,12 @@ function newStepRun$1(backend, args, id) {
   var checkThread = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
   var r = backend.r;
 
-  var thread = backend.getTypeCollection('WorkflowRunThread');
-  var step = backend.getTypeCollection('Step');
-  var stepRun = backend.getTypeCollection('StepRun');
-  var parameterRun = backend.getTypeCollection('ParameterRun');
-  var parameter = backend.getTypeCollection('Parameter');
-  var workflowRun = backend.getTypeCollection('WorkflowRun');
+  var thread = backend.getCollection('WorkflowRunThread');
+  var step = backend.getCollection('Step');
+  var stepRun = backend.getCollection('StepRun');
+  var parameterRun = backend.getCollection('ParameterRun');
+  var parameter = backend.getCollection('Parameter');
+  var workflowRun = backend.getCollection('WorkflowRun');
 
   // verify the step is valid
   return step.get(args.step)
@@ -2510,7 +2545,7 @@ function startStepRun$1(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('StepRun');
+    var table = backend.getCollection('StepRun');
 
     args.started = r.now();
     args.status = RUNNING$3;
@@ -2536,7 +2571,7 @@ function setStepRunStatus$1(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('StepRun');
+    var table = backend.getCollection('StepRun');
 
     args.ended = r.now();
 
@@ -2551,9 +2586,9 @@ function createForks(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var workflowRun = backend.getTypeCollection('WorkflowRun');
-    var thread = backend.getTypeCollection('WorkflowRunThread');
-    var step = backend.getTypeCollection('Step');
+    var workflowRun = backend.getCollection('WorkflowRun');
+    var thread = backend.getCollection('WorkflowRunThread');
+    var step = backend.getCollection('Step');
 
     return workflowRun.get(args.workflowRun).do(function (wfRun) {
       return wfRun.eq(null).branch(r.error('Workflow run does not exist'), wfRun);
@@ -2600,9 +2635,9 @@ function getJoinThreads(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var thread = backend.getTypeCollection('WorkflowRunThread');
-    var step = backend.getTypeCollection('Step');
-    var stepRun = backend.getTypeCollection('StepRun');
+    var thread = backend.getCollection('WorkflowRunThread');
+    var step = backend.getCollection('Step');
+    var stepRun = backend.getCollection('StepRun');
 
     // first get steps that should be joined
     return step.filter({ join: args.step })('id').coerceTo('array').do(function (joins) {
@@ -2676,11 +2711,11 @@ function syncWorkflow(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var parameter = backend.getTypeCollection('Parameter');
-    var workflow = backend.getTypeCollection('Workflow');
-    var step = backend.getTypeCollection('Step');
-    var folder = backend.getTypeCollection('Folder');
-    var membership = backend.getTypeCollection('FolderMembership');
+    var parameter = backend.getCollection('Parameter');
+    var workflow = backend.getCollection('Workflow');
+    var step = backend.getCollection('Step');
+    var folder = backend.getCollection('Folder');
+    var membership = backend.getCollection('FolderMembership');
     var owner = args.owner || null;
 
     var makeTemporal = function makeTemporal(obj, recordId) {
@@ -2909,10 +2944,10 @@ function syncTask(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var task = backend.getTypeCollection('Task');
-    var parameter = backend.getTypeCollection('Parameter');
-    var folder = backend.getTypeCollection('Folder');
-    var membership = backend.getTypeCollection('FolderMembership');
+    var task = backend.getCollection('Task');
+    var parameter = backend.getCollection('Parameter');
+    var folder = backend.getCollection('Folder');
+    var membership = backend.getCollection('FolderMembership');
     var owner = args.owner || null;
 
     var makeTemporal = function makeTemporal(obj, recordId) {
@@ -3019,7 +3054,7 @@ function createTask(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Task');
+    var table = backend.getCollection('Task');
 
     var createTemporalTask = this.globals._temporal.createTemporalTask;
 
@@ -3041,12 +3076,12 @@ function readTask(backend) {
 
     var _globals$_temporal = this.globals._temporal,
         filterTemporalTask = _globals$_temporal.filterTemporalTask,
-        mostCurrentTemporalTask = _globals$_temporal.mostCurrentTemporalTask;
+        temporalMostCurrent = _globals$_temporal.temporalMostCurrent;
 
     context.date = args.date || context.date;
     var filter = r.expr(null);
     if (!source) {
-      if (!_.keys(args).length) return mostCurrentTemporalTask().run(connection);
+      if (!_.keys(args).length) return temporalMostCurrent('Task').run(connection);
       filter = filterTemporalTask(args);
     } else if (sourceTask) {
       filter = filterTemporalTask({ recordId: sourceTask, date: context.date }).coerceTo('array').do(function (task) {
@@ -3064,7 +3099,7 @@ function readTaskVersions(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Task');
+    var table = backend.getCollection('Task');
     var filter = table.filter({ _temporal: { recordId: args.recordId } });
     if (args.offset) filter = filter.skip(args.offset);
     if (args.limit) filter = filter.limit(args.limit);
@@ -3077,7 +3112,7 @@ function updateTask(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Task');
+    var table = backend.getCollection('Task');
 
     return isPublished(backend, 'Task', args.id).branch(r.error('This task is published and cannot be modified'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
       return table.get(args.id);
@@ -3090,9 +3125,9 @@ function deleteTask(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var task = backend.getTypeCollection('Task');
-    var parameter = backend.getTypeCollection('Parameter');
-    var step = backend.getTypeCollection('Step');
+    var task = backend.getCollection('Task');
+    var parameter = backend.getCollection('Parameter');
+    var step = backend.getCollection('Step');
 
     return isPublished(backend, 'Task', args.id).branch(r.error('This task is published and cannot be deleted'), step.filter(function (s) {
       return s('task').eq(args.id).and(s('_temporal')('version').ne(null));
@@ -3114,9 +3149,9 @@ function getFullWorkflow(backend, args) {
   var r = backend.r,
       connection = backend.connection;
 
-  var workflow = backend.getTypeCollection('Workflow');
-  var parameter = backend.getTypeCollection('Parameter');
-  var step = backend.getTypeCollection('Step');
+  var workflow = backend.getCollection('Workflow');
+  var parameter = backend.getCollection('Parameter');
+  var step = backend.getCollection('Step');
 
   return workflow.get(args.id).eq(null).branch(r.error('Invalid workflow version'), workflow.get(args.id).merge(function (w) {
     return {
@@ -3189,9 +3224,9 @@ function cloneWorkflow(type, backend, args) {
   var r = backend.r,
       connection = backend.connection;
 
-  var workflow = backend.getTypeCollection('Workflow');
-  var parameter = backend.getTypeCollection('Parameter');
-  var step = backend.getTypeCollection('Step');
+  var workflow = backend.getCollection('Workflow');
+  var parameter = backend.getCollection('Parameter');
+  var step = backend.getCollection('Step');
 
   var idmap = {};
 
@@ -3238,7 +3273,7 @@ function publishWorkflow(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var step = backend.getTypeCollection('Step');
+    var step = backend.getCollection('Step');
     var tableName = backend.getTypeComputed('Workflow').collection;
 
     var extendPublish = this.globals._temporal.extendPublish;
@@ -3264,8 +3299,8 @@ function readWorkflowInputs(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var parameter = backend.getTypeCollection('Parameter');
-    var step = backend.getTypeCollection('Step');
+    var parameter = backend.getCollection('Parameter');
+    var step = backend.getCollection('Step');
     return getWorkflowInputs(step, parameter, source.id).run(connection);
   };
 }
@@ -3318,23 +3353,25 @@ function readWorkflow(backend) {
   return function (source, args) {
     var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var info = arguments[3];
+
+    console.log('called overriden readWorkflow function');
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Workflow');
+    var table = backend.getCollection('Workflow');
     var _globals$_temporal2 = this.globals._temporal,
-        filterTemporalWorkflow = _globals$_temporal2.filterTemporalWorkflow,
-        mostCurrentTemporalWorkflow = _globals$_temporal2.mostCurrentTemporalWorkflow;
+        temporalFilter = _globals$_temporal2.temporalFilter,
+        temporalMostCurrent = _globals$_temporal2.temporalMostCurrent;
 
     context.date = args.date || context.date;
     var filter = r.expr(null);
     if (_.isEmpty(source)) {
-      if (!_.keys(args).length) return mostCurrentTemporalWorkflow().run(connection);
-      filter = filterTemporalWorkflow(args);
+      if (!_.keys(args).length) return temporalMostCurrent('Workflow').run(connection);
+      filter = temporalFilter('Workflow', args);
     } else if (source.workflow) {
       return table.get(source.workflow).run(connection);
     } else if (source.subWorkflow) {
-      filter = filterTemporalWorkflow({ recordId: source.subWorkflow, date: context.date }).coerceTo('array').do(function (task) {
+      filter = temporalFilter('Workflow', { recordId: source.subWorkflow, date: context.date }).coerceTo('array').do(function (task) {
         return task.count().eq(0).branch(null, task.nth(0));
       });
     }
@@ -3349,7 +3386,7 @@ function readWorkflowVersions(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Workflow');
+    var table = backend.getCollection('Workflow');
     var filter = table.filter({ _temporal: { recordId: args.recordId } });
     if (args.offset) filter = filter.skip(args.offset);
     if (args.limit) filter = filter.limit(args.limit);
@@ -3362,7 +3399,7 @@ function updateWorkflow(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('Workflow');
+    var table = backend.getCollection('Workflow');
 
     return isPublished(backend, 'Workflow', args.id).branch(r.error('This workflow is published and cannot be modified'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
       return table.get(args.id);
@@ -3375,9 +3412,9 @@ function deleteWorkflow(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var workflow = backend.getTypeCollection('Workflow');
-    var parameter = backend.getTypeCollection('Parameter');
-    var step = backend.getTypeCollection('Step');
+    var workflow = backend.getCollection('Workflow');
+    var parameter = backend.getCollection('Parameter');
+    var step = backend.getCollection('Step');
 
     return isPublished(backend, 'Workflow', args.id).branch(r.error('This workflow is published and cannot be deleted'), step.filter({ workflowId: args.id }).map(function (s) {
       return s('id');
@@ -3398,7 +3435,7 @@ function readWorkflowParameters(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var parameter = backend.getTypeCollection('Parameter');
+    var parameter = backend.getCollection('Parameter');
 
     return parameter.filter({ parentId: source.id, class: ATTRIBUTE$2 }).run(connection);
   };
@@ -3409,7 +3446,7 @@ function readEndStep(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var step = backend.getTypeCollection('Step');
+    var step = backend.getCollection('Step');
 
     return step.filter({ workflowId: source.id, type: END$1 }).coerceTo('array').do(function (end) {
       return end.count().eq(0).branch(null, end.nth(0));
@@ -3436,12 +3473,12 @@ function createWorkflowRun(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var workflowRun = backend.getTypeCollection('WorkflowRun');
-    var parameter = backend.getTypeCollection('Parameter');
-    var parameterRun = backend.getTypeCollection('ParameterRun');
-    var step = backend.getTypeCollection('Step');
-    var stepRun = backend.getTypeCollection('StepRun');
-    var workflowRunThread = backend.getTypeCollection('WorkflowRunThread');
+    var workflowRun = backend.getCollection('WorkflowRun');
+    var parameter = backend.getCollection('Parameter');
+    var parameterRun = backend.getCollection('ParameterRun');
+    var step = backend.getCollection('Step');
+    var stepRun = backend.getCollection('StepRun');
+    var workflowRunThread = backend.getCollection('WorkflowRunThread');
     var filterWorkflow = this.globals._temporal.filterTemporalWorkflow;
     var input = _.isObject(args.input) ? args.input : {};
 
@@ -3562,7 +3599,7 @@ function updateWorkflowRun(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('WorkflowRun');
+    var table = backend.getCollection('WorkflowRun');
 
     return table.get(args.id).eq(null).branch(r.error('WorkflowRun not found'), table.get(args.id).update(_.omit(args, 'id')).do(function () {
       return table.get(args.id);
@@ -3575,7 +3612,7 @@ function deleteWorkflowRun(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('WorkflowRun');
+    var table = backend.getCollection('WorkflowRun');
 
     return table.get(args.id).eq(null).branch(r.error('WorkflowRun not found'), table.get(args.id).delete().do(function () {
       return true;
@@ -3588,7 +3625,7 @@ function endWorkflowRun$1(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('WorkflowRun');
+    var table = backend.getCollection('WorkflowRun');
 
     args.ended = r.now();
 
@@ -3607,7 +3644,7 @@ function readWorkflowRunThread(backend) {
     var r = backend.r,
         connection = backend.connection;
 
-    var table = backend.getTypeCollection('WorkflowRunThread');
+    var table = backend.getCollection('WorkflowRunThread');
 
     var infoPath = _.get(info, 'path', []);
     var currentPath = _.isArray(infoPath) ? _.last(infoPath) : infoPath.key;
@@ -4850,13 +4887,14 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
 
     config = mergeConfig(config);
 
+    var _config = config,
+        types = _config.types,
+        options = _config.options;
+
     // create a temporal plugin
-    var temporalOptions = {
-      tables: temporalTables(config.types),
-      prefix: _.get(config, 'options.prefix'),
-      db: _.get(config, 'options.store')
-    };
-    var temporalBackend = new graphqlFactoryTemporal_backend.rethinkdb(r, graphql, temporalOptions, connection);
+
+    var temporalOptions = { types: types, prefix: _.get(options, 'prefix', ''), store: _.get(options, 'store', 'test') };
+    var temporalBackend = new graphqlFactoryTemporal_backend.GraphQLFactoryTemporalRethinkDBBackend(r, graphql, temporalOptions, connection);
     var temporalPlugin = FactoryTemporalPlugin(temporalBackend);
 
     // merge plugins
@@ -4884,15 +4922,15 @@ var S2fRethinkDBBackend = function (_YellowjacketRethinkD) {
 }(yellowjacket.YellowjacketRethinkDBBackend);
 
 // helper function to instantiate a new backend
-var rethinkdb$1 = function (namespace, graphql, r, config, connection) {
+var rethinkdb = function (namespace, graphql, r, config, connection) {
   return new S2fRethinkDBBackend(namespace, graphql, r, config, connection);
 };
 
 var index = {
-  rethinkdb: rethinkdb$1,
+  rethinkdb: rethinkdb,
   S2fRethinkDBBackend: S2fRethinkDBBackend
 };
 
-exports.rethinkdb = rethinkdb$1;
+exports.rethinkdb = rethinkdb;
 exports.S2fRethinkDBBackend = S2fRethinkDBBackend;
 exports['default'] = index;

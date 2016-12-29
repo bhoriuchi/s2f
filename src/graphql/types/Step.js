@@ -82,7 +82,7 @@ export default {
     parameters: {
       description: 'Local parameters associated with the step',
       type: ['Parameter'],
-      resolve: 'readParameter'
+      has: 'id'
     },
     fork: {
       type: 'String',
@@ -100,16 +100,24 @@ export default {
       type: 'FactoryJSON'
     }
   },
+  _temporal: {
+    versioned: true,
+    branch: false,
+    fork: false,
+    publish: false,
+    read: 'readStep',
+    create: false,
+    update: false,
+    delete: false
+  },
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'step',
-    temporal: true,
-    query: {
-      read: {
-        resolve: 'readStep'
-      }
-    },
     mutation: {
+      create: false,
+      update: false,
+      delete: false
+      /*
       create: {
         type: 'Step',
         args: {
@@ -154,6 +162,7 @@ export default {
         },
         resolve: 'deleteStep'
       }
+      */
     }
   }
 }

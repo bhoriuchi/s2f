@@ -3,36 +3,36 @@ import _ from 'lodash'
 export function createFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let folder = backend.getTypeCollection('Folder')
+    let folder = backend.getCollection('Folder')
   }
 }
 
 export function readFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let folder = backend.getTypeCollection('Folder')
+    let folder = backend.getCollection('Folder')
   }
 }
 
 export function updateFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let folder = backend.getTypeCollection('Folder')
+    let folder = backend.getCollection('Folder')
   }
 }
 
 export function deleteFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let folder = backend.getTypeCollection('Folder')
+    let folder = backend.getCollection('Folder')
   }
 }
 
 export function readWorkflowFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let folder = backend.getTypeCollection('Folder')
-    let membership = backend.getTypeCollection('FolderMembership')
+    let folder = backend.getCollection('Folder')
+    let membership = backend.getCollection('FolderMembership')
     return membership.get(source._temporal.recordId)
       .do((m) => {
         return m.eq(null).branch(
@@ -47,10 +47,10 @@ export function readWorkflowFolder (backend) {
 export function readRootFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let folder = backend.getTypeCollection('Folder')
-    let member = backend.getTypeCollection('FolderMembership')
-    let task = backend.getTypeCollection('Task')
-    let workflow = backend.getTypeCollection('Workflow')
+    let folder = backend.getCollection('Folder')
+    let member = backend.getCollection('FolderMembership')
+    let task = backend.getCollection('Task')
+    let workflow = backend.getCollection('Workflow')
 
     return folder.filter((f) => f('type').eq(args.type).and(f('parent').eq('ROOT')))
       .merge((p) => {
@@ -100,10 +100,10 @@ export function readRootFolder (backend) {
 export function readSubFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
-    let folder = backend.getTypeCollection('Folder')
-    let member = backend.getTypeCollection('FolderMembership')
-    let task = backend.getTypeCollection('Task')
-    let workflow = backend.getTypeCollection('Workflow')
+    let folder = backend.getCollection('Folder')
+    let member = backend.getCollection('FolderMembership')
+    let task = backend.getCollection('Task')
+    let workflow = backend.getCollection('Workflow')
 
     return folder.filter({ id: args.id })
       .merge((p) => {

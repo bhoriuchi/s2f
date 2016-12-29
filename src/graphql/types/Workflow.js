@@ -29,30 +29,46 @@ export default {
     parameters: {
       description: 'Global parameters',
       type: ['Parameter'],
+      has: 'parentId'
+      /*
       args: {
         id: { type: 'String' }
       },
-      resolve: 'readParameter'
+      resolve: 'backend_readParameter'
+      */
     },
     steps: {
       description: 'Steps in the workflow',
       type: ['Step'],
+      has: 'workflowId'
+      /*
       args: {
         id: { type: 'String' },
         first: { type: 'Boolean' }
       },
       resolve: 'readStep'
+      */
     },
     endStep: {
       type: 'Step',
       resolve: 'readEndStep'
     }
   },
+  _temporal: {
+    versioned: true,
+    create: false,
+    update: false,
+    delete: false,
+    branch: 'branchWorkflow',
+    fork: 'forkWorkflow',
+    publish: 'publishWorkflow',
+    readMostCurrent: true
+  },
   _backend: {
     schema: 'S2FWorkflow',
     collection: 'workflow',
-    temporal: true,
     query: {
+      /*
       read: {
         type: ['Workflow'],
         args: {
@@ -63,6 +79,7 @@ export default {
         },
         resolve: 'readWorkflow'
       },
+      */
       readWorkflowVersions: {
         type: ['Workflow'],
         args: {
@@ -74,6 +91,7 @@ export default {
       }
     },
     mutation: {
+      /*
       create: {
         type: 'Workflow',
         args: {
@@ -126,6 +144,7 @@ export default {
         },
         resolve: 'publishWorkflow'
       },
+      */
       syncWorkflow: {
         type: 'Workflow',
         args: {

@@ -4,7 +4,7 @@ import { isPublished } from './common'
 export function createTask (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('Task')
+    let table = backend.getCollection('Task')
 
     let { createTemporalTask } = this.globals._temporal
     args.entityType = 'TASK'
@@ -24,11 +24,11 @@ export function readTask (backend) {
     let { r, connection } = backend
     let sourceTask = _.get(source, 'task') || _.get(source, 'task.id')
 
-    let { filterTemporalTask, mostCurrentTemporalTask } = this.globals._temporal
+    let { filterTemporalTask, temporalMostCurrent } = this.globals._temporal
     context.date = args.date || context.date
     let filter = r.expr(null)
     if (!source) {
-      if (!_.keys(args).length) return mostCurrentTemporalTask().run(connection)
+      if (!_.keys(args).length) return temporalMostCurrent('Task').run(connection)
       filter = filterTemporalTask(args)
     } else if (sourceTask) {
       filter = filterTemporalTask({ recordId: sourceTask, date: context.date })
@@ -47,7 +47,7 @@ export function readTask (backend) {
 export function readTaskVersions (backend) {
   return function (source, args, context = {}, info) {
     let {r, connection} = backend
-    let table = backend.getTypeCollection('Task')
+    let table = backend.getCollection('Task')
     let filter = table.filter({ _temporal: { recordId: args.recordId } })
     if (args.offset) filter = filter.skip(args.offset)
     if (args.limit) filter = filter.limit(args.limit)
@@ -58,7 +58,7 @@ export function readTaskVersions (backend) {
 export function updateTask (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let table = backend.getTypeCollection('Task')
+    let table = backend.getCollection('Task')
 
     return isPublished(backend, 'Task', args.id).branch(
       r.error('This task is published and cannot be modified'),
@@ -73,9 +73,9 @@ export function updateTask (backend) {
 export function deleteTask (backend) {
   return function (source, args, context, info) {
     let { r, connection } = backend
-    let task = backend.getTypeCollection('Task')
-    let parameter = backend.getTypeCollection('Parameter')
-    let step = backend.getTypeCollection('Step')
+    let task = backend.getCollection('Task')
+    let parameter = backend.getCollection('Parameter')
+    let step = backend.getCollection('Step')
 
     return isPublished(backend, 'Task', args.id).branch(
       r.error('This task is published and cannot be deleted'),
