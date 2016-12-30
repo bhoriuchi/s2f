@@ -27,7 +27,7 @@ export function createStep (backend) {
     let parameter = backend.getCollection('Parameter')
     let workflow = backend.getCollection('Workflow')
 
-    let { createTemporalStep, filterTemporalTask } = this.globals._temporal
+    let { createTemporalStep, temporalFilter } = this.globals._temporal
 
     if (_.includes(['START', 'END'], args.type)) {
       throw new GraphQLError(`A ${args.type} type can only be added during new workflow creation`)
@@ -43,7 +43,7 @@ export function createStep (backend) {
         r.error(`Workflow ${args.workflowId} does not exist`),
         r.expr(args.type).ne('TASK').branch(
           createTemporalStep(args)('changes').nth(0)('new_val'),
-          filterTemporalTask({ recordId: args.task })
+          temporalFilter('Task', { recordId: args.task })
             .coerceTo('array')
             .do((task) => {
               return task.count().eq(0).branch(
@@ -60,7 +60,7 @@ export function createStep (backend) {
         // copy the current task parameters to the step
         // since it is required that the step already be published there is no need
         // to keep the parameters synced between the step and task
-        return filterTemporalTask({ recordId: args.task })
+        return temporalFilter('Task', { recordId: args.task })
           .nth(0)('id')
           .do((taskId) => {
             return parameter.filter({ parentId: taskId })
@@ -151,7 +151,7 @@ export function deleteStep (backend) {
 export function readSource (backend) {
   return function (source = {}, args, context = {}, info) {
     let {r, connection} = backend
-    let { filterTemporalTask } = this.globals._temporal
+    let { temporalFilter } = this.globals._temporal
     let taskId = _.get(source, 'task') || _.get(source, 'task.id') || null
 
     // if not a workflow or task, simply return the source
@@ -160,7 +160,7 @@ export function readSource (backend) {
     let vargs = _.keys(source.versionArgs).length ? source.versionArgs :
       _.merge(_.omit(context, ['id', 'recordId']), { recordId: taskId })
 
-    return filterTemporalTask(vargs)
+    return temporalFilter('Task', vargs)
       .coerceTo('array')
       .do((t) => {
         return t.count().eq(0).branch(
@@ -177,8 +177,8 @@ export function readSource (backend) {
 
 export function readStepParams (backend) {
   return function (source = {}, args, context = {}, info) {
-    let {r, connection} = backend
-    let {filterTemporalWorkflow, filterTemporalTask} = this.globals._temporal
+    let { r, connection } = backend
+    let { temporalFilter } = this.globals._temporal
     let parameter = backend.getCollection('Parameter')
     context = _.omit(context, ['recordId', 'id'])
 
@@ -194,9 +194,9 @@ export function readStepParams (backend) {
           .do((vargs) => {
             return r.branch(
               s('type').eq(WORKFLOW).and(s.hasFields('subWorkflow')),
-              filterTemporalWorkflow(vargs.merge({recordId: s('subWorkflow')})),
+              temporalFilter('Workflow', vargs.merge({recordId: s('subWorkflow')})),
               s('type').eq(TASK).and(s.hasFields('task')),
-              filterTemporalTask(vargs.merge({recordId: s('task')})),
+              temporalFilter('Task', vargs.merge({recordId: s('task')})),
               r.error('Temporal relation missing reference')
             )
               .coerceTo('array')

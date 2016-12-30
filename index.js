@@ -1214,12 +1214,34 @@ var types = {
 // import functions from './functions/index'
 // import queries from './queries/index'
 
+var BACKEND_EXT = '_backend';
+
 function mergeConfig() {
   var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
 
+  var workflowTypes = _.cloneDeep(types);
+  var schemaNames = _.union(_.get(config, 'options.schemas', []), ['S2FWorkflow']);
+  var backendExtension = _.get(config, 'options.backendExtension', BACKEND_EXT);
+
+  // move the backend extension if set
+  _.forEach(workflowTypes, function (definition) {
+    var _backend = _.get(definition, BACKEND_EXT);
+    if (_.isObject(_backend) && backendExtension !== BACKEND_EXT) {
+      definition[backendExtension] = _backend;
+      delete definition._backend;
+    }
+  });
+
+  // add custom schema names
+  _.forEach(workflowTypes, function (definition) {
+    if (_.has(definition, '["' + backendExtension + '"]')) {
+      definition[backendExtension].schema = schemaNames;
+    }
+  });
+
   // merge passed config with required config
-  return _.merge({}, config, { types: types, fields: fields });
+  return _.merge({}, config, { types: workflowTypes, fields: fields });
 }
 
 var _ParameterClassEnum$v = ParameterClassEnum.values;
@@ -2294,7 +2316,7 @@ function createStep(backend) {
 
     var _globals$_temporal = this.globals._temporal,
         createTemporalStep = _globals$_temporal.createTemporalStep,
-        filterTemporalTask = _globals$_temporal.filterTemporalTask;
+        temporalFilter = _globals$_temporal.temporalFilter;
 
 
     if (_.includes(['START', 'END'], args.type)) {
@@ -2305,7 +2327,7 @@ function createStep(backend) {
     }
     args.entityType = 'STEP';
 
-    return workflow.get(args.workflowId).eq(null).branch(r.error('Workflow ' + args.workflowId + ' does not exist'), r.expr(args.type).ne('TASK').branch(createTemporalStep(args)('changes').nth(0)('new_val'), filterTemporalTask({ recordId: args.task }).coerceTo('array').do(function (task) {
+    return workflow.get(args.workflowId).eq(null).branch(r.error('Workflow ' + args.workflowId + ' does not exist'), r.expr(args.type).ne('TASK').branch(createTemporalStep(args)('changes').nth(0)('new_val'), temporalFilter('Task', { recordId: args.task }).coerceTo('array').do(function (task) {
       return task.count().eq(0).branch(r.error('The task specified does not have a current published version'), createTemporalStep(r.expr(args).merge({ source: task.nth(0)('source') }))('changes').nth(0)('new_val'));
     }))).run(connection).then(function (step) {
       if (args.type !== 'TASK') return step;
@@ -2313,7 +2335,7 @@ function createStep(backend) {
       // copy the current task parameters to the step
       // since it is required that the step already be published there is no need
       // to keep the parameters synced between the step and task
-      return filterTemporalTask({ recordId: args.task }).nth(0)('id').do(function (taskId) {
+      return temporalFilter('Task', { recordId: args.task }).nth(0)('id').do(function (taskId) {
         return parameter.filter({ parentId: taskId }).map(function (param) {
           return param.merge({ id: r.uuid(), scope: 'STEP', parentId: step.id });
         }).forEach(function (p) {
@@ -2411,7 +2433,7 @@ function readSource(backend) {
     var info = arguments[3];
     var r = backend.r,
         connection = backend.connection;
-    var filterTemporalTask = this.globals._temporal.filterTemporalTask;
+    var temporalFilter = this.globals._temporal.temporalFilter;
 
     var taskId = _.get(source, 'task') || _.get(source, 'task.id') || null;
 
@@ -2420,7 +2442,7 @@ function readSource(backend) {
 
     var vargs = _.keys(source.versionArgs).length ? source.versionArgs : _.merge(_.omit(context, ['id', 'recordId']), { recordId: taskId });
 
-    return filterTemporalTask(vargs).coerceTo('array').do(function (t) {
+    return temporalFilter('Task', vargs).coerceTo('array').do(function (t) {
       return t.count().eq(0).branch(null, t.nth(0).hasFields('source').branch(t.nth(0)('source'), null));
     }).run(connection);
   };
@@ -2434,16 +2456,14 @@ function readStepParams(backend) {
     var info = arguments[3];
     var r = backend.r,
         connection = backend.connection;
-    var _globals$_temporal2 = this.globals._temporal,
-        filterTemporalWorkflow = _globals$_temporal2.filterTemporalWorkflow,
-        filterTemporalTask = _globals$_temporal2.filterTemporalTask;
+    var temporalFilter = this.globals._temporal.temporalFilter;
 
     var parameter = backend.getCollection('Parameter');
     context = _.omit(context, ['recordId', 'id']);
 
     return r.expr(source).do(function (s) {
       return r.expr([WORKFLOW$1, TASK$1]).contains(s('type')).branch(s.hasFields('versionArgs').branch(s('versionArgs').keys().count().ne(0).branch(s('versionArgs'), r.expr(context)), r.expr(context)).do(function (vargs) {
-        return r.branch(s('type').eq(WORKFLOW$1).and(s.hasFields('subWorkflow')), filterTemporalWorkflow(vargs.merge({ recordId: s('subWorkflow') })), s('type').eq(TASK$1).and(s.hasFields('task')), filterTemporalTask(vargs.merge({ recordId: s('task') })), r.error('Temporal relation missing reference')).coerceTo('array').do(function (recs) {
+        return r.branch(s('type').eq(WORKFLOW$1).and(s.hasFields('subWorkflow')), temporalFilter('Workflow', vargs.merge({ recordId: s('subWorkflow') })), s('type').eq(TASK$1).and(s.hasFields('task')), temporalFilter('Task', vargs.merge({ recordId: s('task') })), r.error('Temporal relation missing reference')).coerceTo('array').do(function (recs) {
           return recs.count().eq(0).branch(null, recs.nth(0)('id'));
         });
       }), s('id')).do(function (id) {
@@ -3270,15 +3290,13 @@ function forkWorkflow(backend) {
 
 function publishWorkflow(backend) {
   return function (source, args, context, info) {
-    var r = backend.r,
-        connection = backend.connection;
+    var connection = backend.connection;
 
     var step = backend.getCollection('Step');
-    var tableName = backend.getTypeComputed('Workflow').collection;
 
     var extendPublish = this.globals._temporal.extendPublish;
 
-    return extendPublish(tableName, args).then(function (wf) {
+    return extendPublish('Workflow', args).then(function (wf) {
       var _wf$_temporal = wf._temporal,
           version = _wf$_temporal.version,
           validFrom = _wf$_temporal.validFrom,

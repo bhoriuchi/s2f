@@ -131,12 +131,11 @@ export function forkWorkflow (backend) {
 
 export function publishWorkflow (backend) {
   return function (source, args, context, info) {
-    let { r, connection } = backend
+    let { connection } = backend
     let step = backend.getCollection('Step')
-    let tableName = backend.getTypeComputed('Workflow').collection
 
     let { extendPublish } = this.globals._temporal
-    return extendPublish(tableName, args).then((wf) => {
+    return extendPublish('Workflow', args).then((wf) => {
       let { _temporal: { version, validFrom, validTo }, id } = wf
       return step.filter({ workflowId: id })
         .update({ _temporal: { version, validFrom, validTo } })
