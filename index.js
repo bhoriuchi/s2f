@@ -3075,16 +3075,16 @@ function readTask(backend) {
     var sourceTask = _.get(source, 'task') || _.get(source, 'task.id');
 
     var _globals$_temporal = this.globals._temporal,
-        filterTemporalTask = _globals$_temporal.filterTemporalTask,
+        temporalFilter = _globals$_temporal.temporalFilter,
         temporalMostCurrent = _globals$_temporal.temporalMostCurrent;
 
     context.date = args.date || context.date;
     var filter = r.expr(null);
     if (!source) {
       if (!_.keys(args).length) return temporalMostCurrent('Task').run(connection);
-      filter = filterTemporalTask(args);
+      filter = temporalFilter('Task', args);
     } else if (sourceTask) {
-      filter = filterTemporalTask({ recordId: sourceTask, date: context.date }).coerceTo('array').do(function (task) {
+      filter = temporalFilter('Task', { recordId: sourceTask, date: context.date }).coerceTo('array').do(function (task) {
         return task.count().eq(0).branch(null, task.nth(0));
       });
     }

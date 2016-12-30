@@ -24,14 +24,14 @@ export function readTask (backend) {
     let { r, connection } = backend
     let sourceTask = _.get(source, 'task') || _.get(source, 'task.id')
 
-    let { filterTemporalTask, temporalMostCurrent } = this.globals._temporal
+    let { temporalFilter, temporalMostCurrent } = this.globals._temporal
     context.date = args.date || context.date
     let filter = r.expr(null)
     if (!source) {
       if (!_.keys(args).length) return temporalMostCurrent('Task').run(connection)
-      filter = filterTemporalTask(args)
+      filter = temporalFilter('Task', args)
     } else if (sourceTask) {
-      filter = filterTemporalTask({ recordId: sourceTask, date: context.date })
+      filter = temporalFilter('Task', { recordId: sourceTask, date: context.date })
         .coerceTo('array')
         .do((task) => {
           return task.count().eq(0).branch(
