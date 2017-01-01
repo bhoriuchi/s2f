@@ -192,17 +192,6 @@ var Parameter = {
       create: false,
       update: false,
       delete: false
-      /*
-      create: {
-        resolve: 'createParameter'
-      },
-      update: {
-        resolve: 'updateParameter'
-      },
-      delete: {
-        resolve: 'deleteParameter'
-      }
-      */
     }
   }
 };
@@ -244,6 +233,7 @@ var ParameterRun = {
     schema: 'S2FWorkflow',
     collection: 'parameter_run',
     mutation: {
+      /*
       create: {
         type: 'ParameterRun',
         args: {
@@ -267,6 +257,10 @@ var ParameterRun = {
         },
         resolve: 'deleteParameterRun'
       },
+      */
+      create: false,
+      update: false,
+      delete: false,
       updateAttributeValues: {
         type: 'Boolean',
         args: {
@@ -366,14 +360,12 @@ var Step = {
     task: {
       description: 'Published task to use as source for execution code',
       type: 'Task',
-      has: 'id',
-      resolve: 'readTask'
+      has: '_temporal.recordId'
     },
     subWorkflow: {
       description: 'Nested workflow to run',
       type: 'Workflow',
-      has: 'id',
-      resolve: 'readWorkflow'
+      has: '_temporal.recordId'
     },
     versionArgs: {
       description: 'Lock a task or subworkflow into a specific version',
@@ -408,8 +400,7 @@ var Step = {
     },
     parameters: {
       description: 'Local parameters associated with the step',
-      type: ['Parameter'],
-      has: 'id'
+      type: ['Parameter']
     },
     fork: {
       type: 'String',
@@ -432,7 +423,6 @@ var Step = {
     branch: false,
     fork: false,
     publish: false,
-    read: 'readStep',
     create: false,
     update: false,
     delete: false
@@ -578,7 +568,7 @@ var StepRun = {
     },
     thread: {
       type: 'WorkflowRunThread',
-      resolve: 'readWorkflowRunThread'
+      has: 'id' // resolve: 'readWorkflowRunThread'
     },
     context: {
       type: ['ParameterRun']
@@ -605,6 +595,7 @@ var StepRun = {
     schema: 'S2FWorkflow',
     collection: 'step_run',
     mutation: {
+      /*
       create: {
         type: 'StepRun',
         args: {
@@ -618,7 +609,7 @@ var StepRun = {
         type: 'StepRun',
         args: {
           id: { type: 'String', nullable: false },
-          status: { type: 'RunStatusEnum' },
+          status: { type: 'RunStatusEnum'},
           taskId: { type: 'String' },
           ended: { type: 'FactoryDateTime' }
         }
@@ -629,6 +620,10 @@ var StepRun = {
           id: { type: 'String', nullable: false }
         }
       },
+      */
+      create: false,
+      update: false,
+      delete: false,
       startStepRun: {
         type: 'Boolean',
         args: {
@@ -763,8 +758,7 @@ var Task = {
       nullable: false
     },
     parameters: {
-      type: ['Parameter'],
-      has: 'id'
+      type: ['Parameter']
     }
   },
   _temporal: {
@@ -854,6 +848,9 @@ var Task = {
         resolve: 'publishTemporalTask'
       },
       */
+      create: false,
+      update: false,
+      delete: false,
       syncTask: {
         type: 'Task',
         args: {
@@ -888,8 +885,8 @@ var Workflow = {
       type: 'String'
     },
     folder: {
-      type: 'String',
-      resolve: 'readWorkflowFolder'
+      type: 'Folder',
+      has: 'id'
     },
     inputs: {
       description: 'Inputs from steps',
@@ -901,26 +898,11 @@ var Workflow = {
     },
     parameters: {
       description: 'Global parameters',
-      type: ['Parameter'],
-      has: 'parentId'
-      /*
-      args: {
-        id: { type: 'String' }
-      },
-      resolve: 'backend_readParameter'
-      */
+      type: ['Parameter']
     },
     steps: {
       description: 'Steps in the workflow',
-      type: ['Step'],
-      has: 'workflowId'
-      /*
-      args: {
-        id: { type: 'String' },
-        first: { type: 'Boolean' }
-      },
-      resolve: 'readStep'
-      */
+      type: ['Step']
     },
     endStep: {
       type: 'Step',
@@ -941,18 +923,6 @@ var Workflow = {
     schema: 'S2FWorkflow',
     collection: 'workflow',
     query: {
-      /*
-      read: {
-        type: ['Workflow'],
-        args: {
-          recordId: { type: 'String' },
-          id: { type: 'String' },
-          version: { type: 'String' },
-          date: { type: 'FactoryDateTime' }
-        },
-        resolve: 'readWorkflow'
-      },
-      */
       readWorkflowVersions: {
         type: ['Workflow'],
         args: {
@@ -964,60 +934,6 @@ var Workflow = {
       }
     },
     mutation: {
-      /*
-      create: {
-        type: 'Workflow',
-        args: {
-          name: { type: 'String', nullable: false },
-          description: { type: 'String' }
-        },
-        resolve: 'createWorkflow'
-      },
-      update: {
-        type: 'Workflow',
-        args: {
-          name: { type: 'String' },
-          description: { type: 'String' }
-        },
-        resolve: 'updateWorkflow'
-      },
-      delete: {
-        type: 'Boolean',
-        args: {
-          id: { type: 'String', nullable: false }
-        },
-        resolve: 'deleteWorkflow'
-      },
-      branchWorkflow: {
-        type: 'Workflow',
-        args: {
-          id: { type: 'String', nullable: false },
-          name: { type: 'String', nullable: false },
-          owner: { type: 'String' },
-          changeLog: { type: 'TemporalChangeLogInput' }
-        },
-        resolve: 'branchWorkflow'
-      },
-      forkWorkflow: {
-        type: 'Workflow',
-        args: {
-          id: { type: 'String', nullable: false },
-          name: { type: 'String', nullable: false },
-          owner: { type: 'String' },
-          changeLog: { type: 'TemporalChangeLogInput' }
-        },
-        resolve: 'forkWorkflow'
-      },
-      publishWorkflow: {
-        type: 'Workflow',
-        args: {
-          id: { type: 'String', nullable: false },
-          version: { type: 'String' },
-          changeLog: { type: 'TemporalChangeLogInput' }
-        },
-        resolve: 'publishWorkflow'
-      },
-      */
       syncWorkflow: {
         type: 'Workflow',
         args: {
@@ -1060,8 +976,7 @@ var WorkflowRun = {
       has: 'id'
     },
     threads: {
-      type: ['WorkflowRunThread'],
-      resolve: 'readWorkflowRunThread'
+      type: ['WorkflowRunThread']
     },
     started: {
       type: 'FactoryDateTime'
@@ -1134,8 +1049,7 @@ var WorkflowRunThread = {
     },
     parentThread: {
       type: 'WorkflowRunThread',
-      has: 'id',
-      resolve: 'readWorkflowRunThread'
+      has: 'id'
     },
     workflowRun: {
       type: 'WorkflowRun',
@@ -1149,8 +1063,7 @@ var WorkflowRunThread = {
       has: 'id'
     },
     stepRuns: {
-      type: ['StepRun'],
-      has: 'id'
+      type: ['StepRun']
     },
     status: {
       type: 'RunStatusEnum'

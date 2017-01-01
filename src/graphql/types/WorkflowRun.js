@@ -23,8 +23,7 @@ export default {
       has: 'id'
     },
     threads: {
-      type: ['WorkflowRunThread'],
-      resolve: 'readWorkflowRunThread'
+      type: ['WorkflowRunThread']
     },
     started: {
       type: 'FactoryDateTime'

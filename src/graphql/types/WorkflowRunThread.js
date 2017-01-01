@@ -9,8 +9,7 @@ export default {
     },
     parentThread: {
       type: 'WorkflowRunThread',
-      has: 'id',
-      resolve: 'readWorkflowRunThread'
+      has: 'id'
     },
     workflowRun: {
       type: 'WorkflowRun',
@@ -21,12 +20,10 @@ export default {
     },
     currentStepRun: {
       type: 'StepRun',
-      has: 'id',
-      // resolve: 'readStepRun'
+      has: 'id'
     },
     stepRuns: {
-      type: ['StepRun'],
-      has: 'id'
+      type: ['StepRun']
     },
     status: {
       type: 'RunStatusEnum'

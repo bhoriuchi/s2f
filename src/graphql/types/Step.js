@@ -19,7 +19,7 @@ export default {
       type: 'String',
       nullable: false,
       belongsTo: {
-        Workflow: { steps: 'id' }
+        Workflow: { steps: { foreignKey: 'id' } }
       }
     },
     type: {
@@ -39,14 +39,12 @@ export default {
     task: {
       description: 'Published task to use as source for execution code',
       type: 'Task',
-      has: 'id',
-      resolve: 'readTask'
+      has: '_temporal.recordId'
     },
     subWorkflow: {
       description: 'Nested workflow to run',
       type: 'Workflow',
-      has: 'id',
-      resolve: 'readWorkflow'
+      has: '_temporal.recordId'
     },
     versionArgs: {
       description: 'Lock a task or subworkflow into a specific version',
@@ -81,8 +79,7 @@ export default {
     },
     parameters: {
       description: 'Local parameters associated with the step',
-      type: ['Parameter'],
-      has: 'id'
+      type: ['Parameter']
     },
     fork: {
       type: 'String',
@@ -105,7 +102,6 @@ export default {
     branch: false,
     fork: false,
     publish: false,
-    read: 'readStep',
     create: false,
     update: false,
     delete: false

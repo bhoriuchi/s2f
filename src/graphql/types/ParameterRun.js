@@ -26,6 +26,7 @@ export default {
     schema: 'S2FWorkflow',
     collection: 'parameter_run',
     mutation: {
+      /*
       create: {
         type: 'ParameterRun',
         args: {
@@ -49,6 +50,10 @@ export default {
         },
         resolve: 'deleteParameterRun'
       },
+      */
+      create: false,
+      update: false,
+      delete: false,
       updateAttributeValues: {
         type: 'Boolean',
         args: {

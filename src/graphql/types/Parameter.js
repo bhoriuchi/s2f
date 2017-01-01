@@ -62,17 +62,6 @@ export default {
       create: false,
       update: false,
       delete: false
-      /*
-      create: {
-        resolve: 'createParameter'
-      },
-      update: {
-        resolve: 'updateParameter'
-      },
-      delete: {
-        resolve: 'deleteParameter'
-      }
-      */
     }
   }
 }

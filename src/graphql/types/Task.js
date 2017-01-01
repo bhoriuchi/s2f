@@ -19,8 +19,7 @@ export default {
       nullable: false
     },
     parameters: {
-      type: ['Parameter'],
-      has: 'id'
+      type: ['Parameter']
     }
   },
   _temporal: {
@@ -110,6 +109,9 @@ export default {
         resolve: 'publishTemporalTask'
       },
       */
+      create: false,
+      update: false,
+      delete: false,
       syncTask: {
         type: 'Task',
         args: {

@@ -15,7 +15,7 @@ export default {
     },
     thread: {
       type: 'WorkflowRunThread',
-      resolve: 'readWorkflowRunThread'
+      has: 'id' // resolve: 'readWorkflowRunThread'
     },
     context: {
       type: ['ParameterRun']
@@ -42,6 +42,7 @@ export default {
     schema: 'S2FWorkflow',
     collection: 'step_run',
     mutation: {
+      /*
       create: {
         type: 'StepRun',
         args: {
@@ -66,6 +67,10 @@ export default {
           id: { type: 'String', nullable: false }
         }
       },
+      */
+      create: false,
+      update: false,
+      delete: false,
       startStepRun: {
         type: 'Boolean',
         args: {
