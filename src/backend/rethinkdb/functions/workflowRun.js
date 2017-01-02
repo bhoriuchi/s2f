@@ -34,11 +34,11 @@ export function createWorkflowRun (backend) {
     let step = backend.getCollection('Step')
     let stepRun = backend.getCollection('StepRun')
     let workflowRunThread = backend.getCollection('WorkflowRunThread')
-    let filterWorkflow = this.globals._temporal.filterTemporalWorkflow
+    let temporalFilter = this.globals._temporal.temporalFilter
     let input = _.isObject(args.input) ? args.input : {}
 
     // first get the workflow, its inputs, and its first step
-    return first(filterWorkflow(args.args), r.error('wokflow not found'))
+    return first(temporalFilter('Workflow', args.args), r.error('wokflow not found'))
       .merge((wf) => {
         return {
           inputs: getWorkflowInputs(step, parameter, wf('id')).coerceTo('array'),
@@ -49,7 +49,8 @@ export function createWorkflowRun (backend) {
                 subWorkflow: fstep.hasFields('subWorkflow')
                   .branch(
                     first(
-                      filterWorkflow(
+                      temporalFilter(
+                        'Workflow',
                         r.expr(args).merge(() => {
                           return {
                             recordId: fstep('subWorkflow')

@@ -340,7 +340,7 @@ var Step = {
       type: 'String',
       nullable: false,
       belongsTo: {
-        Workflow: { steps: 'id' }
+        Workflow: { steps: { foreignKey: 'id' } }
       }
     },
     type: {
@@ -3410,17 +3410,17 @@ function createWorkflowRun(backend) {
     var step = backend.getCollection('Step');
     var stepRun = backend.getCollection('StepRun');
     var workflowRunThread = backend.getCollection('WorkflowRunThread');
-    var filterWorkflow = this.globals._temporal.filterTemporalWorkflow;
+    var temporalFilter = this.globals._temporal.temporalFilter;
     var input = _.isObject(args.input) ? args.input : {};
 
     // first get the workflow, its inputs, and its first step
-    return first(filterWorkflow(args.args), r.error('wokflow not found')).merge(function (wf) {
+    return first(temporalFilter('Workflow', args.args), r.error('wokflow not found')).merge(function (wf) {
       return {
         inputs: getWorkflowInputs(step, parameter, wf('id')).coerceTo('array'),
         parameters: parameter.filter({ parentId: wf('id'), class: ATTRIBUTE$3 }).coerceTo('array'),
         step: firstStep(r, step, wf('id')).merge(function (fstep) {
           return {
-            subWorkflow: fstep.hasFields('subWorkflow').branch(first(filterWorkflow(r.expr(args).merge(function () {
+            subWorkflow: fstep.hasFields('subWorkflow').branch(first(temporalFilter('Workflow', r.expr(args).merge(function () {
               return {
                 recordId: fstep('subWorkflow')
               };
