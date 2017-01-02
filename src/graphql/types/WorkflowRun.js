@@ -9,8 +9,7 @@ export default {
     },
     workflow: {
       type: 'Workflow',
-      has: 'id',
-      resolve: 'readWorkflow'
+      has: 'id'
     },
     args: {
       type: 'FactoryJSON'

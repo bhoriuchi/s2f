@@ -233,31 +233,6 @@ var ParameterRun = {
     schema: 'S2FWorkflow',
     collection: 'parameter_run',
     mutation: {
-      /*
-      create: {
-        type: 'ParameterRun',
-        args: {
-          parameter: { type: 'String', nullable: false },
-          parentId: { type: 'String', nullable: false },
-          value: { type: 'FactoryJSON' }
-        },
-        resolve: 'createParameterRun'
-      },
-      update: {
-        type: 'ParameterRun',
-        args: {
-          id: { type: 'String', nullable: false },
-          value: { type: 'FactoryJSON' }
-        },
-        resolve: 'updateParameterRun'
-      },
-      delete: {
-        args: {
-          id: { type: 'String', nullable: false }
-        },
-        resolve: 'deleteParameterRun'
-      },
-      */
       create: false,
       update: false,
       delete: false,
@@ -568,7 +543,7 @@ var StepRun = {
     },
     thread: {
       type: 'WorkflowRunThread',
-      has: 'id' // resolve: 'readWorkflowRunThread'
+      has: 'id'
     },
     context: {
       type: ['ParameterRun']
@@ -962,8 +937,7 @@ var WorkflowRun = {
     },
     workflow: {
       type: 'Workflow',
-      has: 'id',
-      resolve: 'readWorkflow'
+      has: 'id'
     },
     args: {
       type: 'FactoryJSON'

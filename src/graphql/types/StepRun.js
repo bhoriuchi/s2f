@@ -15,7 +15,7 @@ export default {
     },
     thread: {
       type: 'WorkflowRunThread',
-      has: 'id' // resolve: 'readWorkflowRunThread'
+      has: 'id'
     },
     context: {
       type: ['ParameterRun']
