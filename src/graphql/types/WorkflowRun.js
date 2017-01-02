@@ -56,6 +56,7 @@ export default {
         },
         resolve: 'createWorkflowRun'
       },
+      /*
       update: {
         type: 'WorkflowRun',
         args: {
@@ -72,6 +73,7 @@ export default {
         },
         resolve: 'deleteWorkflowRun'
       },
+      */
       endWorkflowRun: {
         type: 'Boolean',
         args: {

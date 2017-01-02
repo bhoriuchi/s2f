@@ -49,6 +49,7 @@ export function getOp (ids, uuid, prefix) {
   }
 }
 
+// TODO: add checks for parameters
 export default function syncWorkflow (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend

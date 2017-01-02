@@ -1,3 +1,7 @@
+import { RunStatusEnum } from '../../graphql/types/index'
+
+let { values: { CREATED } } = RunStatusEnum
+
 export default {
   fields: {
     id: {
@@ -34,11 +38,22 @@ export default {
     collection: 'workflow_run_thread',
     mutation: {
       create: {
+        before (fnArgs, backend, done) {
+          try {
+            let { args } = fnArgs
+            args.status = CREATED
+            return done()
+          } catch (err) {
+            return done(err)
+          }
+        }
+        /*
         args: {
           workflowRun: { type: 'String', nullable: false },
           currentStepRun: { type: 'String', nullable: false }
         }
-      },
+        */
+      } /* ,
       update: {
         args: {
           id: { type: 'String', nullable: false },
@@ -50,7 +65,7 @@ export default {
         args: {
           id: { type: 'String', nullable: false }
         }
-      }
+      } */
     }
   }
 }

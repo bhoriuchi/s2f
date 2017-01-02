@@ -1,33 +1,5 @@
 import _ from 'lodash'
 
-export function createFolder (backend) {
-  return function (source, args, context, info) {
-    let {r, connection} = backend
-    let folder = backend.getCollection('Folder')
-  }
-}
-
-export function readFolder (backend) {
-  return function (source, args, context, info) {
-    let {r, connection} = backend
-    let folder = backend.getCollection('Folder')
-  }
-}
-
-export function updateFolder (backend) {
-  return function (source, args, context, info) {
-    let {r, connection} = backend
-    let folder = backend.getCollection('Folder')
-  }
-}
-
-export function deleteFolder (backend) {
-  return function (source, args, context, info) {
-    let {r, connection} = backend
-    let folder = backend.getCollection('Folder')
-  }
-}
-
 export function readWorkflowFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
@@ -143,10 +115,6 @@ export function readSubFolder (backend) {
 
 export default {
   readWorkflowFolder,
-  createFolder,
-  readFolder,
-  updateFolder,
-  deleteFolder,
   readRootFolder,
   readSubFolder
 }

@@ -1,7 +1,6 @@
 import _ from 'lodash'
 import chalk from 'chalk'
 import { isPublished, getWorkflowInputs } from './common'
-import { destroyStep } from './step'
 import StepTypeEnum from '../../../graphql/types/StepTypeEnum'
 import ParameterClassEnum from '../../../graphql/types/ParameterClassEnum'
 let { values: { TASK, WORKFLOW, END } } = StepTypeEnum
@@ -154,76 +153,6 @@ export function readWorkflowInputs (backend) {
   }
 }
 
-export function createWorkflow (backend) {
-  return function (source, args, context, info) {
-    let { r, connection } = backend
-
-    let { createTemporalWorkflow, createTemporalStep } = this.globals._temporal
-    return r.do(r.uuid(), r.uuid(), r.uuid(), (wfId, startId, endId) => {
-      args.id = wfId
-      args.entityType = 'WORKFLOW'
-      return createTemporalStep([
-        {
-          id: startId,
-          entityType: 'STEP',
-          name: 'Start',
-          description: 'Starting point of the workflow',
-          type: 'START',
-          timeout: 0,
-          failsWorkflow: false,
-          waitOnSuccess: false,
-          requireResumeKey: false,
-          success: endId,
-          fail: endId,
-          workflowId: wfId
-        },
-        {
-          id: endId,
-          entityType: 'STEP',
-          name: 'End',
-          description: 'Ending point of the workflow',
-          type: 'END',
-          timeout: 0,
-          failsWorkflow: false,
-          waitOnSuccess: false,
-          requireResumeKey: false,
-          success: endId,
-          fail: endId,
-          workflowId: wfId
-        }
-      ]).do(() => createTemporalWorkflow(args)('changes').nth(0)('new_val'))
-    })
-      .run(connection)
-  }
-}
-
-export function readWorkflow (backend) {
-  return function (source, args, context = {}, info) {
-    console.log('called overriden readWorkflow function')
-    let { r, connection } = backend
-    let table = backend.getCollection('Workflow')
-    let { temporalFilter, temporalMostCurrent } = this.globals._temporal
-    context.date = args.date || context.date
-    let filter = r.expr(null)
-    if (_.isEmpty(source)) {
-      if (!_.keys(args).length) return temporalMostCurrent('Workflow').run(connection)
-      filter = temporalFilter('Workflow', args)
-    } else if (source.workflow) {
-      return table.get(source.workflow).run(connection)
-    } else if (source.subWorkflow) {
-      filter = temporalFilter('Workflow', { recordId: source.subWorkflow, date: context.date })
-        .coerceTo('array')
-        .do((task) => {
-          return task.count().eq(0).branch(
-            null,
-            task.nth(0)
-          )
-        })
-    }
-    return filter.run(connection)
-  }
-}
-
 export function readWorkflowVersions (backend) {
   return function (source, args, context = {}, info) {
     let {r, connection} = backend
@@ -232,45 +161,6 @@ export function readWorkflowVersions (backend) {
     if (args.offset) filter = filter.skip(args.offset)
     if (args.limit) filter = filter.limit(args.limit)
     return filter.run(connection)
-  }
-}
-
-export function updateWorkflow (backend) {
-  return function (source, args, context, info) {
-    let { r, connection } = backend
-    let table = backend.getCollection('Workflow')
-
-    return isPublished(backend, 'Workflow', args.id).branch(
-      r.error('This workflow is published and cannot be modified'),
-      table.get(args.id)
-        .update(_.omit(args, 'id'))
-        .do(() => table.get(args.id))
-    )
-      .run(connection)
-  }
-}
-
-export function deleteWorkflow (backend) {
-  return function (source, args, context, info) {
-    let { r, connection } = backend
-    let workflow = backend.getCollection('Workflow')
-    let parameter = backend.getCollection('Parameter')
-    let step = backend.getCollection('Step')
-
-    return isPublished(backend, 'Workflow', args.id).branch(
-      r.error('This workflow is published and cannot be deleted'),
-      step.filter({ workflowId: args.id })
-        .map((s) => s('id'))
-        .coerceTo('array')
-        .do((ids) => destroyStep(backend, ids))
-        .do(() => parameter.filter({ parentId: args.id }).delete())
-        .do(() => {
-          return workflow.get(args.id)
-            .delete()
-            .do(() => true)
-        })
-    )
-      .run(connection)
   }
 }
 
@@ -305,10 +195,6 @@ export default {
   branchWorkflow,
   forkWorkflow,
   publishWorkflow,
-  createWorkflow,
-  readWorkflow,
-  updateWorkflow,
-  deleteWorkflow,
   readWorkflowInputs,
   readWorkflowVersions,
   readWorkflowParameters,

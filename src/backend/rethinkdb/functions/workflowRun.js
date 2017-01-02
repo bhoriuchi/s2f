@@ -148,53 +148,6 @@ export function createWorkflowRun (backend) {
   }
 }
 
-export function readWorkflowRun (backend) {
-  return function (source, args, context, info) {
-    let { r, connection } = backend
-    let table = backend.getCollection('WorkflowRun')
-
-    let filter = table
-    if (args.id) {
-      filter = filter.get(args.id)
-        .do((result) => {
-          return result.eq(null).branch(
-            [],
-            r.expr([result])
-          )
-        })
-    }
-    return filter.run(connection)
-  }
-}
-
-export function updateWorkflowRun (backend) {
-  return function (source, args, context, info) {
-    let { r, connection } = backend
-    let table = backend.getCollection('WorkflowRun')
-
-    return table.get(args.id).eq(null).branch(
-      r.error('WorkflowRun not found'),
-      table.get(args.id).update(_.omit(args, 'id'))
-        .do(() => table.get(args.id))
-    )
-      .run(connection)
-  }
-}
-
-export function deleteWorkflowRun (backend) {
-  return function (source, args, context, info) {
-    let { r, connection } = backend
-    let table = backend.getCollection('WorkflowRun')
-
-    return table.get(args.id).eq(null).branch(
-      r.error('WorkflowRun not found'),
-      table.get(args.id).delete()
-        .do(() => true)
-    )
-      .run(connection)
-  }
-}
-
 export function endWorkflowRun (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
@@ -213,8 +166,5 @@ export function endWorkflowRun (backend) {
 
 export default {
   createWorkflowRun,
-  readWorkflowRun,
-  updateWorkflowRun,
-  deleteWorkflowRun,
   endWorkflowRun
 }

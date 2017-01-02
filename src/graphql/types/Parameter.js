@@ -23,11 +23,13 @@ export default {
       description: 'The scope of the parameter',
       type: 'ParameterScopeEnum',
       nullable: false,
-      omitFrom: 'Input'
+      omitFrom: 'Input',
+      uniqueWith: 'uniqueparam'
     },
     class: {
       description: 'Class of parameter',
-      type: 'ParameterClassEnum'
+      type: 'ParameterClassEnum',
+      uniqueWith: 'uniqueparam'
     },
     required: {
       description: 'Parameter is required',
@@ -45,6 +47,7 @@ export default {
     parentId: {
       description: 'Object the parameter belongs to',
       type: 'String',
+      uniqueWith: 'uniqueparam',
       belongsTo: {
         Workflow: { parameters: 'id' },
         Step: { parameters: 'id' },

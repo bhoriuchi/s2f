@@ -9,7 +9,8 @@ export default {
       type: 'EntityTypeEnum'
     },
     name: {
-      type: 'String'
+      type: 'String',
+      unique: true
     },
     description: {
       type: 'String'
@@ -29,18 +30,6 @@ export default {
     schema: 'S2FWorkflow',
     collection: 'task',
     query: {
-      /*
-      read: {
-        type: ['Task'],
-        args: {
-          recordId: { type: 'String' },
-          id: { type: 'String' },
-          version: { type: 'String' },
-          date: { type: 'FactoryDateTime' }
-        },
-        resolve: 'readTask'
-      },
-      */
       readTaskVersions: {
         type: ['Task'],
         args: {
@@ -52,63 +41,6 @@ export default {
       }
     },
     mutation: {
-      /*
-      create: {
-        type: 'Task',
-        args: {
-          name: { type: 'String', nullable: false },
-          description: { type: 'String' },
-          source: { type: 'String', nullable: false }
-        },
-        resolve: 'createTask'
-      },
-      update: {
-        type: 'Task',
-        args: {
-          id: { type: 'String', nullable: false },
-          name: { type: 'String' },
-          description: { type: 'String' },
-          source: { type: 'String' }
-        },
-        resolve: 'updateTask'
-      },
-      delete: {
-        type: 'Boolean',
-        args: {
-          id: { type: 'String', nullable: false }
-        },
-        resolve: 'deleteTask'
-      },
-      branchTask: {
-        type: 'Task',
-        args: {
-          id: { type: 'String', nullable: false },
-          name: { type: 'String', nullable: false },
-          owner: { type: 'String' },
-          changeLog: { type: 'TemporalChangeLogInput' }
-        },
-        resolve: 'branchTemporalTask'
-      },
-      forkTask: {
-        type: 'Task',
-        args: {
-          id: { type: 'String', nullable: false },
-          name: { type: 'String', nullable: false },
-          owner: { type: 'String' },
-          changeLog: { type: 'TemporalChangeLogInput' }
-        },
-        resolve: 'forkTemporalTask'
-      },
-      publishTask: {
-        type: 'Task',
-        args: {
-          id: { type: 'String', nullable: false },
-          version: { type: 'String' },
-          changeLog: { type: 'TemporalChangeLogInput' }
-        },
-        resolve: 'publishTemporalTask'
-      },
-      */
       create: false,
       update: false,
       delete: false,

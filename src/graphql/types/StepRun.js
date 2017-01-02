@@ -42,7 +42,8 @@ export default {
     schema: 'S2FWorkflow',
     collection: 'step_run',
     mutation: {
-      /*
+      update: false,
+      delete: false,
       create: {
         type: 'StepRun',
         args: {
@@ -52,25 +53,6 @@ export default {
         },
         resolve: 'createStepRun'
       },
-      update: {
-        type: 'StepRun',
-        args: {
-          id: { type: 'String', nullable: false },
-          status: { type: 'RunStatusEnum'},
-          taskId: { type: 'String' },
-          ended: { type: 'FactoryDateTime' }
-        }
-      },
-      delete: {
-        type: 'Boolean',
-        args: {
-          id: { type: 'String', nullable: false }
-        }
-      },
-      */
-      create: false,
-      update: false,
-      delete: false,
       startStepRun: {
         type: 'Boolean',
         args: {
