@@ -1,5 +1,40 @@
 import _ from 'lodash'
 
+function getHighestVersion (backend, args, m) {
+  let { r } = backend
+  let task = backend.getCollection('Task')
+  let workflow = backend.getCollection('Workflow')
+
+  return r.expr(_.toLower(args.type))
+    .eq('task')
+    .branch(task, workflow)
+    .filter({ _temporal: { recordId: m('childId') } })
+    .reduce((prev, curr) => {
+      return r.branch(
+        prev('_temporal')('validFrom').eq(null)
+          .and(curr('_temporal')('validFrom').ne(null)),
+        curr,
+        prev('_temporal')('validTo').ne(null)
+          .and(curr('_temporal')('validFrom').ne(null))
+          .and(curr('_temporal')('validTo').eq(null)),
+        curr,
+        prev
+      )
+    })
+    .default(null)
+    .do((e) => {
+      return e.eq(null).branch(
+        null,
+        r.expr({
+          id: e('_temporal')('recordId'),
+          branchId: e('id'),
+          version: e('_temporal')('version'),
+          name: e('name')
+        })
+      )
+    })
+}
+
 export function readWorkflowFolder (backend) {
   return function (source, args, context, info) {
     let {r, connection} = backend
@@ -87,20 +122,29 @@ export function readSubFolder (backend) {
                 .eq('TASK')
                 .branch(task, workflow)
                 .filter({ _temporal: { recordId: m('childId') } })
-                .coerceTo('array')
+                .reduce((prev, curr) => {
+                  return r.branch(
+                    prev('_temporal')('validFrom').eq(null)
+                      .and(curr('_temporal')('validFrom').ne(null)),
+                    curr,
+                    prev('_temporal')('validTo').ne(null)
+                      .and(curr('_temporal')('validFrom').ne(null))
+                      .and(curr('_temporal')('validTo').eq(null)),
+                    curr,
+                    prev
+                  )
+                })
+                .default(null)
                 .do((e) => {
-                  return e.count().eq(0)
-                    .branch(
-                      null,
-                      e.nth(0).do((i) => {
-                        return {
-                          id: i('_temporal')('recordId'),
-                          branchId: i('id'),
-                          version: i('_temporal')('version'),
-                          name: i('name')
-                        }
-                      })
-                    )
+                  return e.eq(null).branch(
+                    null,
+                    r.expr({
+                      id: e('_temporal')('recordId'),
+                      branchId: e('id'),
+                      version: e('_temporal')('version'),
+                      name: e('name')
+                    })
+                  )
                 })
             })
             .filter((r) => r.eq(null).not())

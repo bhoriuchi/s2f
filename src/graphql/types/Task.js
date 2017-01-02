@@ -24,7 +24,8 @@ export default {
     }
   },
   _temporal: {
-    versioned: true
+    versioned: true,
+    readMostCurrent: true
   },
   _backend: {
     schema: 'S2FWorkflow',

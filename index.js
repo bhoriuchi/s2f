@@ -676,7 +676,8 @@ var Task = {
     }
   },
   _temporal: {
-    versioned: true
+    versioned: true,
+    readMostCurrent: true
   },
   _backend: {
     schema: 'S2FWorkflow',
@@ -1836,14 +1837,14 @@ function readSubFolder(backend) {
       return {
         subFolders: folder.filter({ parent: p('id') }).coerceTo('array'),
         entities: member.filter({ folder: p('id') }).map(function (m) {
-          return p('type').eq('TASK').branch(task, workflow).filter({ _temporal: { recordId: m('childId') } }).coerceTo('array').do(function (e) {
-            return e.count().eq(0).branch(null, e.nth(0).do(function (i) {
-              return {
-                id: i('_temporal')('recordId'),
-                branchId: i('id'),
-                version: i('_temporal')('version'),
-                name: i('name')
-              };
+          return p('type').eq('TASK').branch(task, workflow).filter({ _temporal: { recordId: m('childId') } }).reduce(function (prev, curr) {
+            return r.branch(prev('_temporal')('validFrom').eq(null).and(curr('_temporal')('validFrom').ne(null)), curr, prev('_temporal')('validTo').ne(null).and(curr('_temporal')('validFrom').ne(null)).and(curr('_temporal')('validTo').eq(null)), curr, prev);
+          }).default(null).do(function (e) {
+            return e.eq(null).branch(null, r.expr({
+              id: e('_temporal')('recordId'),
+              branchId: e('id'),
+              version: e('_temporal')('version'),
+              name: e('name')
             }));
           });
         }).filter(function (r) {
