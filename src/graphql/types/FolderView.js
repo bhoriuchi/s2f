@@ -4,7 +4,12 @@ export default {
     name: 'String',
     parent: 'String',
     type: 'FolderChildTypeEnum',
-    subFolders: ['Folder'],
+    subFolders: {
+      type: ['Folder'],
+      resolve (source) {
+        return Array.isArray(source.subFolders) ? source.subFolders : []
+      }
+    },
     entities: ['EntitySummary']
   }
 }

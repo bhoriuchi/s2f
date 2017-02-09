@@ -122,7 +122,12 @@ var FolderView = {
     name: 'String',
     parent: 'String',
     type: 'FolderChildTypeEnum',
-    subFolders: ['Folder'],
+    subFolders: {
+      type: ['Folder'],
+      resolve: function resolve(source) {
+        return Array.isArray(source.subFolders) ? source.subFolders : [];
+      }
+    },
     entities: ['EntitySummary']
   }
 };
@@ -1822,7 +1827,7 @@ function readRootFolder(backend) {
         }).coerceTo('array')
       };
     }).coerceTo('array').do(function (res) {
-      return res.count().eq(0).branch(null, res.nth(0));
+      return res.nth(0).default(null);
     }).run(connection);
   };
 }

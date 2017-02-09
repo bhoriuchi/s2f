@@ -99,7 +99,7 @@ export function readRootFolder (backend) {
         }
       })
       .coerceTo('array')
-      .do((res) => res.count().eq(0).branch(null, res.nth(0)))
+      .do((res) => res.nth(0).default(null))
       .run(connection)
   }
 }
