@@ -226,6 +226,7 @@ export function getWorkflowRun (backend, workflowRun, thread, callback) {
   return backend.lib.S2FWorkflow(`{
     readWorkflowRun (id: "${workflowRun}") {
       workflow { endStep { id } },
+      requestId,
       args,
       input,
       context {

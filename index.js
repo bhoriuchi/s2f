@@ -810,6 +810,10 @@ var WorkflowRun = {
       type: 'Workflow',
       has: 'id'
     },
+    requestId: {
+      description: 'the initiating requestId',
+      type: 'String'
+    },
     args: {
       type: 'FactoryJSON'
     },
@@ -1223,7 +1227,7 @@ function newWorkflowRun(backend, args, callback) {
 function getWorkflowRun(backend, workflowRun, thread, callback) {
   var GraphQLError = backend.graphql.GraphQLError;
 
-  return backend.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      workflow { endStep { id } },\n      args,\n      input,\n      context {\n        id,\n        parameter { id, name, type, scope, class },\n        value\n      },\n      threads (id: "' + thread + '") {\n        currentStepRun {\n          id,\n          step {\n            id,\n            type,\n            async,\n            source,\n            subWorkflow {\n              _temporal { recordId },\n              id\n            },\n            timeout,\n            failsWorkflow,\n            waitOnSuccess,\n            requireResumeKey,\n            success,\n            fail,\n            parameters { id, name, type, scope, class, mapsTo }\n          }\n        }\n      }\n    }\n  }').then(function (result) {
+  return backend.lib.S2FWorkflow('{\n    readWorkflowRun (id: "' + workflowRun + '") {\n      workflow { endStep { id } },\n      requestId,\n      args,\n      input,\n      context {\n        id,\n        parameter { id, name, type, scope, class },\n        value\n      },\n      threads (id: "' + thread + '") {\n        currentStepRun {\n          id,\n          step {\n            id,\n            type,\n            async,\n            source,\n            subWorkflow {\n              _temporal { recordId },\n              id\n            },\n            timeout,\n            failsWorkflow,\n            waitOnSuccess,\n            requireResumeKey,\n            success,\n            fail,\n            parameters { id, name, type, scope, class, mapsTo }\n          }\n        }\n      }\n    }\n  }').then(function (result) {
     if (result.errors) return callback(new GraphQLError(expandGQLErrors(result.errors)));
     return callback(null, _.get(result, 'data.readWorkflowRun[0]'));
   }).catch(callback);
@@ -1324,6 +1328,7 @@ function computeWorkflowStatus(payload, done) {
   try {
     var _ret = function () {
       var runner = payload.runner,
+          requestId = payload.requestId,
           workflowRun = payload.workflowRun,
           thread = payload.thread;
 
@@ -1367,7 +1372,6 @@ function computeWorkflowStatus(payload, done) {
             _this.log.trace({ workflowRun: workflowRun }, 'joined final thread');
             return endWorkflowRun(_this, workflowRun, status, function (err) {
               if (err) return done(err);
-
               _this.log.debug({ workflowRun: workflowRun, success: success }, 'workflow run completed');
               if (parentStepRun) runner.resume(taskId, { parentStepRun: parentStepRun, status: status, context: localCtx });
               return done(null, status, { context: localCtx });
@@ -3207,6 +3211,7 @@ function runStep(backend) {
             if (err) return done(err);
 
             var workflow = wfRun.workflow,
+                requestId = wfRun.requestId,
                 args = wfRun.args,
                 input = wfRun.input,
                 context = wfRun.context,
@@ -3229,6 +3234,7 @@ function runStep(backend) {
               runner: runner,
               task: task,
               taskId: taskId,
+              requestId: requestId,
               workflowRun: workflowRun,
               thread: thread,
               endStep: endStep,
@@ -3282,7 +3288,8 @@ function startWorkflow(backend) {
   return function (runner, task, done) {
     try {
       var _ret = function () {
-        var resume = task.resume,
+        var requestId = task.requestId,
+            resume = task.resume,
             data = task.data,
             _task$context = task.context,
             args = _task$context.args,
@@ -3308,7 +3315,7 @@ function startWorkflow(backend) {
           };
 
         return {
-          v: newWorkflowRun(backend, { args: args, input: input, taskId: taskId, parent: parent }, function (err, run) {
+          v: newWorkflowRun(backend, { requestId: requestId, args: args, input: input, taskId: taskId, parent: parent }, function (err, run) {
             if (err) return done(err);
 
             var workflowRun = _.get(run, 'id');

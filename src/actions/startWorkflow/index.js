@@ -6,7 +6,7 @@ import resumeStep from '../runStep/resumeStep'
 export default function startWorkflow (backend) {
   return function (runner, task, done) {
     try {
-      let { resume, data, context: { args, input, parent } } = task
+      let { requestId, resume, data, context: { args, input, parent } } = task
       let { parentStepRun, status, context } = data || {}
       let taskId = task.id
 
@@ -17,7 +17,7 @@ export default function startWorkflow (backend) {
 
       if (!args) return done(new Error('No arguments were supplied'))
 
-      return newWorkflowRun(backend, { args, input, taskId, parent }, (err, run) => {
+      return newWorkflowRun(backend, { requestId, args, input, taskId, parent }, (err, run) => {
         if (err) return done(err)
 
         let workflowRun = _.get(run, 'id')

@@ -23,7 +23,7 @@
   "dependencies": {
     "bluebird": "^3.4.6",
     "chalk": "^1.1.3",
-    "graphql-factory": "git+https://github.com/graphql-factory/graphql-factory.git#development",
+    "graphql-factory": "git+https://github.com/graphql-factory/graphql-factory.git#master",
     "graphql-factory-temporal": "git+https://github.com/graphql-factory/graphql-factory-temporal.git#batch_support",
     "graphql-factory-types": "^0.2.0",
     "graphql-obj2arg": "^0.1.0",

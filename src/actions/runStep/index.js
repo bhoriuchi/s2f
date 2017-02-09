@@ -22,7 +22,7 @@ export default function runStep (backend) {
       return getWorkflowRun(backend, workflowRun, thread, (err, wfRun) => {
         if (err) return done(err)
 
-        let { workflow, args, input, context, threads } = wfRun
+        let { workflow, requestId, args, input, context, threads } = wfRun
         let step = _.get(threads, '[0].currentStepRun.step')
         let stepRunId = _.get(threads, '[0].currentStepRun.id')
         let endStep = _.get(workflow, 'endStep.id')
@@ -40,6 +40,7 @@ export default function runStep (backend) {
           runner,
           task,
           taskId,
+          requestId,
           workflowRun,
           thread,
           endStep,

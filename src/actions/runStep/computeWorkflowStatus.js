@@ -7,7 +7,7 @@ let { values: { FAIL, SUCCESS, JOINED } } = RunStatusEnum
 
 export default function computeWorkflowStatus (payload, done) {
   try {
-    let { runner, workflowRun, thread } = payload
+    let { runner, requestId, workflowRun, thread } = payload
     let localCtx = {}
     this.log.trace({ workflowRun }, 'attempting to complete workflow run computation')
 
@@ -41,7 +41,6 @@ export default function computeWorkflowStatus (payload, done) {
         this.log.trace({ workflowRun }, 'joined final thread')
         return endWorkflowRun(this, workflowRun, status, (err) => {
           if (err) return done(err)
-
           this.log.debug({ workflowRun, success }, 'workflow run completed')
           if (parentStepRun) runner.resume(taskId, { parentStepRun, status, context: localCtx })
           return done(null, status, { context: localCtx })

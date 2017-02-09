@@ -11,6 +11,10 @@ export default {
       type: 'Workflow',
       has: 'id'
     },
+    requestId: {
+      description: 'the initiating requestId',
+      type: 'String'
+    },
     args: {
       type: 'FactoryJSON'
     },
