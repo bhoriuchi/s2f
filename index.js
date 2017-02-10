@@ -2666,6 +2666,7 @@ function createWorkflowRun(backend) {
         return workflowRun.insert({
           id: workflowRunId,
           workflow: wf.id,
+          requestId: args.requestId,
           args: args.args,
           input: input,
           started: now$$1,
