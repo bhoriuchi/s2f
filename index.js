@@ -855,6 +855,7 @@ var WorkflowRun = {
       create: {
         args: {
           workflow: { type: 'String' },
+          requestId: { type: 'String' },
           args: { type: 'FactoryJSON' },
           input: { type: 'FactoryJSON' },
           parameters: { type: ['ParameterInput'] },
